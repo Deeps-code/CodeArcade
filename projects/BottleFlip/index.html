@@ -12,16 +12,18 @@
     touch-action: none; overscroll-behavior: none;
   }
   canvas { display: block; touch-action: none; }
-  #sound {
+  #sound, #theme {
     position: fixed; top: 12px; right: 12px; width: 42px; height: 42px;
     border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(10, 8, 30, 0.45); color: #fff; font-size: 18px; cursor: pointer;
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
+  #theme { right: 62px; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<button id="theme" type="button" aria-label="Switch day / night">☀️</button>
 <button id="sound" type="button" aria-label="Toggle sound">🔊</button>
 <script>
   const TAU = Math.PI * 2;
@@ -32,7 +34,18 @@
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
   let W = 0, H = 0, dpr = 1;
-  let bgImage = null;
+  let bgNight = null, bgDay = null;
+
+  // Day / night: starts from your clock (6am–6pm = day) unless you've picked one.
+  let isDay = (() => {
+    try {
+      const saved = localStorage.getItem('bottleFlipTheme');
+      if (saved) return saved === 'day';
+    } catch (e) {}
+    const h = new Date().getHours();
+    return h >= 6 && h < 18;
+  })();
+  let dayMix = isDay ? 1 : 0; // 0 = night, 1 = day (fades between them)
   const G = {}; // layout values that depend on screen size
 
   // ---------- Tuning ----------
@@ -41,6 +54,14 @@
   const START_ZONE = 0.24;  // yellow zone width (fraction of bar)
   const MIN_ZONE = 0.07;
   const FILL = 0.42;        // how full the bottle is
+  // Scoring layers inside the zone, from the center outwards.
+  // size = how much of the zone's width the layer reaches (1 = the whole zone).
+  // wobble = how crooked the bottle lands (bigger = more wobble, still stays up).
+  const TIERS = [
+    { name: 'PERFECT!', size: 0.2, points: 3, color: '#ff4fa3', wobble: 0 },
+    { name: 'GREAT!', size: 0.55, points: 2, color: '#ff9f43', wobble: 0.08 },
+    { name: 'GOOD', size: 1, points: 1, color: '#ffd23f', wobble: 0.17 },
+  ];
   const LIQUIDS = [
     { name: 'Water', top: '#8fe0ff', bottom: '#2a7fd6' },
     { name: 'Orange soda', top: '#ffc46b', bottom: '#ff7a1a' },
@@ -78,6 +99,7 @@
     land: () => tone(150, 55, 0.16, 'sine', 0.28),
     tick: () => tone(260, 140, 0.06, 'sine', 0.08),
     win: () => { tone(660, 660, 0.12, 'triangle', 0.1); tone(990, 990, 0.18, 'triangle', 0.1, 0.1); },
+    good: () => tone(660, 700, 0.15, 'triangle', 0.09),
     perfect: () => [660, 830, 990, 1320].forEach((f, i) => tone(f, f, 0.15, 'triangle', 0.09, i * 0.07)),
     fail: () => tone(190, 70, 0.4, 'square', 0.05),
   };
@@ -193,7 +215,8 @@
   }
 
   // ---------- Background (drawn once per resize) ----------
-  function buildBackground() {
+  // Builds the room for night (day = false) or daytime (day = true).
+  function buildBackground(day) {
     const c = document.createElement('canvas');
     c.width = W * dpr; c.height = H * dpr;
     const g = c.getContext('2d');
@@ -202,11 +225,11 @@
 
     // Wall
     const wall = g.createLinearGradient(0, 0, 0, tY);
-    wall.addColorStop(0, '#15102e');
-    wall.addColorStop(1, '#34265c');
+    wall.addColorStop(0, day ? '#f6e7cf' : '#15102e');
+    wall.addColorStop(1, day ? '#e6caa3' : '#34265c');
     g.fillStyle = wall;
     g.fillRect(0, 0, W, tY);
-    g.fillStyle = 'rgba(255,255,255,0.025)';
+    g.fillStyle = day ? 'rgba(160,110,60,0.06)' : 'rgba(255,255,255,0.025)';
     for (let x = 0; x < W; x += 44) g.fillRect(x, 0, 22, tY);
 
     // Window with a night city
@@ -216,40 +239,62 @@
     const wx = W - ww - (narrow ? 16 : W * 0.07);
     const wy = Math.max(66, tY * 0.1);
     const sky = g.createLinearGradient(0, wy, 0, wy + wh);
-    sky.addColorStop(0, '#060a24');
-    sky.addColorStop(1, '#2e2572');
+    sky.addColorStop(0, day ? '#5fb8ff' : '#060a24');
+    sky.addColorStop(1, day ? '#cdeeff' : '#2e2572');
     g.fillStyle = sky;
     g.fillRect(wx, wy, ww, wh);
     g.save();
     g.beginPath(); g.rect(wx, wy, ww, wh); g.clip();
-    for (let i = 0; i < 40; i++) {
-      g.fillStyle = `rgba(255,255,255,${rand(0.3, 0.9)})`;
-      g.fillRect(wx + Math.random() * ww, wy + Math.random() * wh * 0.6, 1.3, 1.3);
-    }
     const mx = wx + ww * 0.72, my = wy + wh * 0.3, mr = ww * 0.09;
-    const moonGlow = g.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 4);
-    moonGlow.addColorStop(0, 'rgba(255,240,200,0.35)');
-    moonGlow.addColorStop(1, 'rgba(255,240,200,0)');
-    g.fillStyle = moonGlow;
-    g.fillRect(wx, wy, ww, wh);
-    g.fillStyle = '#fff3d1';
-    g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
-    g.fillStyle = 'rgba(200,180,140,0.35)';
-    g.beginPath(); g.arc(mx - mr * 0.3, my - mr * 0.2, mr * 0.22, 0, TAU); g.fill();
-    g.beginPath(); g.arc(mx + mr * 0.35, my + mr * 0.3, mr * 0.15, 0, TAU); g.fill();
+    if (day) {
+      // Sun + fluffy clouds
+      const sunGlow = g.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 5);
+      sunGlow.addColorStop(0, 'rgba(255,245,180,0.75)');
+      sunGlow.addColorStop(1, 'rgba(255,245,180,0)');
+      g.fillStyle = sunGlow;
+      g.fillRect(wx, wy, ww, wh);
+      g.fillStyle = '#fff6b0';
+      g.beginPath(); g.arc(mx, my, mr * 1.1, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.92)';
+      for (let i = 0; i < 3; i++) {
+        const cx = wx + ww * (0.15 + i * 0.32), cy = wy + wh * (0.18 + (i % 2) * 0.17), cr = ww * 0.06;
+        g.beginPath();
+        g.ellipse(cx, cy, cr * 1.6, cr * 0.8, 0, 0, TAU);
+        g.ellipse(cx + cr, cy - cr * 0.4, cr * 1.1, cr * 0.8, 0, 0, TAU);
+        g.ellipse(cx - cr, cy - cr * 0.2, cr, cr * 0.7, 0, 0, TAU);
+        g.fill();
+      }
+    } else {
+      // Stars + moon
+      for (let i = 0; i < 40; i++) {
+        g.fillStyle = `rgba(255,255,255,${rand(0.3, 0.9)})`;
+        g.fillRect(wx + Math.random() * ww, wy + Math.random() * wh * 0.6, 1.3, 1.3);
+      }
+      const moonGlow = g.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 4);
+      moonGlow.addColorStop(0, 'rgba(255,240,200,0.35)');
+      moonGlow.addColorStop(1, 'rgba(255,240,200,0)');
+      g.fillStyle = moonGlow;
+      g.fillRect(wx, wy, ww, wh);
+      g.fillStyle = '#fff3d1';
+      g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(200,180,140,0.35)';
+      g.beginPath(); g.arc(mx - mr * 0.3, my - mr * 0.2, mr * 0.22, 0, TAU); g.fill();
+      g.beginPath(); g.arc(mx + mr * 0.35, my + mr * 0.3, mr * 0.15, 0, TAU); g.fill();
+    }
+    // City skyline: dark with lit windows at night, blue-grey with glinting glass by day
     let bx = wx;
     while (bx < wx + ww) {
       const bwid = rand(ww * 0.08, ww * 0.18), bht = rand(wh * 0.2, wh * 0.55);
-      g.fillStyle = '#0b0a22';
+      g.fillStyle = day ? (Math.random() < 0.5 ? '#8aa0c4' : '#9fb3d3') : '#0b0a22';
       g.fillRect(bx, wy + wh - bht, bwid, bht);
-      g.fillStyle = 'rgba(255,214,120,0.8)';
+      g.fillStyle = day ? 'rgba(230,245,255,0.75)' : 'rgba(255,214,120,0.8)';
       for (let yy = wy + wh - bht + 6; yy < wy + wh - 4; yy += 8)
         for (let xx = bx + 3; xx < bx + bwid - 4; xx += 7)
-          if (Math.random() < 0.3) g.fillRect(xx, yy, 3, 4);
+          if (Math.random() < (day ? 0.5 : 0.3)) g.fillRect(xx, yy, 3, 4);
       bx += bwid + rand(1, 4);
     }
     g.restore();
-    g.strokeStyle = '#6b5690';
+    g.strokeStyle = day ? '#f4f1ea' : '#6b5690';
     g.lineWidth = 8;
     g.strokeRect(wx, wy, ww, wh);
     g.lineWidth = 4;
@@ -257,17 +302,17 @@
     g.moveTo(wx + ww / 2, wy); g.lineTo(wx + ww / 2, wy + wh);
     g.moveTo(wx, wy + wh / 2); g.lineTo(wx + ww, wy + wh / 2);
     g.stroke();
-    g.fillStyle = '#7b6599';
+    g.fillStyle = day ? '#d9cbb3' : '#7b6599';
     g.fillRect(wx - 10, wy + wh + 2, ww + 20, 8);
 
     // Shelf with books and a plant (only when there's room)
     if (!narrow) {
       const sx = W * 0.07, sw = Math.min(W * 0.22, 220), sy = wy + wh * 0.75;
-      g.fillStyle = '#5a4378';
+      g.fillStyle = day ? '#a77b52' : '#5a4378';
       g.fillRect(sx, sy, sw, 8);
       const bookColors = ['#ff4fa3', '#4fd1ff', '#ffd23f', '#a78bfa', '#5dffb0', '#ff8a5c'];
       let x = sx + 8;
-      g.globalAlpha = 0.75;
+      g.globalAlpha = day ? 0.9 : 0.75;
       for (let i = 0; i < 6; i++) {
         const bwid = rand(10, 16), bht = rand(30, 46);
         g.fillStyle = bookColors[i];
@@ -288,12 +333,27 @@
       g.fillRect(px - 12, sy - 22, 24, 22);
     }
 
-    // Warm lamp glow behind the bottle
-    const lg = g.createRadialGradient(G.cx, tY - G.bh * 0.5, 10, G.cx, tY - G.bh * 0.5, Math.max(W, H) * 0.45);
-    lg.addColorStop(0, 'rgba(255,180,110,0.22)');
-    lg.addColorStop(1, 'rgba(255,180,110,0)');
-    g.fillStyle = lg;
-    g.fillRect(0, 0, W, tY);
+    if (day) {
+      // Sunbeam slanting in from the window down to the table
+      const beam = g.createLinearGradient(wx + ww / 2, wy + wh, G.cx, tY);
+      beam.addColorStop(0, 'rgba(255,240,190,0.38)');
+      beam.addColorStop(1, 'rgba(255,240,190,0.06)');
+      g.fillStyle = beam;
+      g.beginPath();
+      g.moveTo(wx, wy + wh);
+      g.lineTo(wx + ww, wy + wh);
+      g.lineTo(Math.min(wx + ww, G.cx + W * 0.2), tY);
+      g.lineTo(Math.max(0, G.cx - W * 0.3), tY);
+      g.closePath();
+      g.fill();
+    } else {
+      // Warm lamp glow behind the bottle
+      const lg = g.createRadialGradient(G.cx, tY - G.bh * 0.5, 10, G.cx, tY - G.bh * 0.5, Math.max(W, H) * 0.45);
+      lg.addColorStop(0, 'rgba(255,180,110,0.22)');
+      lg.addColorStop(1, 'rgba(255,180,110,0)');
+      g.fillStyle = lg;
+      g.fillRect(0, 0, W, tY);
+    }
 
     // Wooden table: top surface + front
     const topY = tY - 10, topH = 18;
@@ -326,13 +386,13 @@
     g.translate(G.cx, tY);
     g.scale(1, 0.12);
     const pool = g.createRadialGradient(0, 0, 0, 0, 0, W * 0.35);
-    pool.addColorStop(0, 'rgba(255,200,140,0.35)');
+    pool.addColorStop(0, day ? 'rgba(255,240,200,0.45)' : 'rgba(255,200,140,0.35)');
     pool.addColorStop(1, 'rgba(255,200,140,0)');
     g.fillStyle = pool;
     g.beginPath(); g.arc(0, 0, W * 0.35, 0, TAU); g.fill();
     g.restore();
 
-    bgImage = c;
+    return c;
   }
 
   function resize() {
@@ -342,7 +402,8 @@
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     layout();
-    buildBackground();
+    bgNight = buildBackground(false);
+    bgDay = buildBackground(true);
     if (s.mode === 'settle' || (s.mode === 'result' && !s.success)) {
       const p = poseFromPhi(s.phi); s.x = p.x; s.y = p.y;
     } else if (s.mode !== 'flight') {
@@ -364,15 +425,20 @@
   function tap() {
     initAudio();
     if (s.mode !== 'aim') return;
+    // Which layer of the zone was the line in? (-1 = missed the zone)
     const dist = Math.abs(s.p - s.zoneC);
-    s.success = dist <= s.zoneW / 2;
-    s.perfect = s.success && dist <= s.zoneW * 0.12;
+    s.tier = TIERS.findIndex((t) => dist <= (s.zoneW * t.size) / 2);
+    s.success = s.tier !== -1;
+    s.perfect = s.tier === 0;
 
     // How far the bottle spins decides how it lands.
     let total;
-    if (s.perfect) total = TAU;
-    else if (s.success) total = TAU + rand(-0.17, 0.17);              // slight wobble, stays up
-    else total = TAU + (Math.random() < 0.5 ? -1 : 1) * rand(0.65, 1.4); // too far / not enough
+    if (s.success) {
+      const w = TIERS[s.tier].wobble;
+      total = TAU + rand(-w, w);                                           // lands upright, some wobble
+    } else {
+      total = TAU + (Math.random() < 0.5 ? -1 : 1) * rand(0.65, 1.4);      // too far / not enough
+    }
 
     const land = poseFromPhi(total - TAU);
     s.flight = { t: 0, x0: s.x, y0: s.y, x1: land.x, y1: land.y, total };
@@ -410,20 +476,18 @@
       s.phi = 0; s.angle = 0;
       s.x = G.cx; s.y = G.tableY - G.bh / 2;
       const prevLiquid = s.liquid;
-      s.score += s.perfect ? 2 : 1;
+      const tier = TIERS[s.tier];
+      s.score += tier.points;
       if (s.score > best) {
         best = s.score;
         try { localStorage.setItem('bottleFlipBest', best); } catch (e) {}
       }
       s.liquid = Math.floor(s.score / 5) % LIQUIDS.length;
-      if (s.perfect) {
-        s.msg = 'PERFECT! +2'; s.msgColor = '#ffd23f';
-        confetti();
-        sfx.perfect();
-      } else {
-        s.msg = 'Nice flip!'; s.msgColor = '#7fe3ff';
-        sfx.win();
-      }
+      s.msg = `${tier.name} +${tier.points}`;
+      s.msgColor = tier.color;
+      if (s.perfect) { confetti(); sfx.perfect(); }
+      else if (s.tier === 1) sfx.win();
+      else sfx.good();
       if (s.liquid !== prevLiquid) s.sub = 'New drink: ' + LIQUIDS[s.liquid].name + '!';
     } else {
       s.msg = 'Missed!'; s.msgColor = '#ff6fb5';
@@ -555,6 +619,8 @@
     }
 
     updateLiquid(dt);
+    dayMix += ((isDay ? 1 : 0) - dayMix) * Math.min(1, dt * 4);
+    if (Math.abs(dayMix - (isDay ? 1 : 0)) < 0.002) dayMix = isDay ? 1 : 0;
 
     for (const p of particles) {
       p.vy += p.g * dt;
@@ -662,7 +728,8 @@
 
     bottlePath(bh, bw);
     ctx.lineWidth = 2.5;
-    ctx.strokeStyle = 'rgba(220, 240, 255, 0.85)';
+    // Light outline at night, darker by day so the glass shows against the bright wall
+    ctx.strokeStyle = dayMix > 0.5 ? 'rgba(70, 100, 130, 0.8)' : 'rgba(220, 240, 255, 0.85)';
     ctx.stroke();
 
     ctx.fillStyle = '#4fd1ff';
@@ -670,15 +737,26 @@
     ctx.fill();
   }
 
-  function drawText(text, x, y, size, color, align = 'center') {
-    ctx.font = `bold ${size}px system-ui, sans-serif`;
+  // Text with a dark outline so it reads on both the night and day walls.
+  function drawText(text, x, y, size, color, align = 'center', weight = 'bold') {
+    ctx.font = `${weight} ${size}px system-ui, sans-serif`;
     ctx.textAlign = align;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(3, size * 0.14);
+    ctx.strokeStyle = 'rgba(20, 12, 40, 0.75)';
+    ctx.strokeText(text, x, y);
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
   }
 
   function draw() {
-    ctx.drawImage(bgImage, 0, 0, W, H);
+    // Cross-fade between the night and day rooms
+    if (dayMix < 1) ctx.drawImage(bgNight, 0, 0, W, H);
+    if (dayMix > 0) {
+      ctx.globalAlpha = dayMix;
+      ctx.drawImage(bgDay, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
 
     // Shadow under the bottle
     const restY = G.tableY - G.bh / 2;
@@ -727,11 +805,36 @@
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.stroke();
 
-    const zx = barX + (s.zoneC - s.zoneW / 2) * barW;
+    // Zone layers: draw the outer (GOOD) layer first, then GREAT, then PERFECT on top.
+    const zoneMid = barX + s.zoneC * barW;
     const zw = s.zoneW * barW;
-    ctx.fillStyle = '#ffd23f';
-    roundRect(zx, barY + 5, zw, barH - 10, 5);
-    ctx.fill();
+    const layerW = (i) => Math.max(i === 0 ? 6 : 0, zw * TIERS[i].size); // keep PERFECT visible
+    for (let i = TIERS.length - 1; i >= 0; i--) {
+      const w = layerW(i);
+      ctx.fillStyle = TIERS[i].color;
+      roundRect(zoneMid - w / 2, barY + 5, w, barH - 10, i === TIERS.length - 1 ? 5 : 2);
+      ctx.fill();
+      // Thin dark divider on each edge of the inner layers
+      if (i < TIERS.length - 1) {
+        ctx.fillStyle = 'rgba(20, 10, 30, 0.55)';
+        ctx.fillRect(zoneMid - w / 2 - 1, barY + 5, 1.5, barH - 10);
+        ctx.fillRect(zoneMid + w / 2 - 0.5, barY + 5, 1.5, barH - 10);
+      }
+    }
+    // Point labels inside each layer, when there's room
+    ctx.font = 'bold 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(30, 15, 20, 0.85)';
+    const labelY = barY + barH / 2;
+    if (layerW(0) >= 18) ctx.fillText('+' + TIERS[0].points, zoneMid, labelY);
+    for (let i = 1; i < TIERS.length; i++) {
+      const side = (layerW(i) - layerW(i - 1)) / 2;
+      if (side < 18) continue;
+      const offset = (layerW(i - 1) + side) / 2;
+      ctx.fillText('+' + TIERS[i].points, zoneMid - offset, labelY);
+      ctx.fillText('+' + TIERS[i].points, zoneMid + offset, labelY);
+    }
 
     const lx = barX + s.p * barW;
     const inZone = Math.abs(s.p - s.zoneC) <= s.zoneW / 2;
@@ -742,8 +845,8 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     const hint = isTouch
-      ? 'Tap when the line is inside the yellow zone'
-      : 'Click or press ENTER when the line is inside the yellow zone';
+      ? 'Tap when the line is in the zone · hit the pink center for PERFECT'
+      : 'Click or press ENTER when the line is in the zone · pink center = PERFECT';
     let fontSize = 14;
     ctx.font = fontSize + 'px system-ui, sans-serif';
     const textW = ctx.measureText(hint).width;
@@ -759,11 +862,8 @@
     ctx.shadowBlur = 8;
     ctx.textBaseline = 'top';
     drawText(String(s.score), 20, 14, 32, '#ffffff', 'left');
-    ctx.font = '13px system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText('BEST ' + best, 20, 52);
-    ctx.fillStyle = LIQUIDS[s.liquid].top;
-    ctx.fillText(LIQUIDS[s.liquid].name.toUpperCase(), 20, 70);
+    drawText('BEST ' + best, 20, 52, 13, 'rgba(255,255,255,0.85)', 'left', '600');
+    drawText(LIQUIDS[s.liquid].name.toUpperCase(), 20, 70, 13, LIQUIDS[s.liquid].top, 'left', '600');
 
     if (s.msg) {
       const pop = Math.min(s.msgT / 0.15, 1);
@@ -772,11 +872,7 @@
       ctx.scale(0.7 + 0.3 * pop, 0.7 + 0.3 * pop);
       ctx.textBaseline = 'middle';
       drawText(s.msg, 0, 0, W < 400 ? 28 : 36, s.msgColor);
-      if (s.sub) {
-        ctx.font = '600 16px system-ui, sans-serif';
-        ctx.fillStyle = LIQUIDS[s.liquid].top;
-        ctx.fillText(s.sub, 0, 32);
-      }
+      if (s.sub) drawText(s.sub, 0, 32, 16, LIQUIDS[s.liquid].top, 'center', '600');
       ctx.restore();
     }
     ctx.restore();
@@ -803,6 +899,19 @@
     if (!muted) { initAudio(); sfx.tick(); }
   });
   refreshSoundBtn();
+
+  const themeBtn = document.getElementById('theme');
+  // Shows what you'll switch TO: moon while it's day, sun while it's night.
+  function refreshThemeBtn() { themeBtn.textContent = isDay ? '🌙' : '☀️'; }
+  themeBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  themeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isDay = !isDay;
+    try { localStorage.setItem('bottleFlipTheme', isDay ? 'day' : 'night'); } catch (err) {}
+    refreshThemeBtn();
+    themeBtn.blur();
+  });
+  refreshThemeBtn();
   window.focus();
 
   // ---------- Start ----------
