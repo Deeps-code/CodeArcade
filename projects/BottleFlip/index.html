@@ -809,17 +809,33 @@
     const zoneMid = barX + s.zoneC * barW;
     const zw = s.zoneW * barW;
     const layerW = (i) => Math.max(i === 0 ? 6 : 0, zw * TIERS[i].size); // keep PERFECT visible
+    // One smooth gradient across the whole zone: yellow edges -> orange -> pink center.
+    const outerW = layerW(TIERS.length - 1);
+    const zoneLeft = zoneMid - outerW / 2;
+    const blend = ctx.createLinearGradient(zoneLeft, 0, zoneLeft + outerW, 0);
+    const edge = (i) => 0.5 - layerW(i) / outerW / 2; // where layer i starts (0..0.5)
+    const stops = [
+      [0, TIERS[2].color],
+      [edge(1), '#ffb347'],          // yellow blending into orange
+      [(edge(1) + edge(0)) / 2, TIERS[1].color],
+      [edge(0), '#ff7486'],          // orange blending into pink
+      [0.5, TIERS[0].color],
+    ];
+    for (const [pos, col] of stops) {
+      blend.addColorStop(pos, col);
+      blend.addColorStop(1 - pos, col);
+    }
+    // Each layer is a different height: GOOD is short, GREAT taller, PERFECT tallest.
+    const layerH = [barH - 2, barH - 10, barH - 18];
     for (let i = TIERS.length - 1; i >= 0; i--) {
       const w = layerW(i);
-      ctx.fillStyle = TIERS[i].color;
-      roundRect(zoneMid - w / 2, barY + 5, w, barH - 10, i === TIERS.length - 1 ? 5 : 2);
+      const h = layerH[i];
+      ctx.save();
+      if (i === 0) { ctx.shadowColor = TIERS[0].color; ctx.shadowBlur = 12; } // glowing center
+      ctx.fillStyle = blend;
+      roundRect(zoneMid - w / 2, barY + (barH - h) / 2, w, h, Math.min(5, w / 2));
       ctx.fill();
-      // Thin dark divider on each edge of the inner layers
-      if (i < TIERS.length - 1) {
-        ctx.fillStyle = 'rgba(20, 10, 30, 0.55)';
-        ctx.fillRect(zoneMid - w / 2 - 1, barY + 5, 1.5, barH - 10);
-        ctx.fillRect(zoneMid + w / 2 - 0.5, barY + 5, 1.5, barH - 10);
-      }
+      ctx.restore();
     }
     // Point labels inside each layer, when there's room
     ctx.font = 'bold 11px system-ui, sans-serif';
