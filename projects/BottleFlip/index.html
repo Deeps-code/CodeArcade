@@ -58,9 +58,9 @@
   // size = how much of the zone's width the layer reaches (1 = the whole zone).
   // wobble = how crooked the bottle lands (bigger = more wobble, still stays up).
   const TIERS = [
-    { name: 'PERFECT!', size: 0.2, points: 3, color: '#ff4fa3', wobble: 0 },
-    { name: 'GREAT!', size: 0.55, points: 2, color: '#ff9f43', wobble: 0.08 },
-    { name: 'GOOD', size: 1, points: 1, color: '#ffd23f', wobble: 0.17 },
+    { name: 'PERFECT!', size: 0.2, points: 3, color: '#ff4f8b', wobble: 0 },
+    { name: 'GREAT!', size: 0.55, points: 2, color: '#a35cff', wobble: 0.08 },
+    { name: 'GOOD', size: 1, points: 1, color: '#33b4ff', wobble: 0.17 },
   ];
   const LIQUIDS = [
     { name: 'Water', top: '#8fe0ff', bottom: '#2a7fd6' },
@@ -636,6 +636,10 @@
   // ---------- Drawing ----------
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
+    roundRectPath(x, y, w, h, r);
+  }
+  // Adds a rounded rectangle to the current path (lets several shapes share one clip).
+  function roundRectPath(x, y, w, h, r) {
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
     ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -643,6 +647,34 @@
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
+
+  // A reusable watercolor-paper texture: soft light/dark blotches, grain and brush streaks.
+  const watercolor = (() => {
+    const c = document.createElement('canvas');
+    c.width = 600; c.height = 80;
+    const g = c.getContext('2d');
+    for (let i = 0; i < 260; i++) {
+      const x = Math.random() * 600, y = Math.random() * 80, r = rand(6, 30);
+      const col = Math.random() < 0.5 ? '255,255,255' : '40,0,70';
+      const grad = g.createRadialGradient(x, y, 0, x, y, r);
+      grad.addColorStop(0, `rgba(${col},${rand(0.05, 0.14)})`);
+      grad.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = grad;
+      g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    g.lineCap = 'round';
+    for (let i = 0; i < 30; i++) {
+      g.strokeStyle = `rgba(255,255,255,${rand(0.04, 0.1)})`;
+      g.lineWidth = rand(2, 7);
+      const x = Math.random() * 640 - 20;
+      g.beginPath(); g.moveTo(x, 80); g.lineTo(x + rand(20, 50), 0); g.stroke();
+    }
+    for (let i = 0; i < 3000; i++) {
+      g.fillStyle = `rgba(255,255,255,${rand(0.03, 0.1)})`;
+      g.fillRect(Math.random() * 600, Math.random() * 80, 1, 1);
+    }
+    return c;
+  })();
 
   function bottlePath(bh, bw) {
     const d = dims(bh, bw);
@@ -814,12 +846,16 @@
     const zoneLeft = zoneMid - outerW / 2;
     const blend = ctx.createLinearGradient(zoneLeft, 0, zoneLeft + outerW, 0);
     const edge = (i) => 0.5 - layerW(i) / outerW / 2; // where layer i starts (0..0.5)
+    // Watercolor rainbow: cyan/blue edges -> violet -> magenta -> warm orange center.
+    const e1 = edge(1), e0 = edge(0);
     const stops = [
-      [0, TIERS[2].color],
-      [edge(1), '#ffb347'],          // yellow blending into orange
-      [(edge(1) + edge(0)) / 2, TIERS[1].color],
-      [edge(0), '#ff7486'],          // orange blending into pink
-      [0.5, TIERS[0].color],
+      [0, '#16c8ff'],
+      [e1 * 0.6, '#2f7dff'],
+      [e1, '#5b5cff'],
+      [(e1 + e0) / 2, '#9a4dff'],
+      [e0, '#d93fd6'],
+      [e0 + (0.5 - e0) * 0.55, '#ff3d8a'],
+      [0.5, '#ff7a2f'],
     ];
     for (const [pos, col] of stops) {
       blend.addColorStop(pos, col);
@@ -837,11 +873,23 @@
       ctx.fill();
       ctx.restore();
     }
+    // Painted watercolor texture over the whole zone (blotches, paper grain, brush streaks)
+    ctx.save();
+    ctx.beginPath();
+    for (let i = 0; i < TIERS.length; i++) {
+      const w = layerW(i), h = layerH[i];
+      roundRectPath(zoneMid - w / 2, barY + (barH - h) / 2, w, h, Math.min(5, w / 2));
+    }
+    ctx.clip();
+    ctx.drawImage(watercolor, zoneLeft, barY, outerW, barH);
+    ctx.restore();
     // Point labels inside each layer, when there's room
     ctx.font = 'bold 11px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(30, 15, 20, 0.85)';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(20, 0, 40, 0.7)';
+    ctx.shadowBlur = 3;
     const labelY = barY + barH / 2;
     if (layerW(0) >= 18) ctx.fillText('+' + TIERS[0].points, zoneMid, labelY);
     for (let i = 1; i < TIERS.length; i++) {
@@ -851,6 +899,7 @@
       ctx.fillText('+' + TIERS[i].points, zoneMid - offset, labelY);
       ctx.fillText('+' + TIERS[i].points, zoneMid + offset, labelY);
     }
+    ctx.shadowBlur = 0;
 
     const lx = barX + s.p * barW;
     const inZone = Math.abs(s.p - s.zoneC) <= s.zoneW / 2;
@@ -861,8 +910,8 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     const hint = isTouch
-      ? 'Tap when the line is in the zone · hit the pink center for PERFECT'
-      : 'Click or press ENTER when the line is in the zone · pink center = PERFECT';
+      ? 'Tap when the line is in the zone · hit the hot center for PERFECT'
+      : 'Click or press ENTER when the line is in the zone · hot center = PERFECT';
     let fontSize = 14;
     ctx.font = fontSize + 'px system-ui, sans-serif';
     const textW = ctx.measureText(hint).width;
