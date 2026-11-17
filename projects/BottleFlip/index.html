@@ -6,125 +6,564 @@
 <title>Bottle Flip</title>
 <style>
   html, body {
-    margin: 0; height: 100%; overflow: hidden;
-    background: #0f1020; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    margin: 0; height: 100%; overflow: hidden; background: #1a1438;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none;
   }
-  html, body { touch-action: none; overscroll-behavior: none; }
   canvas { display: block; touch-action: none; }
+  #sound {
+    position: fixed; top: 12px; right: 12px; width: 42px; height: 42px;
+    border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(10, 8, 30, 0.45); color: #fff; font-size: 18px; cursor: pointer;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<button id="sound" type="button" aria-label="Toggle sound">🔊</button>
 <script>
+  const TAU = Math.PI * 2;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const wrapAngle = (a) => (((a + Math.PI) % TAU) + TAU) % TAU - Math.PI;
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  let W, H, dpr;
+  let W = 0, H = 0, dpr = 1;
+  let bgImage = null;
+  const G = {}; // layout values that depend on screen size
 
-  function resize() {
-    dpr = window.devicePixelRatio || 1;
-    W = window.innerWidth; H = window.innerHeight;
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  // ---------- Game state ----------
-  const FLIP_DURATION = 0.9;      // seconds the bottle is in the air
-  const START_SPEED = 0.8;        // bar widths per second
-  const START_ZONE = 0.24;        // yellow zone width (fraction of bar)
+  // ---------- Tuning ----------
+  const FLIP_TIME = 0.95;   // seconds in the air
+  const START_SPEED = 0.8;  // bar widths per second
+  const START_ZONE = 0.24;  // yellow zone width (fraction of bar)
   const MIN_ZONE = 0.07;
+  const FILL = 0.42;        // how full the bottle is
+  const LIQUIDS = [
+    { name: 'Water', top: '#8fe0ff', bottom: '#2a7fd6' },
+    { name: 'Orange soda', top: '#ffc46b', bottom: '#ff7a1a' },
+    { name: 'Lime soda', top: '#c4ff8a', bottom: '#33b04a' },
+    { name: 'Grape juice', top: '#d9a6ff', bottom: '#7a2fd6' },
+    { name: 'Cola', top: '#d08a55', bottom: '#4f230f' },
+  ];
 
+  // ---------- Sound (tiny synth, no files needed) ----------
+  let actx = null;
+  let muted = false;
+  try { muted = localStorage.getItem('bottleFlipMuted') === '1'; } catch (e) {}
+  function initAudio() {
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function tone(freq, endFreq, dur, type = 'sine', vol = 0.15, delay = 0) {
+    if (muted || !actx) return;
+    const t0 = actx.currentTime + delay;
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    o.frequency.exponentialRampToValueAtTime(endFreq, t0 + dur);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(actx.destination);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+  }
+  const sfx = {
+    flip: () => tone(240, 640, 0.25, 'triangle', 0.07),
+    land: () => tone(150, 55, 0.16, 'sine', 0.28),
+    tick: () => tone(260, 140, 0.06, 'sine', 0.08),
+    win: () => { tone(660, 660, 0.12, 'triangle', 0.1); tone(990, 990, 0.18, 'triangle', 0.1, 0.1); },
+    perfect: () => [660, 830, 990, 1320].forEach((f, i) => tone(f, f, 0.15, 'triangle', 0.09, i * 0.07)),
+    fail: () => tone(190, 70, 0.4, 'square', 0.05),
+  };
+
+  // ---------- State ----------
   let best = 0;
   try { best = Number(localStorage.getItem('bottleFlipBest')) || 0; } catch (e) {}
 
   const s = {
-    mode: 'aim',          // aim | flipping | landed
-    p: 0, dir: 1,         // thin line position (0..1) and direction
+    mode: 'aim',            // aim | flight | settle | result
+    p: 0, dir: 1,           // thin line position (0..1) and direction
     speed: START_SPEED,
     zoneC: 0.5, zoneW: START_ZONE,
-    flipT: 0, success: false, failAngle: 0,
-    resultT: 0,
-    score: 0,
-    msg: 'Tap to flip!', msgColor: '#e8e8f5', msgT: 0,
+    score: 0, liquid: 0,
+    success: false, perfect: false,
+    // bottle pose
+    x: 0, y: 0, angle: 0, angVel: 0,
+    flight: null,
+    phi: 0, phiV: 0,        // tilt while rocking / tipping over on the table
+    resultT: 0, fade: 1,
+    // liquid
+    wa: 0, waV: 0,          // world angle of the liquid surface (0 = level)
+    waveA: 0, wavePhase: 0,
+    lq: { ux: 0, uy: -1, level: 0 },
+    // text
+    msg: 'Tap to flip!', msgColor: '#ffffff', sub: '', msgT: 0,
   };
+  let particles = [];
+  let bubbles = [];
 
-  function newZone() {
-    const half = s.zoneW / 2;
-    s.zoneC = half + Math.random() * (1 - s.zoneW);
+  // ---------- Bottle geometry ----------
+  function dims(bh, bw) {
+    const top = -bh / 2, bottom = bh / 2;
+    const neckW = bw * 0.4, neckH = bh * 0.16, capH = bh * 0.07, shoulder = bh * 0.12;
+    return { top, bottom, neckW, neckH, capH, bodyTop: top + capH + neckH + shoulder };
+  }
+  // Simple polygon of the inside of the bottle, used to work out the water level.
+  function bottlePolygon(bh, bw) {
+    const d = dims(bh, bw);
+    return [
+      [-d.neckW / 2, d.top + d.capH], [-d.neckW / 2, d.top + d.capH + d.neckH],
+      [-bw / 2, d.bodyTop], [-bw / 2, d.bottom], [bw / 2, d.bottom], [bw / 2, d.bodyTop],
+      [d.neckW / 2, d.top + d.capH + d.neckH], [d.neckW / 2, d.top + d.capH],
+    ];
+  }
+  function polyArea(p) {
+    let a = 0;
+    for (let i = 0; i < p.length; i++) {
+      const [x1, y1] = p[i], [x2, y2] = p[(i + 1) % p.length];
+      a += x1 * y2 - x2 * y1;
+    }
+    return Math.abs(a) / 2;
+  }
+  // Keep the part of the polygon below the surface line (p · up <= d).
+  function clipBelow(poly, ux, uy, d) {
+    const out = [];
+    for (let i = 0; i < poly.length; i++) {
+      const A = poly[i], B = poly[(i + 1) % poly.length];
+      const da = A[0] * ux + A[1] * uy - d;
+      const db = B[0] * ux + B[1] * uy - d;
+      if (da <= 0) out.push(A);
+      if ((da <= 0) !== (db <= 0)) {
+        const t = da / (da - db);
+        out.push([A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t]);
+      }
+    }
+    return out;
+  }
+  // Find where the surface sits so the liquid keeps the same volume at any tilt.
+  function waterLevel(ux, uy) {
+    let lo = Infinity, hi = -Infinity;
+    for (const [x, y] of G.poly) {
+      const v = x * ux + y * uy;
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    const target = FILL * G.polyArea;
+    for (let i = 0; i < 18; i++) {
+      const mid = (lo + hi) / 2;
+      if (polyArea(clipBelow(G.poly, ux, uy, mid)) < target) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
   }
 
+  function layout() {
+    G.bh = Math.max(110, Math.min(H * 0.26, 190));
+    G.bw = G.bh * 0.38;
+    G.tableY = Math.round(H * 0.62);
+    G.cx = W / 2;
+    G.L = Math.hypot(G.bw / 2, G.bh / 2);      // corner to center distance
+    G.beta = Math.atan2(G.bw / 2, G.bh / 2);   // tip-over angle
+    G.jump = H * 0.33;
+    G.g = (8 * G.jump) / (FLIP_TIME * FLIP_TIME); // gravity that matches the jump
+    G.poly = bottlePolygon(G.bh, G.bw);
+    G.polyArea = polyArea(G.poly);
+  }
+
+  // Bottle standing on one bottom corner, tilted by phi.
+  function poseFromPhi(phi) {
+    const side = phi >= 0 ? 1 : -1;
+    const px = G.cx + side * G.bw / 2, py = G.tableY;
+    const vx = -side * G.bw / 2, vy = -G.bh / 2;
+    const c = Math.cos(phi), sn = Math.sin(phi);
+    return { x: px + vx * c - vy * sn, y: py + vx * sn + vy * c };
+  }
+
+  function resetBottle() {
+    s.x = G.cx; s.y = G.tableY - G.bh / 2;
+    s.angle = 0; s.angVel = 0; s.phi = 0; s.phiV = 0;
+    s.wa = 0; s.waV = 0; s.waveA = G.bw * 0.04;
+    bubbles = [];
+  }
+
+  // ---------- Background (drawn once per resize) ----------
+  function buildBackground() {
+    const c = document.createElement('canvas');
+    c.width = W * dpr; c.height = H * dpr;
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const tY = G.tableY;
+
+    // Wall
+    const wall = g.createLinearGradient(0, 0, 0, tY);
+    wall.addColorStop(0, '#15102e');
+    wall.addColorStop(1, '#34265c');
+    g.fillStyle = wall;
+    g.fillRect(0, 0, W, tY);
+    g.fillStyle = 'rgba(255,255,255,0.025)';
+    for (let x = 0; x < W; x += 44) g.fillRect(x, 0, 22, tY);
+
+    // Window with a night city
+    const narrow = W < 560;
+    const ww = narrow ? Math.min(W * 0.42, 200) : Math.min(W * 0.28, 300);
+    const wh = Math.min(tY * 0.48, ww * 0.85);
+    const wx = W - ww - (narrow ? 16 : W * 0.07);
+    const wy = Math.max(66, tY * 0.1);
+    const sky = g.createLinearGradient(0, wy, 0, wy + wh);
+    sky.addColorStop(0, '#060a24');
+    sky.addColorStop(1, '#2e2572');
+    g.fillStyle = sky;
+    g.fillRect(wx, wy, ww, wh);
+    g.save();
+    g.beginPath(); g.rect(wx, wy, ww, wh); g.clip();
+    for (let i = 0; i < 40; i++) {
+      g.fillStyle = `rgba(255,255,255,${rand(0.3, 0.9)})`;
+      g.fillRect(wx + Math.random() * ww, wy + Math.random() * wh * 0.6, 1.3, 1.3);
+    }
+    const mx = wx + ww * 0.72, my = wy + wh * 0.3, mr = ww * 0.09;
+    const moonGlow = g.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 4);
+    moonGlow.addColorStop(0, 'rgba(255,240,200,0.35)');
+    moonGlow.addColorStop(1, 'rgba(255,240,200,0)');
+    g.fillStyle = moonGlow;
+    g.fillRect(wx, wy, ww, wh);
+    g.fillStyle = '#fff3d1';
+    g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(200,180,140,0.35)';
+    g.beginPath(); g.arc(mx - mr * 0.3, my - mr * 0.2, mr * 0.22, 0, TAU); g.fill();
+    g.beginPath(); g.arc(mx + mr * 0.35, my + mr * 0.3, mr * 0.15, 0, TAU); g.fill();
+    let bx = wx;
+    while (bx < wx + ww) {
+      const bwid = rand(ww * 0.08, ww * 0.18), bht = rand(wh * 0.2, wh * 0.55);
+      g.fillStyle = '#0b0a22';
+      g.fillRect(bx, wy + wh - bht, bwid, bht);
+      g.fillStyle = 'rgba(255,214,120,0.8)';
+      for (let yy = wy + wh - bht + 6; yy < wy + wh - 4; yy += 8)
+        for (let xx = bx + 3; xx < bx + bwid - 4; xx += 7)
+          if (Math.random() < 0.3) g.fillRect(xx, yy, 3, 4);
+      bx += bwid + rand(1, 4);
+    }
+    g.restore();
+    g.strokeStyle = '#6b5690';
+    g.lineWidth = 8;
+    g.strokeRect(wx, wy, ww, wh);
+    g.lineWidth = 4;
+    g.beginPath();
+    g.moveTo(wx + ww / 2, wy); g.lineTo(wx + ww / 2, wy + wh);
+    g.moveTo(wx, wy + wh / 2); g.lineTo(wx + ww, wy + wh / 2);
+    g.stroke();
+    g.fillStyle = '#7b6599';
+    g.fillRect(wx - 10, wy + wh + 2, ww + 20, 8);
+
+    // Shelf with books and a plant (only when there's room)
+    if (!narrow) {
+      const sx = W * 0.07, sw = Math.min(W * 0.22, 220), sy = wy + wh * 0.75;
+      g.fillStyle = '#5a4378';
+      g.fillRect(sx, sy, sw, 8);
+      const bookColors = ['#ff4fa3', '#4fd1ff', '#ffd23f', '#a78bfa', '#5dffb0', '#ff8a5c'];
+      let x = sx + 8;
+      g.globalAlpha = 0.75;
+      for (let i = 0; i < 6; i++) {
+        const bwid = rand(10, 16), bht = rand(30, 46);
+        g.fillStyle = bookColors[i];
+        g.fillRect(x, sy - bht, bwid, bht);
+        x += bwid + 2;
+      }
+      g.globalAlpha = 1;
+      const px = sx + sw - 34;
+      g.fillStyle = '#3fbf6a';
+      for (let i = 0; i < 6; i++) {
+        g.save();
+        g.translate(px, sy - 22);
+        g.rotate(-1.2 + i * 0.48);
+        g.beginPath(); g.ellipse(0, -16, 6, 16, 0, 0, TAU); g.fill();
+        g.restore();
+      }
+      g.fillStyle = '#c0704a';
+      g.fillRect(px - 12, sy - 22, 24, 22);
+    }
+
+    // Warm lamp glow behind the bottle
+    const lg = g.createRadialGradient(G.cx, tY - G.bh * 0.5, 10, G.cx, tY - G.bh * 0.5, Math.max(W, H) * 0.45);
+    lg.addColorStop(0, 'rgba(255,180,110,0.22)');
+    lg.addColorStop(1, 'rgba(255,180,110,0)');
+    g.fillStyle = lg;
+    g.fillRect(0, 0, W, tY);
+
+    // Wooden table: top surface + front
+    const topY = tY - 10, topH = 18;
+    const top = g.createLinearGradient(0, topY, 0, topY + topH);
+    top.addColorStop(0, '#b97a4a');
+    top.addColorStop(1, '#8a5532');
+    g.fillStyle = top;
+    g.fillRect(0, topY, W, topH);
+    g.fillStyle = 'rgba(255,220,180,0.35)';
+    g.fillRect(0, topY, W, 1.5);
+    const frontY = topY + topH;
+    const front = g.createLinearGradient(0, frontY, 0, H);
+    front.addColorStop(0, '#6b3f24');
+    front.addColorStop(1, '#2e1a10');
+    g.fillStyle = front;
+    g.fillRect(0, frontY, W, H - frontY);
+    g.fillStyle = 'rgba(0,0,0,0.35)';
+    g.fillRect(0, frontY, W, 3);
+    g.strokeStyle = 'rgba(0,0,0,0.13)';
+    g.lineWidth = 1;
+    for (let i = 0; i < 14; i++) {
+      const y = frontY + 10 + Math.random() * (H - frontY - 10);
+      g.beginPath();
+      g.moveTo(0, y);
+      for (let x = 0; x <= W + 40; x += 40) g.lineTo(x, y + Math.sin(x * 0.01 + i) * 3);
+      g.stroke();
+    }
+    // Pool of lamp light on the table
+    g.save();
+    g.translate(G.cx, tY);
+    g.scale(1, 0.12);
+    const pool = g.createRadialGradient(0, 0, 0, 0, 0, W * 0.35);
+    pool.addColorStop(0, 'rgba(255,200,140,0.35)');
+    pool.addColorStop(1, 'rgba(255,200,140,0)');
+    g.fillStyle = pool;
+    g.beginPath(); g.arc(0, 0, W * 0.35, 0, TAU); g.fill();
+    g.restore();
+
+    bgImage = c;
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout();
+    buildBackground();
+    if (s.mode === 'settle' || (s.mode === 'result' && !s.success)) {
+      const p = poseFromPhi(s.phi); s.x = p.x; s.y = p.y;
+    } else if (s.mode !== 'flight') {
+      s.x = G.cx; s.y = G.tableY - G.bh / 2;
+    }
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- Game flow ----------
+  function newZone() {
+    s.zoneC = s.zoneW / 2 + Math.random() * (1 - s.zoneW);
+  }
   function resetGame() {
-    s.score = 0;
-    s.speed = START_SPEED;
-    s.zoneW = START_ZONE;
+    s.score = 0; s.liquid = 0;
+    s.speed = START_SPEED; s.zoneW = START_ZONE;
     newZone();
   }
 
   function tap() {
+    initAudio();
     if (s.mode !== 'aim') return;
     const dist = Math.abs(s.p - s.zoneC);
     s.success = dist <= s.zoneW / 2;
     s.perfect = s.success && dist <= s.zoneW * 0.12;
-    // A miss over- or under-rotates and lands on its side.
-    s.failAngle = Math.random() < 0.5 ? Math.PI * 1.5 : Math.PI * 2.5;
-    s.mode = 'flipping';
-    s.flipT = 0;
-    s.msg = '';
+
+    // How far the bottle spins decides how it lands.
+    let total;
+    if (s.perfect) total = TAU;
+    else if (s.success) total = TAU + rand(-0.17, 0.17);              // slight wobble, stays up
+    else total = TAU + (Math.random() < 0.5 ? -1 : 1) * rand(0.65, 1.4); // too far / not enough
+
+    const land = poseFromPhi(total - TAU);
+    s.flight = { t: 0, x0: s.x, y0: s.y, x1: land.x, y1: land.y, total };
+    s.mode = 'flight';
+    s.msg = ''; s.sub = '';
+    sfx.flip();
+    spawnBubbles(4);
   }
 
-  window.addEventListener('pointerdown', (e) => { e.preventDefault(); tap(); });
-  window.addEventListener('keydown', (e) => {
-    const isFlipKey = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space';
-    if (!isFlipKey) return;
-    e.preventDefault();
-    if (!e.repeat) tap();   // holding the key down doesn't spam flips
-  });
-  window.focus();
+  function land() {
+    // Bring angles back near zero so the physics stays simple.
+    s.angle = wrapAngle(s.angle);
+    s.wa = wrapAngle(s.wa);
+    s.phi = s.angle;
+    s.phiV = s.angVel * 0.03;
+    s.angVel = 0;
+    s.waveA += G.bw * 0.1;
+    s.mode = 'settle';
+    sfx.land();
+    spawnBubbles(8);
+    for (let i = 0; i < 10; i++) {
+      particles.push({
+        x: s.x + rand(-G.bw, G.bw), y: G.tableY, vx: rand(-70, 70), vy: rand(-70, -20), g: 120,
+        life: 1, decay: rand(1.4, 2.2), size: rand(1.5, 3.5), color: '#e8c9a8', shape: 'circle', rot: 0, vr: 0,
+      });
+    }
+  }
+
+  function finishRound(success) {
+    s.mode = 'result';
+    s.resultT = 0;
+    s.msgT = 0;
+    s.success = success;
+    if (success) {
+      s.phi = 0; s.angle = 0;
+      s.x = G.cx; s.y = G.tableY - G.bh / 2;
+      const prevLiquid = s.liquid;
+      s.score += s.perfect ? 2 : 1;
+      if (s.score > best) {
+        best = s.score;
+        try { localStorage.setItem('bottleFlipBest', best); } catch (e) {}
+      }
+      s.liquid = Math.floor(s.score / 5) % LIQUIDS.length;
+      if (s.perfect) {
+        s.msg = 'PERFECT! +2'; s.msgColor = '#ffd23f';
+        confetti();
+        sfx.perfect();
+      } else {
+        s.msg = 'Nice flip!'; s.msgColor = '#7fe3ff';
+        sfx.win();
+      }
+      if (s.liquid !== prevLiquid) s.sub = 'New drink: ' + LIQUIDS[s.liquid].name + '!';
+    } else {
+      s.msg = 'Missed!'; s.msgColor = '#ff6fb5';
+      sfx.fail();
+    }
+  }
+
+  function spawnBubbles(n) {
+    const { ux, uy, level } = s.lq;
+    for (let i = 0; i < n; i++) {
+      for (let tries = 0; tries < 10; tries++) {
+        const x = rand(-G.bw * 0.4, G.bw * 0.4);
+        const y = rand(-G.bh * 0.3, G.bh * 0.48);
+        if (x * ux + y * uy < level - 5) {
+          bubbles.push({ x, y, r: rand(1.2, 3), v: rand(25, 60), life: rand(1, 2.5), wob: rand(0, TAU) });
+          break;
+        }
+      }
+    }
+  }
+
+  function confetti() {
+    const colors = ['#ff4fa3', '#4fd1ff', '#ffd23f', '#a78bfa', '#5dffb0'];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: W / 2 + rand(-W * 0.35, W * 0.35), y: rand(-40, -5),
+        vx: rand(-60, 60), vy: rand(60, 220), g: 260,
+        life: 1, decay: rand(0.35, 0.6), size: rand(4, 8),
+        color: colors[i % colors.length], shape: 'rect', rot: rand(0, TAU), vr: rand(-8, 8),
+      });
+    }
+  }
+
+  // ---------- Update ----------
+  function updateLiquid(dt) {
+    // The liquid behaves like a damped spring that wants to stay level,
+    // and gets dragged along when the bottle spins.
+    const inAir = s.mode === 'flight';
+    const k = inAir ? 3 : 60;
+    const c = inAir ? 0.2 : 2.5;
+    const drag = inAir ? 2.4 : 1;
+    const acc = -k * s.wa - c * s.waV + drag * (s.angVel - s.waV);
+    s.waV += acc * dt;
+    s.wa += s.waV * dt;
+
+    const agitation = Math.abs(s.waV) + Math.abs(s.angVel) * 0.3;
+    const targetWave = Math.min(G.bw * 0.12, G.bw * 0.012 + agitation * G.bw * 0.02);
+    s.waveA += (targetWave - s.waveA) * Math.min(1, dt * 3);
+    s.waveA = Math.min(s.waveA, G.bw * 0.16);
+    s.wavePhase += dt * (5 + agitation * 2);
+
+    // Work out the surface in bottle space (used for drawing + bubbles).
+    const a = s.wa - s.angle;
+    const ux = Math.sin(a), uy = -Math.cos(a);
+    s.lq = { ux, uy, level: waterLevel(ux, uy) };
+
+    for (const b of bubbles) {
+      b.wob += dt * 8;
+      b.x += ux * b.v * dt + -uy * Math.sin(b.wob) * 6 * dt;
+      b.y += uy * b.v * dt + ux * Math.sin(b.wob) * 6 * dt;
+      b.life -= dt;
+    }
+    bubbles = bubbles.filter((b) => b.life > 0 && b.x * ux + b.y * uy < s.lq.level - b.r);
+    if (agitation > 2 && Math.random() < dt * 6) spawnBubbles(1);
+  }
 
   function update(dt) {
     if (s.mode === 'aim') {
       s.p += s.dir * s.speed * dt;
       if (s.p > 1) { s.p = 1; s.dir = -1; }
       if (s.p < 0) { s.p = 0; s.dir = 1; }
-    } else if (s.mode === 'flipping') {
-      s.flipT += dt / FLIP_DURATION;
-      if (s.flipT >= 1) {
-        s.flipT = 1;
-        s.mode = 'landed';
-        s.resultT = 0;
-        if (s.success) {
-          s.score += s.perfect ? 2 : 1;
-          if (s.score > best) {
-            best = s.score;
-            try { localStorage.setItem('bottleFlipBest', best); } catch (e) {}
-          }
-          s.msg = s.perfect ? 'PERFECT! +2' : 'Nice flip!';
-          s.msgColor = s.perfect ? '#ffd23f' : '#4fd1ff';
-        } else {
-          s.msg = 'Missed!';
-          s.msgColor = '#ff4fa3';
-        }
-        s.msgT = 0;
+      s.fade = Math.min(1, s.fade + dt * 4);
+    } else if (s.mode === 'flight') {
+      const f = s.flight;
+      f.t += dt / FLIP_TIME;
+      const t = Math.min(f.t, 1);
+      s.x = f.x0 + (f.x1 - f.x0) * t;
+      s.y = f.y0 + (f.y1 - f.y0) * t - 4 * G.jump * t * (1 - t);
+      s.angle = f.total * t;            // constant spin while in the air
+      s.angVel = f.total / FLIP_TIME;
+      if (f.t >= 1) land();
+    } else if (s.mode === 'settle') {
+      // Rigid-body tipping around the bottom corner:
+      // inside the tip angle it rocks back, past it gravity pulls it over.
+      const side = s.phi >= 0 ? 1 : -1;
+      const alpha = side * ((3 * G.g) / (4 * G.L)) * Math.sin(Math.abs(s.phi) - G.beta);
+      s.phiV += alpha * dt;
+      s.phiV *= 1 - 1.5 * dt;
+      const prev = s.phi;
+      s.phi += s.phiV * dt;
+      if (prev !== 0 && Math.sign(prev) !== Math.sign(s.phi)) {
+        s.phiV *= 0.4; // base slaps flat on the table and loses energy
+        if (Math.abs(s.phiV) > 0.3) sfx.tick();
       }
-    } else if (s.mode === 'landed') {
+      if (Math.abs(s.phi) >= Math.PI / 2) {
+        s.phi = Math.sign(s.phi) * Math.PI / 2;
+        if (Math.abs(s.phiV) > 0.8) {
+          s.phiV *= -0.3;
+          s.waveA += G.bw * 0.08;
+          sfx.land();
+        } else {
+          s.phiV = 0;
+        }
+      }
+      s.angle = s.phi;
+      s.angVel = s.phiV;
+      const p = poseFromPhi(s.phi);
+      s.x = p.x; s.y = p.y;
+
+      if (Math.abs(s.phi) < 0.004 && Math.abs(s.phiV) < 0.08) finishRound(true);
+      else if (Math.abs(s.phi) >= Math.PI / 2 - 1e-6 && s.phiV === 0) finishRound(false);
+    } else if (s.mode === 'result') {
       s.resultT += dt;
-      if (s.success && s.resultT > 0.45) {
+      if (s.success && s.resultT > 0.5) {
         // Harder each round: faster line, smaller zone.
         s.speed = Math.min(s.speed * 1.08, 3);
         s.zoneW = Math.max(s.zoneW * 0.93, MIN_ZONE);
         newZone();
         s.mode = 'aim';
-      } else if (!s.success && s.resultT > 1.2) {
-        resetGame();
-        s.msg = 'Tap to flip!';
-        s.msgColor = '#e8e8f5';
-        s.mode = 'aim';
+      } else if (!s.success && s.resultT > 1.1) {
+        s.fade = Math.max(0, s.fade - dt * 4);
+        if (s.fade === 0) {
+          resetGame();
+          resetBottle();
+          s.msg = 'Tap to flip!'; s.msgColor = '#ffffff'; s.sub = ''; s.msgT = 0;
+          s.mode = 'aim';
+        }
       }
     }
+
+    updateLiquid(dt);
+
+    for (const p of particles) {
+      p.vy += p.g * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      p.life -= p.decay * dt;
+    }
+    particles = particles.filter((p) => p.life > 0 && p.y < H + 20);
     s.msgT += dt;
   }
 
@@ -139,200 +578,241 @@
     ctx.closePath();
   }
 
-  // Bottle drawn centered on (0,0), height bh, width bw.
-  function drawBottle(bh, bw) {
-    const top = -bh / 2, bottom = bh / 2;
-    const neckW = bw * 0.4, neckH = bh * 0.16, capH = bh * 0.07;
-    const shoulder = bh * 0.12;
-    const bodyTop = top + capH + neckH + shoulder;
-
-    // Bottle outline path
+  function bottlePath(bh, bw) {
+    const d = dims(bh, bw);
+    const neckBottom = d.top + d.capH + d.neckH;
     ctx.beginPath();
-    ctx.moveTo(-neckW / 2, top + capH);
-    ctx.lineTo(-neckW / 2, top + capH + neckH);
-    ctx.quadraticCurveTo(-bw / 2, top + capH + neckH, -bw / 2, bodyTop);
-    ctx.lineTo(-bw / 2, bottom - 8);
-    ctx.quadraticCurveTo(-bw / 2, bottom, -bw / 2 + 8, bottom);
-    ctx.lineTo(bw / 2 - 8, bottom);
-    ctx.quadraticCurveTo(bw / 2, bottom, bw / 2, bottom - 8);
-    ctx.lineTo(bw / 2, bodyTop);
-    ctx.quadraticCurveTo(bw / 2, top + capH + neckH, neckW / 2, top + capH + neckH);
-    ctx.lineTo(neckW / 2, top + capH);
+    ctx.moveTo(-d.neckW / 2, d.top + d.capH);
+    ctx.lineTo(-d.neckW / 2, neckBottom);
+    ctx.quadraticCurveTo(-bw / 2, neckBottom, -bw / 2, d.bodyTop);
+    ctx.lineTo(-bw / 2, d.bottom - 8);
+    ctx.quadraticCurveTo(-bw / 2, d.bottom, -bw / 2 + 8, d.bottom);
+    ctx.lineTo(bw / 2 - 8, d.bottom);
+    ctx.quadraticCurveTo(bw / 2, d.bottom, bw / 2, d.bottom - 8);
+    ctx.lineTo(bw / 2, d.bodyTop);
+    ctx.quadraticCurveTo(bw / 2, neckBottom, d.neckW / 2, neckBottom);
+    ctx.lineTo(d.neckW / 2, d.top + d.capH);
     ctx.closePath();
+  }
 
-    // Glass
-    ctx.fillStyle = 'rgba(180, 225, 255, 0.18)';
+  function drawBottle() {
+    const { bh, bw } = G;
+    const d = dims(bh, bw);
+    const liquid = LIQUIDS[s.liquid];
+    const baseAlpha = ctx.globalAlpha;
+
+    bottlePath(bh, bw);
+    ctx.fillStyle = 'rgba(180, 225, 255, 0.16)';
     ctx.fill();
 
-    // Water (lower part of bottle)
     ctx.save();
     ctx.clip();
-    const waterTop = bottom - bh * 0.42;
-    const g = ctx.createLinearGradient(0, waterTop, 0, bottom);
-    g.addColorStop(0, '#5fc8ff');
-    g.addColorStop(1, '#2a7fd6');
-    ctx.fillStyle = g;
-    ctx.fillRect(-bw, waterTop, bw * 2, bh);
+
+    // Liquid surface, kept level-ish with the world, with waves on top.
+    const { ux, uy, level } = s.lq;
+    const vx = -uy, vy = ux;
+    const R = bh;
+    const pts = [];
+    const N = 28;
+    for (let i = 0; i <= N; i++) {
+      const t = -R + (2 * R * i) / N;
+      const w = s.waveA * (Math.sin(t * (6 / bw) + s.wavePhase) + 0.5 * Math.sin(t * (13 / bw) - s.wavePhase * 1.3));
+      pts.push([ux * (level + w) + vx * t, uy * (level + w) + vy * t]);
+    }
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts) ctx.lineTo(p[0], p[1]);
+    ctx.lineTo(ux * (level - 2 * R) + vx * R, uy * (level - 2 * R) + vy * R);
+    ctx.lineTo(ux * (level - 2 * R) - vx * R, uy * (level - 2 * R) - vy * R);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(ux * level, uy * level, ux * (level - bh * 0.6), uy * (level - bh * 0.6));
+    grad.addColorStop(0, liquid.top);
+    grad.addColorStop(1, liquid.bottom);
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = baseAlpha * 0.92;
+    ctx.fill();
+    ctx.globalAlpha = baseAlpha;
+
+    ctx.beginPath();
+    pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    for (const b of bubbles) {
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, TAU);
+      ctx.fill();
+    }
+
     // Label
     ctx.fillStyle = '#ff4fa3';
-    ctx.fillRect(-bw, bodyTop + bh * 0.12, bw * 2, bh * 0.18);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(-bw, d.bodyTop + bh * 0.12, bw * 2, bh * 0.18);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.font = `bold ${Math.round(bw * 0.24)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('FLIP', 0, bodyTop + bh * 0.21);
-    // Shine
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(-bw / 2 + bw * 0.12, bodyTop, bw * 0.1, bh * 0.6);
+    ctx.fillText('FLIP', 0, d.bodyTop + bh * 0.21);
+
+    // Glass shine
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fillRect(-bw / 2 + bw * 0.12, d.bodyTop, bw * 0.1, bh * 0.6);
     ctx.restore();
 
-    // Outline
+    bottlePath(bh, bw);
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = 'rgba(220, 240, 255, 0.85)';
     ctx.stroke();
 
-    // Cap
     ctx.fillStyle = '#4fd1ff';
-    roundRect(-neckW / 2 - 2, top, neckW + 4, capH + 2, 3);
+    roundRect(-d.neckW / 2 - 2, d.top, d.neckW + 4, d.capH + 2, 3);
     ctx.fill();
   }
 
-  const ease = (t) => 1 - Math.pow(1 - t, 2);
+  function drawText(text, x, y, size, color, align = 'center') {
+    ctx.font = `bold ${size}px system-ui, sans-serif`;
+    ctx.textAlign = align;
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  }
 
   function draw() {
-    ctx.fillStyle = '#0f1020';
-    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(bgImage, 0, 0, W, H);
 
-    const bh = Math.min(H * 0.26, 190);
-    const bw = bh * 0.38;
-    const tableY = H * 0.62;
-    const cx = W / 2;
-
-    // Table
-    ctx.fillStyle = '#2a2c55';
-    ctx.fillRect(0, tableY, W, 6);
-    ctx.fillStyle = '#1a1b33';
-    ctx.fillRect(0, tableY + 6, W, H - tableY);
-
-    // Bottle pose
-    const uprightY = tableY - bh / 2;
-    const sideY = tableY - bw / 2;
-    let x = cx, y = uprightY, angle = 0, sx = 1, sy = 1;
-
-    if (s.mode === 'flipping') {
-      const t = s.flipT;
-      const jump = 4 * t * (1 - t) * H * 0.33;
-      if (s.success) {
-        angle = Math.PI * 2 * ease(t);
-        y = uprightY - jump;
-      } else {
-        angle = s.failAngle * ease(t);
-        y = uprightY + (sideY - uprightY) * t * t * t - jump;
-      }
-    } else if (s.mode === 'landed') {
-      if (s.success) {
-        // little squash on landing
-        const k = Math.min(s.resultT / 0.25, 1);
-        const squash = Math.sin(Math.PI * k) * 0.08;
-        sy = 1 - squash; sx = 1 + squash;
-        y = tableY - (bh * sy) / 2;
-      } else {
-        angle = s.failAngle;
-        y = sideY;
-        // roll a little after falling over
-        const roll = Math.min(s.resultT / 0.5, 1);
-        x = cx + (s.failAngle < Math.PI * 2 ? -1 : 1) * 30 * ease(roll);
-      }
-    }
-
-    // Shadow
-    const air = Math.max(0, (uprightY - y) / (H * 0.33));
-    ctx.fillStyle = `rgba(0,0,0,${0.35 * (1 - air * 0.7)})`;
+    // Shadow under the bottle
+    const restY = G.tableY - G.bh / 2;
+    const air = s.mode === 'flight' ? Math.max(0, (restY - s.y) / G.jump) : 0;
+    const shadowW = (G.bw * 0.75 + Math.abs(Math.sin(s.angle)) * G.bh * 0.45) * (1 - air * 0.4);
+    ctx.fillStyle = `rgba(0,0,0,${0.38 * (1 - air * 0.7) * s.fade})`;
     ctx.beginPath();
-    ctx.ellipse(x, tableY + 3, bw * (0.8 - air * 0.4), 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(s.x, G.tableY, shadowW, 6, 0, 0, TAU);
     ctx.fill();
 
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.scale(sx, sy);
-    drawBottle(bh, bw);
+    ctx.globalAlpha = s.fade;
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.angle);
+    drawBottle();
     ctx.restore();
+
+    // Particles (dust + confetti)
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+      ctx.fillStyle = p.color;
+      if (p.shape === 'rect') {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, TAU);
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
 
     // ---------- Timing bar ----------
     const barW = Math.min(W * 0.88, 440);
     const barH = W < 400 ? 34 : 38;
     const barX = (W - barW) / 2;
-    const barY = tableY + Math.min((H - tableY) * 0.42, 110);
+    const barY = G.tableY + Math.min((H - G.tableY) * 0.42, 110);
 
     roundRect(barX, barY, barW, barH, 10);
-    ctx.fillStyle = '#0b0c1a';
+    ctx.fillStyle = 'rgba(12, 8, 24, 0.85)';
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = '#333566';
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.stroke();
 
-    // Thick yellow zone
     const zx = barX + (s.zoneC - s.zoneW / 2) * barW;
     const zw = s.zoneW * barW;
     ctx.fillStyle = '#ffd23f';
     roundRect(zx, barY + 5, zw, barH - 10, 5);
     ctx.fill();
 
-    // Thin moving line
     const lx = barX + s.p * barW;
     const inZone = Math.abs(s.p - s.zoneC) <= s.zoneW / 2;
     ctx.fillStyle = inZone ? '#ffffff' : '#ff4fa3';
     ctx.fillRect(lx - 1.5, barY - 8, 3, barH + 16);
 
-    // Hint under bar
-    ctx.fillStyle = '#9a9bc0';
+    ctx.fillStyle = 'rgba(255,235,215,0.7)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     const hint = isTouch
       ? 'Tap when the line is inside the yellow zone'
       : 'Click or press ENTER when the line is inside the yellow zone';
-    // Shrink the hint text to fit narrow phone screens.
     let fontSize = 14;
     ctx.font = fontSize + 'px system-ui, sans-serif';
-    const maxW = W - 32;
     const textW = ctx.measureText(hint).width;
-    if (textW > maxW) {
-      fontSize = Math.max(10, Math.floor(fontSize * maxW / textW));
+    if (textW > W - 32) {
+      fontSize = Math.max(10, Math.floor((fontSize * (W - 32)) / textW));
       ctx.font = fontSize + 'px system-ui, sans-serif';
     }
     ctx.fillText(hint, W / 2, barY + barH + 16);
 
     // ---------- HUD ----------
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 8;
     ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#e8e8f5';
-    ctx.font = 'bold 28px system-ui, sans-serif';
-    ctx.fillText(s.score, 20, 18);
-    ctx.font = '14px system-ui, sans-serif';
-    ctx.fillStyle = '#9a9bc0';
+    drawText(String(s.score), 20, 14, 32, '#ffffff', 'left');
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.fillText('BEST ' + best, 20, 52);
+    ctx.fillStyle = LIQUIDS[s.liquid].top;
+    ctx.fillText(LIQUIDS[s.liquid].name.toUpperCase(), 20, 70);
 
-    // Feedback message
     if (s.msg) {
       const pop = Math.min(s.msgT / 0.15, 1);
       ctx.save();
-      ctx.translate(W / 2, Math.max(H * 0.16, 70));
+      ctx.translate(W / 2, Math.max(H * 0.16, 80));
       ctx.scale(0.7 + 0.3 * pop, 0.7 + 0.3 * pop);
-      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = s.msgColor;
-      ctx.font = `bold ${W < 400 ? 28 : 34}px system-ui, sans-serif`;
-      ctx.fillText(s.msg, 0, 0);
+      drawText(s.msg, 0, 0, W < 400 ? 28 : 36, s.msgColor);
+      if (s.sub) {
+        ctx.font = '600 16px system-ui, sans-serif';
+        ctx.fillStyle = LIQUIDS[s.liquid].top;
+        ctx.fillText(s.sub, 0, 32);
+      }
       ctx.restore();
     }
+    ctx.restore();
   }
 
-  // ---------- Loop ----------
+  // ---------- Input ----------
+  canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); tap(); });
+  window.addEventListener('keydown', (e) => {
+    const isFlipKey = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space';
+    if (!isFlipKey) return;
+    e.preventDefault();
+    if (!e.repeat) tap(); // holding the key down doesn't spam flips
+  });
+
+  const soundBtn = document.getElementById('sound');
+  function refreshSoundBtn() { soundBtn.textContent = muted ? '🔇' : '🔊'; }
+  soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  soundBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    muted = !muted;
+    try { localStorage.setItem('bottleFlipMuted', muted ? '1' : '0'); } catch (err) {}
+    refreshSoundBtn();
+    soundBtn.blur();
+    if (!muted) { initAudio(); sfx.tick(); }
+  });
+  refreshSoundBtn();
+  window.focus();
+
+  // ---------- Start ----------
+  resize();
+  resetBottle();
   newZone();
+  updateLiquid(0);
   let last = performance.now();
   function loop(now) {
-    const dt = Math.min((now - last) / 1000, 0.05);
+    const dt = Math.min((now - last) / 1000, 0.033);
     last = now;
     update(dt);
     draw();

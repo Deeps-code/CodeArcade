@@ -1,14 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
-  <rect width="320" height="200" fill="#0f1020"/>
-  <rect y="120" width="320" height="80" fill="#1a1b33"/>
-  <rect y="120" width="320" height="4" fill="#2a2c55"/>
-  <g transform="translate(160 75) rotate(-25)">
-    <path d="M-7 -42 V-30 Q-17 -30 -17 -20 V38 Q-17 42 -13 42 H13 Q17 42 17 38 V-20 Q17 -30 7 -30 V-42 Z" fill="#5fc8ff" fill-opacity="0.35" stroke="#dcf0ff" stroke-width="2"/>
-    <rect x="-17" y="-6" width="34" height="12" fill="#ff4fa3"/>
-    <path d="M-17 10 H17 V38 Q17 42 13 42 H-13 Q-17 42 -17 38 Z" fill="#2a7fd6"/>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15102e"/><stop offset="1" stop-color="#34265c"/></linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#060a24"/><stop offset="1" stop-color="#2e2572"/></linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b3f24"/><stop offset="1" stop-color="#2e1a10"/></linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe0ff"/><stop offset="1" stop-color="#2a7fd6"/></linearGradient>
+    <radialGradient id="lamp" cx="0.5" cy="0.6" r="0.6"><stop offset="0" stop-color="#ffb46e" stop-opacity="0.3"/><stop offset="1" stop-color="#ffb46e" stop-opacity="0"/></radialGradient>
+    <clipPath id="bottle"><path d="M-7 -42 V-30 Q-17 -30 -17 -20 V38 Q-17 42 -13 42 H13 Q17 42 17 38 V-20 Q17 -30 7 -30 V-42 Z"/></clipPath>
+  </defs>
+  <rect width="320" height="130" fill="url(#wall)"/>
+  <rect width="320" height="130" fill="url(#lamp)"/>
+  <rect x="222" y="18" width="78" height="62" fill="url(#sky)"/>
+  <circle cx="278" cy="36" r="8" fill="#fff3d1"/>
+  <path d="M222 80 V62 H232 V54 H244 V66 H256 V50 H268 V64 H282 V58 H300 V80 Z" fill="#0b0a22"/>
+  <rect x="222" y="18" width="78" height="62" fill="none" stroke="#6b5690" stroke-width="4"/>
+  <path d="M261 18 V80 M222 49 H300" stroke="#6b5690" stroke-width="2"/>
+  <rect y="122" width="320" height="14" fill="#a46a3e"/>
+  <rect y="136" width="320" height="64" fill="url(#wood)"/>
+  <g transform="translate(150 62) rotate(-35)">
+    <g clip-path="url(#bottle)">
+      <rect x="-30" y="-30" width="60" height="80" fill="url(#water)" transform="rotate(35)"/>
+      <rect x="-20" y="-14" width="40" height="11" fill="#ff4fa3"/>
+    </g>
+    <path d="M-7 -42 V-30 Q-17 -30 -17 -20 V38 Q-17 42 -13 42 H13 Q17 42 17 38 V-20 Q17 -30 7 -30 V-42 Z" fill="none" stroke="#dcf0ff" stroke-width="2"/>
     <rect x="-8" y="-48" width="16" height="7" rx="2" fill="#4fd1ff"/>
   </g>
-  <rect x="60" y="150" width="200" height="22" rx="6" fill="#0b0c1a" stroke="#333566" stroke-width="2"/>
-  <rect x="140" y="154" width="44" height="14" rx="3" fill="#ffd23f"/>
-  <rect x="160" y="145" width="3" height="32" fill="#fff"/>
+  <rect x="60" y="160" width="200" height="22" rx="6" fill="#0c0818" stroke="#ffffff33" stroke-width="2"/>
+  <rect x="140" y="164" width="44" height="14" rx="3" fill="#ffd23f"/>
+  <rect x="160" y="155" width="3" height="32" fill="#fff"/>
 </svg>

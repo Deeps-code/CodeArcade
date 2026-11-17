@@ -2,15 +2,15 @@
   {
     "id": "dodge-the-dots",
     "title": "Dodge the Dots",
-    "description": "Move your mouse (or finger) to dodge falling dots. How long can you last?",
+    "description": "Steer a glowing orb through a neon storm of dots. Grab stars, catch shields, and chase close calls.",
     "folder": "DodgeTheDots",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "canvas"]
+    "tags": ["game", "arcade", "canvas"]
   },
   {
     "id": "bottle-flip",
     "title": "Bottle Flip",
-    "description": "Tap when the line hits the yellow zone to land the flip. It gets harder every time.",
+    "description": "Time your tap to land the flip. Sloshing liquid, real tip-over physics, and it gets harder every time.",
     "folder": "BottleFlip",
     "thumbnail": "thumb.svg",
     "tags": ["game", "timing", "canvas"]
