@@ -125,7 +125,7 @@
     waveA: 0, wavePhase: 0,
     lq: { ux: 0, uy: -1, level: 0 },
     // text
-    msg: 'Tap to flip!', msgColor: '#ffffff', sub: '', msgT: 0,
+    msg: 'Tap to flip!', msgColor: '#ffffff', msgPts: '', msgFade: false, sub: '', msgT: 0,
   };
   let particles = [];
   let bubbles = [];
@@ -483,14 +483,16 @@
         try { localStorage.setItem('bottleFlipBest', best); } catch (e) {}
       }
       s.liquid = Math.floor(s.score / 5) % LIQUIDS.length;
-      s.msg = `${tier.name} +${tier.points}`;
+      s.msg = tier.name;
+      s.msgPts = '+' + tier.points;
+      s.msgFade = true;
       s.msgColor = tier.color;
       if (s.perfect) { confetti(); sfx.perfect(); }
       else if (s.tier === 1) sfx.win();
       else sfx.good();
       if (s.liquid !== prevLiquid) s.sub = 'New drink: ' + LIQUIDS[s.liquid].name + '!';
     } else {
-      s.msg = 'Missed!'; s.msgColor = '#ff6fb5';
+      s.msg = 'Missed!'; s.msgColor = '#ff6fb5'; s.msgPts = ''; s.msgFade = false;
       sfx.fail();
     }
   }
@@ -612,7 +614,7 @@
         if (s.fade === 0) {
           resetGame();
           resetBottle();
-          s.msg = 'Tap to flip!'; s.msgColor = '#ffffff'; s.sub = ''; s.msgT = 0;
+          s.msg = 'Tap to flip!'; s.msgColor = '#ffffff'; s.msgPts = ''; s.msgFade = false; s.sub = ''; s.msgT = 0;
           s.mode = 'aim';
         }
       }
@@ -742,16 +744,86 @@
     ctx.fill();
   }
 
-  // Text with a dark outline so it reads on both the night and day walls.
+  // Text with a soft dark shadow (no hard outline) so it reads on both the night and day walls.
   function drawText(text, x, y, size, color, align = 'center', weight = 'bold') {
+    ctx.save();
     ctx.font = `${weight} ${size}px system-ui, sans-serif`;
     ctx.textAlign = align;
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(3, size * 0.14);
-    ctx.strokeStyle = 'rgba(20, 12, 40, 0.75)';
-    ctx.strokeText(text, x, y);
+    ctx.shadowColor = 'rgba(15, 8, 30, 0.7)';
+    ctx.shadowBlur = Math.max(4, size * 0.25);
+    ctx.shadowOffsetY = 1.5;
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  const easeOutBack = (t) => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);
+
+  // A smooth rounded badge: soft dark capsule with a colored glow, the word in its color,
+  // and the points in a little rounded chip, e.g.  ( GOOD  [+1] )
+  function drawBadge(cx, cy, title, pts, color, size) {
+    ctx.save();
+    ctx.textBaseline = 'middle';
+    const titleFont = `800 ${size}px system-ui, sans-serif`;
+    const chipSize = Math.round(size * 0.62);
+    const chipFont = `800 ${chipSize}px system-ui, sans-serif`;
+    ctx.font = titleFont;
+    const tw = ctx.measureText(title).width;
+    ctx.font = chipFont;
+    const pw = pts ? ctx.measureText(pts).width : 0;
+
+    const h = size * 1.6;
+    const padX = size * 0.6;
+    const chipH = size * 1.0, chipW = pts ? pw + chipSize * 1.1 : 0;
+    const gap = pts ? size * 0.4 : 0;
+    const totalW = padX * 2 + tw + gap + chipW;
+    const x0 = cx - totalW / 2;
+
+    // Capsule with a soft colored glow
+    ctx.shadowColor = color + '66';
+    ctx.shadowBlur = size * 0.9;
+    const bg = ctx.createLinearGradient(0, cy - h / 2, 0, cy + h / 2);
+    bg.addColorStop(0, 'rgba(40, 28, 70, 0.82)');
+    bg.addColorStop(1, 'rgba(16, 10, 32, 0.82)');
+    ctx.fillStyle = bg;
+    roundRect(x0, cy - h / 2, totalW, h, h / 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = color + '80';
+    ctx.stroke();
+    // Gentle top highlight for a glassy feel
+    ctx.save();
+    ctx.clip();
+    const hl = ctx.createLinearGradient(0, cy - h / 2, 0, cy);
+    hl.addColorStop(0, 'rgba(255,255,255,0.14)');
+    hl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hl;
+    ctx.fillRect(x0, cy - h / 2, totalW, h / 2);
+    ctx.restore();
+
+    // Title with a soft glow in its own color
+    ctx.font = titleFont;
+    ctx.textAlign = 'left';
+    ctx.shadowColor = color + '99';
+    ctx.shadowBlur = size * 0.45;
+    ctx.fillStyle = color;
+    ctx.fillText(title, x0 + padX, cy + size * 0.04);
+
+    // Points chip
+    if (pts) {
+      const chipX = x0 + padX + tw + gap;
+      ctx.shadowBlur = size * 0.35;
+      ctx.fillStyle = color;
+      roundRect(chipX, cy - chipH / 2, chipW, chipH, chipH / 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.font = chipFont;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(30, 14, 4, 0.9)';
+      ctx.fillText(pts, chipX + chipW / 2, cy + chipSize * 0.05);
+    }
+    ctx.restore();
   }
 
   function draw() {
@@ -875,24 +947,31 @@
 
     // ---------- HUD ----------
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 8;
     ctx.textBaseline = 'top';
     drawText(String(s.score), 20, 14, 32, '#ffffff', 'left');
     drawText('BEST ' + best, 20, 52, 13, 'rgba(255,255,255,0.85)', 'left', '600');
     drawText(LIQUIDS[s.liquid].name.toUpperCase(), 20, 70, 13, LIQUIDS[s.liquid].top, 'left', '600');
+    ctx.restore();
 
     if (s.msg) {
-      const pop = Math.min(s.msgT / 0.15, 1);
+      // Springy pop-in, then (for results) drift up a little and fade away.
+      const pop = easeOutBack(Math.min(s.msgT / 0.35, 1));
+      let alpha = Math.min(s.msgT / 0.12, 1);
+      let rise = 0;
+      if (s.msgFade && s.msgT > 1.1) {
+        const k = Math.min((s.msgT - 1.1) / 0.45, 1);
+        alpha *= 1 - k;
+        rise = k * 14;
+      }
+      const size = W < 400 ? 22 : 28;
       ctx.save();
-      ctx.translate(W / 2, Math.max(H * 0.16, 80));
-      ctx.scale(0.7 + 0.3 * pop, 0.7 + 0.3 * pop);
-      ctx.textBaseline = 'middle';
-      drawText(s.msg, 0, 0, W < 400 ? 28 : 36, s.msgColor);
-      if (s.sub) drawText(s.sub, 0, 32, 16, LIQUIDS[s.liquid].top, 'center', '600');
+      ctx.globalAlpha = alpha;
+      ctx.translate(W / 2, Math.max(H * 0.16, 80) - rise);
+      ctx.scale(0.6 + 0.4 * pop, 0.6 + 0.4 * pop);
+      drawBadge(0, 0, s.msg, s.msgPts, s.msgColor, size);
+      if (s.sub) drawBadge(0, size * 1.95, s.sub, '', LIQUIDS[s.liquid].top, Math.round(size * 0.55));
       ctx.restore();
     }
-    ctx.restore();
   }
 
   // ---------- Input ----------
