@@ -1,0 +1,18 @@
+[
+  {
+    "id": "dodge-the-dots",
+    "title": "Dodge the Dots",
+    "description": "Move your mouse (or finger) to dodge falling dots. How long can you last?",
+    "folder": "DodgeTheDots",
+    "thumbnail": "thumb.svg",
+    "tags": ["game", "canvas"]
+  },
+  {
+    "id": "bottle-flip",
+    "title": "Bottle Flip",
+    "description": "Tap when the line hits the yellow zone to land the flip. It gets harder every time.",
+    "folder": "BottleFlip",
+    "thumbnail": "thumb.svg",
+    "tags": ["game", "timing", "canvas"]
+  }
+]

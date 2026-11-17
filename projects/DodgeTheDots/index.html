@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Dodge the Dots</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0f1020; overflow: hidden; font-family: system-ui, sans-serif;
+               touch-action: none; overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+               -webkit-tap-highlight-color: transparent; }
+  canvas { display: block; touch-action: none; }
+  #hud { position: fixed; top: 12px; left: 16px; color: #e8e8f5; font-size: 18px; }
+  #msg { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+         color: #e8e8f5; font-size: 22px; text-align: center; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">Score: 0</div>
+<div id="msg">Click to start</div>
+<script>
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const hud = document.getElementById('hud'), msg = document.getElementById('msg');
+  let W, H, player, dots, score, running = false, last, spawnTimer;
+  function resize() { W = c.width = innerWidth; H = c.height = innerHeight; }
+  addEventListener('resize', resize); resize();
+
+  // On touch screens, keep the player above your fingertip so you can see it.
+  const isTouch = matchMedia('(pointer: coarse)').matches;
+  const FINGER_OFFSET = isTouch ? 70 : 0;
+  const verb = isTouch ? 'Tap' : 'Click';
+  msg.textContent = verb + ' to start';
+
+  function start(e) {
+    player = { x: e.clientX, y: e.clientY - FINGER_OFFSET, r: 12 };
+    dots = []; score = 0; spawnTimer = 0; running = true; last = performance.now();
+    msg.textContent = '';
+    requestAnimationFrame(loop);
+  }
+  function move(e) {
+    if (!player) return;
+    const p = e.touches ? e.touches[0] : e;
+    player.x = p.clientX; player.y = p.clientY - FINGER_OFFSET;
+  }
+  addEventListener('mousemove', move);
+  addEventListener('touchmove', (e) => { e.preventDefault(); move(e); }, { passive: false });
+  addEventListener('pointerdown', (e) => { if (!running) start(e); });
+
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 0.05); last = now;
+    score += dt;
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      const r = 6 + Math.random() * 14;
+      dots.push({ x: Math.random() * W, y: -r, r, vy: 120 + Math.random() * 120 + score * 12 });
+      spawnTimer = Math.max(0.08, 0.5 - score * 0.01);
+    }
+    ctx.fillStyle = '#0f1020'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ff4fa3';
+    for (const d of dots) {
+      d.y += d.vy * dt;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+      if (Math.hypot(d.x - player.x, d.y - player.y) < d.r + player.r) running = false;
+    }
+    dots = dots.filter(d => d.y - d.r < H);
+    ctx.fillStyle = '#4fd1ff';
+    ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2); ctx.fill();
+    hud.textContent = 'Score: ' + score.toFixed(1);
+    if (running) requestAnimationFrame(loop);
+    else msg.textContent = 'Hit! You lasted ' + score.toFixed(1) + 's. ' + verb + ' to retry';
+  }
+</script>
+</body>
+</html>
