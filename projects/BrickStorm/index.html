@@ -173,7 +173,7 @@
   const BALL_R = 7;
   const MAX_BALLS = 15;
   let W = 0, H = 0, dpr = 1;
-  let fx = 0, FW = 0, top = 0, bw = 0, bh = 0, rowH = 0, paddleY = 0, paddleBase = 0, speedScale = 1;
+  let fx = 0, FW = 0, fieldTop = 0, bw = 0, bh = 0, rowH = 0, paddleY = 0, paddleBase = 0, speedScale = 1;
   let bgStars = [];
 
   function resize() {
@@ -183,7 +183,7 @@
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     FW = Math.min(W - 16, 560);
     fx = (W - FW) / 2;
-    top = 104;
+    fieldTop = 104;
     bw = FW / COLS;
     bh = clamp(bw * 0.42, 14, 26);
     rowH = bh + 4;
@@ -299,7 +299,7 @@
   const POWER_BAG = [];
   for (const k in POWERS) for (let i = 0; i < POWERS[k].w; i++) POWER_BAG.push(k);
 
-  function brickY(b) { return top + wallY - b.r * rowH; }
+  function brickY(b) { return fieldTop + wallY - b.r * rowH; }
   function brickX(b) { return fx + b.c * bw; }
 
   function spawnRow(r) {
@@ -449,7 +449,7 @@
       const cx = brickX(cur) + bw / 2, cy = brickY(cur) + rowH / 2;
       let next = null, bestD = 150;
       for (const b of bricks) {
-        if (b.dead || seen.has(b) || brickY(b) < top - rowH * 0.5) continue;
+        if (b.dead || seen.has(b) || brickY(b) < fieldTop - rowH * 0.5) continue;
         const d = Math.hypot(brickX(b) + bw / 2 - cx, brickY(b) + rowH / 2 - cy);
         if (d < bestD) { bestD = d; next = b; }
       }
@@ -522,7 +522,7 @@
     const L = fx + BALL_R, Rr = fx + FW - BALL_R;
     if (b.x < L) { b.x = L; b.vx = Math.abs(b.vx); sfx.wall(); }
     if (b.x > Rr) { b.x = Rr; b.vx = -Math.abs(b.vx); sfx.wall(); }
-    if (b.y < top + BALL_R) { b.y = top + BALL_R; b.vy = Math.abs(b.vy); sfx.wall(); }
+    if (b.y < fieldTop + BALL_R) { b.y = fieldTop + BALL_R; b.vy = Math.abs(b.vy); sfx.wall(); }
 
     // Paddle
     const pw = paddle.w / 2;
@@ -587,7 +587,7 @@
       // The wall sinks (only while a ball is in play).
       if (inPlay) {
         let drift = Math.min(24, 6 + elapsed * 0.05) * (rowH / 22);
-        const anyLow = bricks.some((b) => !b.dead && brickY(b) > top + rowH * 3);
+        const anyLow = bricks.some((b) => !b.dead && brickY(b) > fieldTop + rowH * 3);
         if (!anyLow) drift *= 7; // field is nearly empty: bring the next wave in fast
         wallY += drift * dt;
       }
@@ -642,7 +642,7 @@
             break;
           }
         }
-        if (bo.y < top) bo.dead = true;
+        if (bo.y < fieldTop) bo.dead = true;
       }
       bolts = bolts.filter((b) => !b.dead);
 
@@ -712,11 +712,11 @@
 
     // Playfield
     ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
-    ctx.fillRect(fx, top, FW, H - top);
+    ctx.fillRect(fx, fieldTop, FW, H - fieldTop);
     ctx.strokeStyle = 'rgba(167, 139, 250, 0.25)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(fx, H); ctx.lineTo(fx, top); ctx.lineTo(fx + FW, top); ctx.lineTo(fx + FW, H);
+    ctx.moveTo(fx, H); ctx.lineTo(fx, fieldTop); ctx.lineTo(fx + FW, fieldTop); ctx.lineTo(fx + FW, H);
     ctx.stroke();
 
     // Danger line
@@ -729,10 +729,10 @@
 
     // Bricks (clipped to the field so new rows slide in from the top edge)
     ctx.save();
-    ctx.beginPath(); ctx.rect(fx, top, FW, H - top); ctx.clip();
+    ctx.beginPath(); ctx.rect(fx, fieldTop, FW, H - fieldTop); ctx.clip();
     for (const b of bricks) {
       const x = brickX(b) + 2, y = brickY(b) + 2, w = bw - 4;
-      if (y + bh < top) continue;
+      if (y + bh < fieldTop) continue;
       const col = brickColor(b);
       const gr = ctx.createLinearGradient(0, y, 0, y + bh);
       gr.addColorStop(0, col);
