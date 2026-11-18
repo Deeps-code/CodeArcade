@@ -236,6 +236,19 @@
     box-shadow: 3px 3px 0 var(--drop);
   }
   .mini img { width: 30px; height: 30px; }
+  /* Trails on/off toggle */
+  .trailToggle {
+    pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; margin: 8px 4px 0; cursor: pointer;
+    font: inherit; font-size: 12px; font-weight: 900; letter-spacing: 0.08em; color: var(--ink);
+    background: var(--paper-2); border: 2.5px solid var(--ink); border-radius: 999px; padding: 4px 12px 4px 6px;
+    box-shadow: 3px 3px 0 var(--drop);
+  }
+  .trailToggle .sw { width: 30px; height: 18px; border-radius: 999px; background: #c9c3b3; border: 2px solid var(--ink); position: relative; transition: background 0.15s; }
+  .trailToggle .sw::after { content: ''; position: absolute; top: 1px; left: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink); transition: left 0.15s; }
+  .trailToggle.on .sw { background: var(--teal); }
+  .trailToggle.on .sw::after { left: 13px; }
+  .trailToggle:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--drop); }
+  #app.tiny .trailToggle { margin-top: 4px; }
   .mini:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--drop); }
   /* Short screens: drop the doodle and the legend so everything fits */
   /* (These follow the GAME VIEW's height, set from JS, so they also work when
@@ -322,6 +335,7 @@
       <div class="picker-head"><span class="label">CHOOSE YOUR BIRD</span><span class="bname" id="birdName">Sky Dart</span></div>
       <div class="bcards" id="birdCards"></div>
       <div class="blurb" id="birdBlurb"></div>
+      <button class="trailToggle" type="button" aria-label="Toggle bird trails" title="Trails (T)"><span class="sw"></span><span class="tl">TRAILS ON</span></button>
     </div>
     <div><div class="cta" id="startCta">TAP TO START</div></div>
     <div class="legend">
@@ -344,6 +358,7 @@
     <p class="sub" id="overStats"></p>
     <div><div class="cta" id="retryCta">TAP TO RETRY</div></div>
     <button class="mini" id="changeBird" type="button"><img id="changeBirdImg" alt="">CHANGE BIRD</button>
+    <button class="trailToggle" type="button" aria-label="Toggle bird trails" title="Trails (T)"><span class="sw"></span><span class="tl">TRAILS ON</span></button>
   </div>
 </div>
 </div>
@@ -1220,7 +1235,7 @@
   });
 
   function updateTrails(dt, spd) {
-    const flying = bird.alive && (state === 'playing' || state === 'menu');
+    const flying = trailsOn && bird.alive && (state === 'playing' || state === 'menu');
     if (flying) {
       (TRAILS[birdSpec.id] || TRAILS.skydart).forEach((T, i) => emitTrail(T, dt, i));
     }
@@ -1275,6 +1290,8 @@
   let state = 'menu', overReadyAt = 0;
   // Steady camera (less motion): remembered between visits
   let camLocked = false;
+  let trailsOn = true;
+  try { trailsOn = localStorage.getItem('wingsTrails') !== '0'; } catch (e) {}
   try { camLocked = localStorage.getItem('wingsCamLock') === '1'; } catch (e) {}
   let dist = 0, scroll = 0, bonus = 0, seedsGot = 0, powersGot = 0, score = 0, time = 0, shake = 0;
   let biomeIdx = 0, nextSpawn = 0, powerCd = 6, decoNext = 0, cloudNext = 0, seedNext = 0;
@@ -2460,6 +2477,27 @@
   });
   requestAnimationFrame(() => selectBird(birdIndex, true));
 
+  // ---------- Trails on / off ----------
+  function refreshTrailToggles() {
+    document.querySelectorAll('.trailToggle').forEach((b) => {
+      b.classList.toggle('on', trailsOn);
+      b.setAttribute('aria-pressed', trailsOn ? 'true' : 'false');
+      b.querySelector('.tl').textContent = trailsOn ? 'TRAILS ON' : 'TRAILS OFF';
+    });
+  }
+  function setTrails(on) {
+    trailsOn = on;
+    try { localStorage.setItem('wingsTrails', on ? '1' : '0'); } catch (e) {}
+    refreshTrailToggles();
+    initAudio(); tone(on ? 700 : 500, on ? 1050 : 350, 0.1, 'triangle', 0.06);
+  }
+  document.querySelectorAll('.trailToggle').forEach((b) => {
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); setTrails(!trailsOn); });
+  });
+  window.addEventListener('keydown', (e) => { if (e.code === 'KeyT' && !e.repeat) setTrails(!trailsOn); });
+  refreshTrailToggles();
+
   // Hooks for automated testing (harmless in normal play)
   window.__ww = {
     get state() { return state; }, get score() { return score; }, get dist() { return dist; }, get biome() { return curBiome(); },
@@ -2469,7 +2507,7 @@
     jump(d) { dist = d; biomeIdx = Math.floor(d / BIOME_LEN); },
     give(k) { timers[k] = POWERS[k].time; },
     get gyro() { return { on: gyroOn, raw: gyroRaw, neutral: gyroNeutral, rotated }; },
-    get bubbles() { return bubbles; }, get obstacles() { return obstacles; },
+    get bubbles() { return bubbles; }, get obstacles() { return obstacles; }, get trailCount() { return trailBits.length; }, get trailsOn() { return trailsOn; },
     birds: BIRDS, pickBird: (i) => selectBird(i, true),
     spawn: { airplane, raptor, gullFlock, swordfish, wreckingBall, snowball, spawnBubble },
   };
