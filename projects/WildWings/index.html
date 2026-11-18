@@ -20,40 +20,55 @@
     pointer-events: none;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.25);
   }
-  .label { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; color: rgba(255, 255, 255, 0.9); }
-  .value { font-size: 28px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  /* Soft frosted-glass cards for the score, hearts and best */
+  .hud > div {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 18px;
+    padding: 7px 14px 8px;
+    box-shadow: 0 6px 18px rgba(8, 30, 60, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(8px) saturate(1.2); -webkit-backdrop-filter: blur(8px) saturate(1.2);
+    min-width: 64px;
+  }
+  .label { font-size: 10px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.85); }
+  .value { font-size: 26px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
   .right { text-align: right; }
-  .mid { text-align: center; padding-top: 2px; }
-  #hearts { font-size: 18px; letter-spacing: 3px; color: #ff5a7a; }
-  #biome { margin-top: 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.95); }
+  .hud > .mid { text-align: center; padding: 6px 14px 7px; border-radius: 999px; }
+  #hearts { font-size: 17px; letter-spacing: 4px; color: #ff6b8a; text-shadow: 0 1px 6px rgba(255, 60, 100, 0.5); }
+  #biome { margin-top: 1px; font-size: 10px; font-weight: 800; letter-spacing: 0.22em; color: rgba(255, 255, 255, 0.95); }
 
   #pills {
-    position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 58px); left: 18px;
+    position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 76px); left: 18px;
     display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
     pointer-events: none;
   }
   .pill {
     display: none; position: relative; overflow: hidden;
     font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
-    padding: 4px 10px; border-radius: 999px;
-    background: rgba(10, 20, 40, 0.55); border: 1px solid currentColor;
+    padding: 5px 12px 6px; border-radius: 999px;
+    background: rgba(10, 25, 50, 0.5); border: 1px solid currentColor;
+    box-shadow: 0 4px 12px rgba(8, 30, 60, 0.2), 0 0 10px -2px currentColor;
     font-variant-numeric: tabular-nums;
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-  }
-  .pill.on { display: inline-block; }
-  .pill .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: currentColor; }
-
-  .btn {
-    position: fixed; right: 14px; width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(10, 20, 40, 0.45);
-    color: #fff; font-size: 17px; z-index: 5; padding: 0;
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
-  #sound { top: calc(max(12px, env(safe-area-inset-top)) + 58px); }
-  #gyro { top: calc(max(12px, env(safe-area-inset-top)) + 106px); }
+  .pill.on { display: inline-block; }
+  .pill .bar { position: absolute; left: 10px; right: auto; bottom: 1px; height: 2px; border-radius: 2px; background: currentColor; max-width: calc(100% - 20px); }
+
+  .btn {
+    position: fixed; right: 14px; width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06));
+    box-shadow: 0 4px 14px rgba(8, 30, 60, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    color: #fff; font-size: 17px; z-index: 5; padding: 0;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.12s;
+  }
+  .btn:active { transform: scale(0.92); }
+  #sound { top: calc(max(12px, env(safe-area-inset-top)) + 76px); }
+  #gyro { top: calc(max(12px, env(safe-area-inset-top)) + 126px); }
   #gyro.on { border-color: rgba(94, 234, 212, 0.9); background: rgba(20, 184, 166, 0.45); }
   #gyroLabel {
-    position: fixed; right: 60px; top: calc(max(12px, env(safe-area-inset-top)) + 117px);
+    position: fixed; right: 62px; top: calc(max(12px, env(safe-area-inset-top)) + 140px);
     font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: #5eead4;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); pointer-events: none;
   }
@@ -61,7 +76,7 @@
   #banner {
     position: fixed; left: 0; right: 0; top: 26%;
     text-align: center; font-size: clamp(28px, 8.5vw, 56px); font-weight: 900; letter-spacing: 0.12em;
-    color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.8);
+    color: #fff; text-shadow: 0 3px 10px rgba(8, 30, 60, 0.45), 0 0 26px rgba(56, 189, 248, 0.7);
     opacity: 0; pointer-events: none;
   }
   #banner.show { animation: banner 1.6s ease-out; }
@@ -95,10 +110,10 @@
   .big { font-size: clamp(56px, 16vw, 96px); font-weight: 900; margin: 6px 0 0; text-shadow: 0 0 22px rgba(56, 189, 248, 0.7); font-variant-numeric: tabular-nums; }
   .newbest { margin-top: 6px; color: #fde047; font-weight: 800; letter-spacing: 0.16em; font-size: 13px; text-shadow: 0 0 10px rgba(253, 224, 71, 0.6); }
   .cta {
-    margin-top: 26px; padding: 13px 28px; border-radius: 999px;
+    margin-top: 26px; padding: 14px 32px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.45);
     font-weight: 800; letter-spacing: 0.14em; font-size: 14px; color: #fff;
     background: linear-gradient(90deg, #14b8a6, #0ea5e9);
-    box-shadow: 0 0 30px rgba(14, 165, 233, 0.5);
+    box-shadow: 0 8px 24px rgba(8, 30, 60, 0.25), 0 0 30px rgba(14, 165, 233, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     animation: pulse 1.6s ease-in-out infinite;
   }
   @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(14, 165, 233, 0.75); } }
@@ -107,7 +122,7 @@
   .gone { display: none !important; }
   /* Everything lives in #app so landscape mode can turn the whole game at once. */
   #app { position: fixed; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
-  #rotate { top: calc(max(12px, env(safe-area-inset-top)) + 154px); font-size: 19px; line-height: 1; }
+  #rotate { top: calc(max(12px, env(safe-area-inset-top)) + 176px); font-size: 19px; line-height: 1; }
   #rotate.on { border-color: rgba(251, 191, 36, 0.9); background: rgba(251, 191, 36, 0.35); }
 
   /* Floating joystick (touch): appears under your thumb, rests faintly in the corner */
@@ -205,10 +220,25 @@
   const canvas = $('c');
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
+    // Anti-aliasing on everywhere for smooth edges; resolution is kept modest instead (see quality below).
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   } catch (e) {
     document.body.insertAdjacentHTML('beforeend', '<div id="noGL">Wild Wings needs WebGL (3D graphics), which this browser or device has turned off.</div>');
     throw e;
+  }
+  // Adaptive quality: start at up to 1.5x pixel density, and step it down if the
+  // device can't keep up (or back up when there's headroom), so it always stays smooth.
+  const quality = { max: Math.min(window.devicePixelRatio || 1, 1.5), ratio: Math.min(window.devicePixelRatio || 1, 1.5), time: 0, frames: 0 };
+  const MIN_RATIO = 0.75;
+  function adaptQuality(rawDt) {
+    quality.time += rawDt; quality.frames++;
+    if (quality.time < 2) return;
+    const fps = quality.frames / quality.time;
+    quality.time = 0; quality.frames = 0;
+    let next = quality.ratio;
+    if (fps < 45) next = Math.max(MIN_RATIO, quality.ratio - 0.15);
+    else if (fps > 57) next = Math.min(quality.max, quality.ratio + 0.1);
+    if (Math.abs(next - quality.ratio) > 0.01) { quality.ratio = next; renderer.setPixelRatio(next); }
   }
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 400);
@@ -239,7 +269,7 @@
     app.style.width = W + 'px'; app.style.height = H + 'px';
     app.style.transform = rotated ? `translateX(${vw}px) rotate(90deg)` : '';
     rotateBtn.classList.toggle('on', landscape);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setPixelRatio(quality.ratio);
     renderer.setSize(W, H);
     if (stick.id === null) stickHome(); // keep the resting joystick in the corner of the new view
     camera.aspect = W / H;
@@ -261,28 +291,32 @@
     cyl6: new THREE.CylinderGeometry(1, 1.15, 1, 7),
     cone: new THREE.ConeGeometry(1, 1, 7),
     circle: new THREE.CircleGeometry(1, 24),
+    blob: new THREE.SphereGeometry(1, 18, 14),   // smooth, rounded shapes (bird, clouds, leaves...)
   };
+  // Faceted look for rocks, mountains and buildings...
   const lam = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, flatShading: true, ...extra });
+  // ...and smooth shading for anything soft or alive.
+  const soft = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, ...extra });
   const MAT = {
     rock: lam(0x8b8580), rockDark: lam(0x57534e), moss: lam(0x4d7c0f), foam: lam(0xf8fafc),
-    storm: lam(0x52606f), stormLit: lam(0xcbd5e1, { emissive: 0x555500 }),
-    fish: lam(0x2563eb), fishBelly: lam(0xbfdbfe), sword: lam(0xcbd5e1),
-    gull: lam(0xf8fafc), gullWing: lam(0xe2e8f0), orange: lam(0xf59e0b),
-    trunk: lam(0x7c4a1e), leaf1: lam(0x166534), leaf2: lam(0x15803d), leaf3: lam(0x14532d), vine: lam(0x3f6212),
-    flower: lam(0xa855f7), apple: lam(0xdc2626), log: lam(0x92400e), logEnd: lam(0xd6a16b),
-    hawk: lam(0x78350f), hawkWing: lam(0x92400e), hawkHead: lam(0xfef3c7), beakY: lam(0xfacc15),
-    eagle: lam(0xf1f5f9), eagleWing: lam(0xcbd5e1),
-    black: lam(0x0f172a), white: lam(0xffffff), bee: lam(0xfacc15),
+    storm: soft(0x5b6878), stormLit: soft(0xcbd5e1, { emissive: 0x555500 }),
+    fish: soft(0x2563eb), fishBelly: soft(0xbfdbfe), sword: soft(0xcbd5e1),
+    gull: soft(0xf8fafc), gullWing: soft(0xe2e8f0), orange: soft(0xf59e0b),
+    trunk: lam(0x7c4a1e), leaf1: soft(0x1f7a3d), leaf2: soft(0x2f9a4a), leaf3: soft(0x166534), vine: soft(0x3f6212),
+    flower: soft(0xa855f7), apple: soft(0xdc2626), log: soft(0x92400e), logEnd: soft(0xd6a16b),
+    hawk: soft(0x78350f), hawkWing: soft(0x92400e), hawkHead: soft(0xfef3c7), beakY: soft(0xfacc15),
+    eagle: soft(0xf1f5f9), eagleWing: soft(0xcbd5e1),
+    black: soft(0x0f172a), white: soft(0xffffff), bee: soft(0xfacc15),
     girder: lam(0xf59e0b), girderDark: lam(0x292524), ball: lam(0x334155), cable: lam(0x1e293b),
-    drone: lam(0xe2e8f0), droneDark: lam(0x1e293b), redLight: new THREE.MeshBasicMaterial({ color: 0xff3344 }),
-    plane: lam(0xf8fafc), planeWing: lam(0xcbd5e1), planeTail: lam(0xef4444),
+    drone: soft(0xe2e8f0), droneDark: lam(0x1e293b), redLight: new THREE.MeshBasicMaterial({ color: 0xff3344 }),
+    plane: soft(0xf8fafc), planeWing: soft(0xcbd5e1), planeTail: soft(0xef4444),
     spire: lam(0x64748b), spireDark: lam(0x475569), snow: lam(0xf8fafc),
-    ice: lam(0xbae6fd, { transparent: true, opacity: 0.88 }), snowball: lam(0xf1f5ff),
-    seed: new THREE.MeshBasicMaterial({ color: 0xfacc15 }),
+    ice: soft(0xbae6fd, { transparent: true, opacity: 0.88 }), snowball: soft(0xf1f5ff),
+    seed: soft(0xfacc15, { emissive: 0xb45309, emissiveIntensity: 0.6 }),
     sand: lam(0xfde68a), palm: lam(0x16a34a), pine: lam(0x166534), pineDark: lam(0x14532d),
     mountain: lam(0x94a3b8), mountainDark: lam(0x64748b), streetlamp: lam(0x334155), lampGlow: new THREE.MeshBasicMaterial({ color: 0xfde68a }),
     whitecap: lam(0xe0f2fe), grass: lam(0x4d7c0f), dash: new THREE.MeshBasicMaterial({ color: 0xfacc15 }), snowMound: lam(0xffffff),
-    cloud: lam(0xffffff, { transparent: true, opacity: 0.92 }),
+    cloud: soft(0xffffff, { transparent: true, opacity: 0.92, emissive: 0x9aa9b8, emissiveIntensity: 0.35 }),
   };
 
   // Building facades: a canvas of lit/unlit windows used as a texture.
@@ -454,42 +488,80 @@
   scene.add(sun);
 
   // ---------- Bird ----------
+  // Smooth-shaded, with layered feathers on the wings and a fanned tail.
   const birdMats = {
-    body: lam(0x0ea5e9), head: lam(0x38bdf8), belly: lam(0xfde68a), wing: lam(0x0284c7), wingTip: lam(0x075985),
-    beak: lam(0xfb923c), eye: lam(0x0f172a), eyeW: lam(0xffffff), cheek: lam(0xf472b6),
+    body: soft(0x0ea5e9), head: soft(0x38bdf8), belly: soft(0xfde68a), wing: soft(0x0284c7), wingTip: soft(0x075985),
+    feather: soft(0x0369a1), featherLight: soft(0x38bdf8), beak: soft(0xfb923c), eye: soft(0x0f172a),
+    eyeW: soft(0xffffff, { emissive: 0x444444 }), cheek: soft(0xf9a8d4),
   };
   const birdRoot = new THREE.Group();
   const birdModel = new THREE.Group();
   birdRoot.add(birdModel);
-  birdModel.add(mk(GEO.sphere, birdMats.body, 0, 0, 0, 0.5, 0.45, 0.72));
-  birdModel.add(mk(GEO.sphere, birdMats.belly, 0, -0.15, -0.08, 0.36, 0.28, 0.52));
-  birdModel.add(mk(GEO.sphere, birdMats.head, 0, 0.28, -0.52, 0.34));
-  const beak = mk(GEO.cone, birdMats.beak, 0, 0.22, -0.95, 0.11, 0.32, 0.11);
+  const B = GEO.blob;
+  birdModel.add(mk(B, birdMats.body, 0, 0, 0, 0.5, 0.45, 0.74));
+  birdModel.add(mk(B, birdMats.belly, 0, -0.16, -0.08, 0.37, 0.29, 0.54));
+  birdModel.add(mk(B, birdMats.head, 0, 0.28, -0.52, 0.35));
+  const beak = mk(GEO.cone, birdMats.beak, 0, 0.22, -0.96, 0.1, 0.3, 0.1);
   beak.rotation.x = -Math.PI / 2;
   birdModel.add(beak);
   for (const s of [-1, 1]) {
-    birdModel.add(mk(GEO.sphere, birdMats.eyeW, s * 0.2, 0.36, -0.74, 0.09));
-    birdModel.add(mk(GEO.sphere, birdMats.eye, s * 0.23, 0.37, -0.8, 0.055));
+    birdModel.add(mk(B, birdMats.eyeW, s * 0.2, 0.36, -0.74, 0.09));
+    birdModel.add(mk(B, birdMats.eye, s * 0.23, 0.37, -0.8, 0.055));
+    birdModel.add(mk(B, birdMats.cheek, s * 0.24, 0.2, -0.7, 0.07, 0.05, 0.05));
   }
-  const crest = mk(GEO.cone, birdMats.wing, 0, 0.66, -0.45, 0.08, 0.28, 0.08);
-  crest.rotation.x = 0.5;
-  birdModel.add(crest);
-  const tail = mk(GEO.box, birdMats.wingTip, 0, 0.08, 0.78, 0.42, 0.05, 0.5);
-  tail.rotation.x = -0.25;
-  birdModel.add(tail);
+  // Crest: three little head feathers
+  for (let i = 0; i < 3; i++) {
+    const c = mk(B, birdMats.feather, 0, 0.6 - i * 0.03, -0.5 + i * 0.12, 0.05, 0.2 - i * 0.04, 0.05);
+    c.rotation.x = 0.55 + i * 0.25;
+    birdModel.add(c);
+  }
+  // Tail: five feathers fanned out behind
+  const tailPivot = new THREE.Group();
+  tailPivot.position.set(0, 0.06, 0.6);
+  tailPivot.rotation.x = -0.18;
+  const tailFeathers = [];
+  for (let i = 0; i < 5; i++) {
+    const p = new THREE.Group();
+    const a = (i - 2) * 0.22;
+    p.rotation.y = a;
+    p.add(mk(B, i % 2 ? birdMats.feather : birdMats.wingTip, 0, 0, 0.36, 0.075, 0.025, 0.4));
+    tailPivot.add(p);
+    tailFeathers.push({ p, a });
+  }
+  birdModel.add(tailPivot);
+  // Wings: a rounded inner wing, a row of short feathers along the back edge,
+  // and long flight feathers fanned at the tip (they spread wider while gliding).
   const wings = [];
   for (const s of [-1, 1]) {
     const pivot = new THREE.Group();
     pivot.position.set(s * 0.32, 0.12, -0.02);
-    pivot.add(mk(GEO.box, birdMats.wing, s * 0.55, 0, 0, 1.05, 0.06, 0.55));
-    pivot.add(mk(GEO.box, birdMats.wingTip, s * 1.15, 0, 0.08, 0.35, 0.05, 0.42));
+    pivot.add(mk(B, birdMats.wing, s * 0.5, 0, 0, 0.6, 0.065, 0.3));
+    pivot.add(mk(B, birdMats.featherLight, s * 0.45, 0.03, -0.08, 0.45, 0.04, 0.16));
+    for (let i = 0; i < 4; i++) {
+      const f = mk(B, i % 2 ? birdMats.feather : birdMats.wing, s * (0.2 + i * 0.2), -0.01, 0.26, 0.1, 0.025, 0.24);
+      f.rotation.y = -s * 0.1;
+      pivot.add(f);
+    }
+    const tip = new THREE.Group();
+    tip.position.set(s * 0.95, 0, 0.04);
+    const primaries = [];
+    for (let i = 0; i < 5; i++) {
+      const p = new THREE.Group();
+      const a = s * (-0.12 + i * 0.17);   // fan backwards from the leading edge
+      p.rotation.y = -a;
+      p.add(mk(B, i % 2 ? birdMats.wingTip : birdMats.feather, s * 0.36, 0, 0, 0.4, 0.022, 0.075));
+      tip.add(p);
+      primaries.push({ p, a });
+    }
+    pivot.add(tip);
     birdModel.add(pivot);
-    wings.push({ pivot, s });
+    wings.push({ pivot, s, primaries });
   }
   const shieldBubble = mk(GEO.ico1, new THREE.MeshLambertMaterial({ color: 0x5eead4, emissive: 0x0d9488, transparent: true, opacity: 0.28, depthWrite: false }), 0, 0, 0, 1.25);
   shieldBubble.visible = false;
   birdRoot.add(shieldBubble);
-  const magnetRing = mk(new THREE.TorusGeometry(1, 0.03, 6, 40), new THREE.MeshBasicMaterial({ color: 0xf472b6, transparent: true, opacity: 0.6 }), 0, 0, 0, 1.6);
+  const magnetRing = mk(new THREE.TorusGeometry(1, 0.035, 8, 48), new THREE.MeshBasicMaterial({ color: 0xf472b6, transparent: true, opacity: 0.55, depthWrite: false }), 0, 0, 0, 1.7);
+  magnetRing.rotation.x = Math.PI / 2; // a flat ring circling the bird
   magnetRing.visible = false;
   birdRoot.add(magnetRing);
   scene.add(birdRoot);
@@ -649,7 +721,7 @@
       o.puffs = [];
       for (let i = 0; i < 5; i++) {
         const px = (i - 2) * rand(0.9, 1.3), py = rand(-0.5, 0.6), pr = rand(1.1, 1.7);
-        const m = mk(GEO.ico, MAT.storm, px, py, rand(-0.6, 0.6), pr);
+        const m = mk(GEO.blob, MAT.storm, px, py, rand(-0.6, 0.6), pr, pr * 0.8, pr);
         m.rotation.set(rand(0, 3), rand(0, 3), 0);
         g.add(m);
         o.puffs.push(m);
@@ -730,7 +802,7 @@
       g.add(mk(GEO.cyl6, MAT.trunk, 0, cy / 2, 0, tr, cy + 0.5, tr));
       const blobs = [[0, cy + 0.6, 0, rand(1.6, 2.1)], [-1.3, cy - 0.1, 0.3, rand(1.1, 1.5)], [1.3, cy, -0.3, rand(1.1, 1.5)]];
       blobs.forEach(([bx, by, bz, br], i) => {
-        const m = mk(GEO.ico, [MAT.leaf1, MAT.leaf2, MAT.leaf3][i], bx, by, bz, br);
+        const m = mk(GEO.blob, [MAT.leaf1, MAT.leaf2, MAT.leaf3][i], bx, by, bz, br, br * 0.9, br);
         m.rotation.set(rand(0, 3), rand(0, 3), 0);
         g.add(m);
         o.cols.push(ball(bx, by, bz, br * 0.85));
@@ -761,7 +833,7 @@
         const len = 13 - endY;
         g.add(mk(GEO.box, MAT.vine, 0, endY + len / 2, 0, 0.12, len, 0.12));
         for (let yy = endY + 0.8; yy < 12; yy += 1.1) g.add(mk(GEO.ico, MAT.leaf2, (Math.random() < 0.5 ? -1 : 1) * 0.25, yy, 0, 0.28, 0.12, 0.2));
-        g.add(mk(GEO.ico, MAT.leaf1, 0, endY, 0, 0.6));
+        g.add(mk(GEO.blob, MAT.leaf1, 0, endY, 0, 0.6));
         g.add(mk(GEO.sphere, MAT.flower, 0.25, endY - 0.3, 0.35, 0.18));
         o.cols.push(box(0, endY + len / 2, 0, 0.22, len / 2, 0.22), ball(0, endY, 0, 0.6));
       });
@@ -945,7 +1017,7 @@
   function snowball(x, z) {
     const r = rand(0.8, 1.3), zLand = rand(-12, -2);
     addObs('snowball', x, 14, z, (o, g) => {
-      const m = mk(GEO.ico1, MAT.snowball, 0, 0, 0, r);
+      const m = mk(GEO.blob, MAT.snowball, 0, 0, 0, r);
       g.add(m);
       o.cols.push(ball(0, 0, 0, r * 0.92));
       o.update = (o, dt) => {
@@ -992,7 +1064,7 @@
     const x = rand(-XMAX + 1, XMAX - 1), y = rand(YMIN + 0.6, YMAX - 1), n = 5;
     const dx = rand(-0.25, 0.25), dy = rand(-0.15, 0.15);
     for (let i = 0; i < n; i++) {
-      const root = mk(GEO.ico, MAT.seed, x + dx * i * 2.2, clamp(y + dy * i * 2.2, YMIN, YMAX), SPAWN_Z - i * 2.2, 0.3);
+      const root = mk(GEO.sphere, MAT.seed, x + dx * i * 2.2, clamp(y + dy * i * 2.2, YMIN, YMAX), SPAWN_Z - i * 2.2, 0.3);
       scene.add(root);
       seeds.push({ root, spin: rand(0, TAU) });
     }
@@ -1002,7 +1074,7 @@
     const kind = pick(Object.keys(POWERS));
     const root = new THREE.Group();
     root.position.set(rand(-XMAX + 1.5, XMAX - 1.5), rand(YMIN + 1, YMAX - 1.5), SPAWN_Z);
-    root.add(mk(GEO.ico1, powerShell[kind], 0, 0, 0, 0.9));
+    root.add(mk(GEO.blob, powerShell[kind], 0, 0, 0, 0.9));
     const sp = new THREE.Sprite(powerSprite[kind]);
     sp.scale.set(1.3, 1.3, 1);
     root.add(sp);
@@ -1080,7 +1152,7 @@
   function skyCloud(z) {
     const g = new THREE.Group();
     g.position.set(rand(-60, 60), rand(17, 26), z);
-    for (let k = 0; k < 4; k++) g.add(mk(GEO.ico, MAT.cloud, (k - 1.5) * rand(2, 3), rand(-0.8, 0.8), rand(-1, 1), rand(2, 3.4)));
+    for (let k = 0; k < 4; k++) { const r = rand(2, 3.4); g.add(mk(GEO.blob, MAT.cloud, (k - 1.5) * rand(2, 3), rand(-0.6, 0.6), rand(-1, 1), r, r * 0.72, r)); }
     addDeco(g);
   }
 
@@ -1448,7 +1520,12 @@
       const flapAngle = Math.sin(b.flap) * 0.65;
       const glideAngle = 0.14 + Math.sin(time * 2.2) * 0.04;
       const f = lerp(flapAngle, glideAngle, b.glideMix);
-      for (const w of wings) w.pivot.rotation.z = w.s * f;
+      const spread = 1 + b.glideMix * 0.45 + Math.max(0, -Math.cos(b.flap)) * 0.15 * (1 - b.glideMix);
+      for (const w of wings) {
+        w.pivot.rotation.z = w.s * f;
+        for (const q of w.primaries) q.p.rotation.y = -q.a * spread;   // feathers fan open
+      }
+      for (const q of tailFeathers) q.p.rotation.y = q.a * (1 + b.glideMix * 0.35);
     } else {
       birdModel.rotation.z = b.spin;
       birdModel.rotation.x = 0.6;
@@ -1460,7 +1537,8 @@
     shieldBubble.scale.setScalar(1.25 + Math.sin(time * 6) * 0.05);
     shieldBubble.rotation.y += dt;
     magnetRing.visible = timers.magnet > 0;
-    magnetRing.rotation.x = time * 2; magnetRing.rotation.y = time * 1.3;
+    magnetRing.scale.setScalar(1.6 + Math.sin(time * 5) * 0.12);
+    magnetRing.material.opacity = 0.35 + 0.2 * Math.sin(time * 5);
 
     shadow.position.set(b.x, 0.35, 0);
     shadow.scale.setScalar(0.75 * b.size * (1 - b.y / 16));
@@ -1531,8 +1609,10 @@
   for (let z = SPAWN_Z; z < 0; z += 26) skyCloud(z);
   let last = performance.now();
   function loop(now) {
-    const dt = Math.min((now - last) / 1000, 0.05);
+    const raw = (now - last) / 1000;
+    const dt = Math.min(raw, 0.05);
     last = now;
+    if (raw < 0.5) adaptQuality(raw); // ignore long pauses (tab switched away)
     update(dt);
     render(dt);
     requestAnimationFrame(loop);
