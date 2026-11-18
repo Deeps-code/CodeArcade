@@ -63,7 +63,10 @@
     background: radial-gradient(ellipse at center, rgba(11, 6, 32, 0.25), rgba(11, 6, 32, 0.78));
     transition: opacity 0.35s;
   }
-  .overlay.hidden { opacity: 0; }
+  /* A hidden card must not catch taps: its buttons (Change bird / Customize) used to stay
+     clickable while invisible, so a tap during play could trigger them. */
+  .overlay.hidden { opacity: 0; visibility: hidden; transition: opacity 0.35s, visibility 0s linear 0.35s; }
+  .overlay.hidden * { pointer-events: none !important; }
   h1 { margin: 0; font-size: clamp(44px, 13vw, 90px); line-height: 0.9; font-weight: 900; letter-spacing: -0.02em; }
   h1 .a { color: #fff; text-shadow: 0 0 18px rgba(255, 159, 67, 0.75); }
   h1 .b {
