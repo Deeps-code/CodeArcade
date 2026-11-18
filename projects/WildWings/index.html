@@ -103,6 +103,16 @@
   #rotate { top: calc(max(14px, env(safe-area-inset-top)) + 188px); font-size: 20px; }
   #gyro.on { background: #b9f3e4; }
   #rotate.on { background: #ffe58a; }
+  /* Steady-camera toggle sits just left of the sound button */
+  #camlock { top: calc(max(14px, env(safe-area-inset-top)) + 84px); right: 66px; display: grid; place-items: center; }
+  #camlock .lock { opacity: 0; transition: opacity 0.15s; }
+  #camlock.on { background: #ffe58a; }
+  #camlock.on .lock { opacity: 1; }
+  #camLabel {
+    position: fixed; right: 66px; top: calc(max(14px, env(safe-area-inset-top)) + 132px); z-index: 5;
+    font-size: 9.5px; font-weight: 900; letter-spacing: 0.12em; color: var(--ink);
+    background: #ffe58a; border: 2px solid var(--ink); border-radius: 6px; padding: 1px 6px; pointer-events: none;
+  }
   #gyroLabel {
     position: fixed; right: 64px; top: calc(max(14px, env(safe-area-inset-top)) + 149px); z-index: 5;
     font-size: 10px; font-weight: 900; letter-spacing: 0.14em; color: var(--ink);
@@ -191,6 +201,46 @@
   }
   .gone { display: none !important; }
 
+  /* ----- Bird picker ----- */
+  .picker { margin: 14px -8px 0; pointer-events: auto; }
+  .picker-head { display: flex; justify-content: center; align-items: baseline; gap: 8px; }
+  .bname {
+    font-size: 16px; font-weight: 900; padding: 0 6px;
+    background: linear-gradient(transparent 45%, var(--sun) 45%, var(--sun) 90%, transparent 90%);
+  }
+  .bcards {
+    display: flex; gap: 9px; overflow-x: auto; padding: 10px 10px 12px;
+    scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+  }
+  .bcards::-webkit-scrollbar { display: none; }
+  .bcard {
+    flex: 0 0 64px; height: 66px; padding: 0; cursor: pointer; scroll-snap-align: center;
+    background: var(--paper-2); border: 2.5px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--drop);
+    transition: transform 0.15s cubic-bezier(.2,1.6,.4,1), background 0.15s;
+  }
+  .bcard img { width: 58px; height: 58px; display: block; margin: 1px auto 0; pointer-events: none; }
+  .bcard:hover { transform: translateY(-2px); }
+  .bcard.sel { background: #ffe58a; transform: translateY(-4px) rotate(-3deg); box-shadow: 4px 6px 0 var(--ink); }
+  .blurb { font-size: 12.5px; font-weight: 800; color: var(--ink-soft); min-height: 16px; }
+  .mini {
+    pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 900; letter-spacing: 0.06em; color: var(--ink);
+    background: var(--paper-2); border: 2.5px solid var(--ink); border-radius: 12px; padding: 4px 12px 4px 6px;
+    box-shadow: 3px 3px 0 var(--drop);
+  }
+  .mini img { width: 30px; height: 30px; }
+  .mini:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--drop); }
+  /* Short screens: drop the doodle and the legend so everything fits */
+  @media (max-height: 760px) {
+    .doodle { display: none; }
+    .legend { display: none; }
+    h1 { font-size: clamp(34px, 10vw, 54px); }
+    .sub { font-size: 13px; margin-top: 8px; }
+    .sheet { padding: 18px 20px 18px; }
+  }
+
   /* ----- Joystick: a paper dial ----- */
   #stick {
     position: fixed; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; z-index: 4;
@@ -220,6 +270,13 @@
 </div>
 <div id="pills"></div>
 <button class="btn" id="sound" type="button" aria-label="Toggle sound">🔊</button>
+<button class="btn" id="camlock" type="button" aria-label="Steady camera" title="Steady camera (less motion)">
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="#23243a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="2.5" y="7" width="12.5" height="10" rx="2.2" fill="#fffaf0"/><path d="M15 10.5l5-3v9l-5-3z" fill="#fffaf0"/>
+    <g class="lock"><rect x="13.5" y="13.5" width="8" height="7" rx="1.5" fill="#ffd166"/><path d="M15.2 13.5v-1.7a2.3 2.3 0 0 1 4.6 0v1.7"/></g>
+  </svg>
+</button>
+<div id="camLabel" class="gone">STEADY CAM</div>
 <button class="btn gone" id="gyro" type="button" aria-label="Toggle tilt steering" title="Tilt steering">📱</button>
 <div id="gyroLabel" class="gone">TILT</div>
 <button class="btn gone" id="rotate" type="button" aria-label="Toggle landscape mode" title="Landscape mode">⟳</button>
@@ -243,6 +300,11 @@
     <h1>WILD<br /><span class="b">WINGS</span></h1>
     <p class="sub" id="howto"></p>
     <p class="tip gone" id="gyroTip">Tap 📱 to steer by tilting your phone</p>
+    <div class="picker" id="picker">
+      <div class="picker-head"><span class="label">CHOOSE YOUR BIRD</span><span class="bname" id="birdName">Sky Dart</span></div>
+      <div class="bcards" id="birdCards"></div>
+      <div class="blurb" id="birdBlurb"></div>
+    </div>
     <div><div class="cta" id="startCta">TAP TO START</div></div>
     <div class="legend">
       <span>🌻 Seed +5</span>
@@ -263,6 +325,7 @@
     <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
     <p class="sub" id="overStats"></p>
     <div><div class="cta" id="retryCta">TAP TO RETRY</div></div>
+    <button class="mini" id="changeBird" type="button"><img id="changeBirdImg" alt="">CHANGE BIRD</button>
   </div>
 </div>
 </div>
@@ -683,14 +746,7 @@
   const sun = mk(GEO.sphere, new THREE.MeshBasicMaterial({ color: 0xfff7d6, fog: false }), 60, 70, -330, 14);
   scene.add(sun);
 
-  // ---------- Bird ----------
-  // An origami bird: a folded paper body, pointy paper head and beak,
-  // flat folded wings with three feather points each, and a forked tail.
-  const birdMats = {
-    body: lam(0x5aa9e6), head: lam(0x8ecdf7), wing: lam(0x8ecdf7, { side: THREE.DoubleSide }),
-    wingFold: lam(0xc4e6fb, { side: THREE.DoubleSide }), tail: lam(0x3d8fd1, { side: THREE.DoubleSide }),
-    beak: lam(0xff7a59), eye: new THREE.MeshBasicMaterial({ color: INK }),
-  };
+  // ---------- Birds: 10 playable origami characters ----------
   // A closed faceted solid from triangles (each face is turned to point outward).
   function paperSolid(tris, cx = 0, cy = 0, cz = 0) {
     const pos = [];
@@ -713,52 +769,274 @@
     g.rotateX(Math.PI / 2);
     return g;
   }
+
+  // Wing outlines (right wing; x = out from the body, z = toward the tail) and their colored tips
+  const WING_SHAPES = {
+    swift:  { w: [[0, -0.3], [0.7, -0.18], [1.72, 0.34], [1.36, 0.33], [1.46, 0.56], [1.06, 0.43], [1.06, 0.64], [0.72, 0.46], [0.04, 0.38]],
+              tip: [[1.2, 0.08], [1.72, 0.34], [1.36, 0.33], [1.46, 0.56], [1.12, 0.4]], span: 1.72 },
+    round:  { w: [[0, -0.3], [0.6, -0.32], [1.15, -0.12], [1.35, 0.15], [1.2, 0.42], [0.9, 0.5], [0.5, 0.48], [0.04, 0.36]],
+              tip: [[1.0, -0.05], [1.15, -0.12], [1.35, 0.15], [1.2, 0.42], [0.95, 0.3]], span: 1.35 },
+    broad:  { w: [[0, -0.32], [0.9, -0.3], [1.9, -0.1], [2.05, 0.08], [1.85, 0.12], [1.95, 0.28], [1.7, 0.28], [1.72, 0.45], [1.4, 0.4], [0.9, 0.55], [0.04, 0.4]],
+              tip: [[1.55, -0.2], [1.9, -0.1], [2.05, 0.08], [1.85, 0.12], [1.95, 0.28], [1.7, 0.28], [1.72, 0.45], [1.45, 0.3]], span: 2.05 },
+    narrow: { w: [[0, -0.22], [1.5, 0.05], [1.62, 0.18], [0.9, 0.32], [0.04, 0.3]],
+              tip: [[1.1, -0.03], [1.5, 0.05], [1.62, 0.18], [1.2, 0.25]], span: 1.62 },
+  };
+  const TAIL_SHAPES = {
+    fork:  [[-0.2, 0], [0.2, 0], [0.42, 0.66], [0.12, 0.46], [0, 0.58], [-0.12, 0.46], [-0.42, 0.66]],
+    fan:   [[-0.2, 0], [0.2, 0], [0.5, 0.55], [0.25, 0.64], [0, 0.68], [-0.25, 0.64], [-0.5, 0.55]],
+    short: [[-0.17, 0], [0.17, 0], [0.26, 0.34], [0, 0.42], [-0.26, 0.34]],
+  };
+
+  // The roster. Colors are paper colors; parts pick from the shapes above.
+  // All birds fly the same, so picking one is purely about style.
+  const BIRDS = [
+    { id: 'skydart', name: 'Sky Dart', blurb: 'A quick blue swift',
+      body: 0x5aa9e6, head: 0x8ecdf7, wing: 0x8ecdf7, fold: 0xc4e6fb, tip: 0x3d8fd1, tail: 0x3d8fd1, beak: 0xff7a59, chest: 0xe8f5ff,
+      wings: 'swift', tailType: 'fork', beakType: 'short', crest: 'spike', accent: 0x3d8fd1 },
+    { id: 'ember', name: 'Ember', blurb: 'Born from a spark',
+      body: 0xe63946, head: 0xff7a59, wing: 0xff9f1c, fold: 0xffd166, tip: 0xe63946, tail: 0xff9f1c, beak: 0xffd166, chest: 0xffd166,
+      wings: 'swift', tailType: 'streamers', beakType: 'short', crest: 'plume', accent: 0xffd166 },
+    { id: 'zippy', name: 'Zippy', blurb: 'A buzzing hummingbird', size: 0.9,
+      body: 0x2ec4b6, head: 0x52e3c2, wing: 0x9bf6e0, fold: 0xd8fff4, tip: 0x1a9e93, tail: 0x1a9e93, beak: 0x23243a, chest: 0xff6fae,
+      wings: 'narrow', tailType: 'short', beakType: 'needle', crest: null },
+    { id: 'hoot', name: 'Hoot', blurb: 'A wise night owl', bodyScale: [1.18, 1.12, 0.92],
+      body: 0x7b5ea7, head: 0x9a7fd1, wing: 0x9a7fd1, fold: 0xc9b6f2, tip: 0x5b3f8a, tail: 0x5b3f8a, beak: 0xffb703, chest: 0xe9ddff,
+      wings: 'round', tailType: 'short', beakType: 'hook', crest: 'tufts', accent: 0x5b3f8a, bigEyes: true, eyeRing: 0xffd166 },
+    { id: 'pinky', name: 'Pinky', blurb: 'A long-necked flamingo', neck: 0.32,
+      body: 0xff8fab, head: 0xffb3c6, wing: 0xff8fab, fold: 0xffc2d4, tip: 0x23243a, tail: 0xff6f91, beak: 0x23243a, chest: 0xffd6e0,
+      wings: 'narrow', tailType: 'short', beakType: 'hook', crest: null },
+    { id: 'tuco', name: 'Tuco', blurb: 'All beak, all heart',
+      body: 0x2b2d42, head: 0x2b2d42, wing: 0x3d405b, fold: 0x5c6186, tip: 0x1b1c2b, tail: 0x1b1c2b, beak: 0xff9f1c, chest: 0xfffaf0,
+      wings: 'round', tailType: 'short', beakType: 'huge', crest: null, eyeRing: 0x7bdff2 },
+    { id: 'frost', name: 'Frost', blurb: 'A snowy royal',
+      body: 0xf4f7fb, head: 0xffffff, wing: 0xffffff, fold: 0xdbe9f6, tip: 0x8ecae6, tail: 0xbfd7ea, beak: 0xffb703, chest: 0xffffff,
+      wings: 'swift', tailType: 'fan', beakType: 'short', crest: 'crown', accent: 0x8ecae6 },
+    { id: 'goldwing', name: 'Goldwing', blurb: 'King of the cliffs', size: 1.05,
+      body: 0x8d5524, head: 0xf1e3c8, wing: 0xa0522d, fold: 0xd4a373, tip: 0x5c3317, tail: 0x6f4518, beak: 0xffd166, chest: 0xc68642,
+      wings: 'broad', tailType: 'fan', beakType: 'hook', crest: null },
+    { id: 'dazzle', name: 'Dazzle', blurb: 'Shows off every flight',
+      body: 0x1d6fa3, head: 0x2a9d8f, wing: 0x2a9d8f, fold: 0x8ac926, tip: 0x1d3557, tail: 0x2a9d8f, beak: 0xe9c46a, chest: 0x1d6fa3,
+      wings: 'round', tailType: 'peacock', beakType: 'short', crest: 'crown', accent: 0x8ac926 },
+    { id: 'shadow', name: 'Shadow', blurb: 'A crow on a secret mission',
+      body: 0x22223b, head: 0x2d2d4a, wing: 0x2d2d4a, fold: 0x4a4e69, tip: 0x14141f, tail: 0x14141f, beak: 0xffd166, chest: 0x4a4e69,
+      wings: 'swift', tailType: 'fork', beakType: 'short', crest: null, bandana: 0xe63946 },
+  ];
+
+  let birdMats = {};
+  let birdGeos = [];
+  let wings = [];
+  let birdSpec = BIRDS[0];
   const birdRoot = new THREE.Group();
   const birdModel = new THREE.Group();
   birdRoot.add(birdModel);
-  {
+  const cone4 = new THREE.ConeGeometry(1, 1, 4);
+  const disc = new THREE.CylinderGeometry(1, 1, 1, 14);
+
+  function buildBird(spec) {
+    birdSpec = spec;
+    // throw away the previous bird
+    for (const c of [...birdModel.children]) birdModel.remove(c);
+    for (const m of Object.values(birdMats)) m.dispose();
+    for (const g of birdGeos) g.dispose();
+    birdGeos = [];
+    wings = [];
+    const geo = (g) => { birdGeos.push(g); return g; };
+    const ds = { side: THREE.DoubleSide };
+    birdMats = {
+      body: lam(spec.body), head: lam(spec.head), chest: lam(spec.chest), wing: lam(spec.wing, ds), fold: lam(spec.fold, ds),
+      tip: lam(spec.tip, ds), tail: lam(spec.tail, ds), beak: lam(spec.beak), accent: lam(spec.accent ?? spec.tip, ds),
+      eyeW: new THREE.MeshBasicMaterial({ color: 0xffffff }), eye: new THREE.MeshBasicMaterial({ color: INK }),
+      ring: lam(spec.eyeRing ?? spec.head), band: lam(spec.bandana ?? 0xe63946, ds),
+    };
+    const M = birdMats;
+    const add = (o) => { birdModel.add(o); return o; };
+    const neck = spec.neck || 0;
+    const hy = 0.3 + neck, hz = -0.86 - neck * 0.25;   // head position
+
+    // Body: a folded paper diamond, plus a chest panel underneath
+    const [sx, sy, sz] = spec.bodyScale || [1, 1, 1];
     const N = [0, 0.12, -0.78], T = [0, 0.08, 0.66], U = [0, 0.42, -0.06], D = [0, -0.27, 0.02], L = [-0.34, 0.05, 0], R = [0.34, 0.05, 0];
-    const bodyGeo = paperSolid([[N, U, R], [N, R, D], [N, D, L], [N, L, U], [T, R, U], [T, D, R], [T, L, D], [T, U, L]], 0, 0.06, -0.03);
-    birdModel.add(new THREE.Mesh(bodyGeo, birdMats.body));
-    const cone4 = new THREE.ConeGeometry(1, 1, 4);
-    const head = mk(cone4, birdMats.head, 0, 0.3, -0.86, 0.2, 0.46, 0.2);
-    head.rotation.x = -Math.PI / 2; head.rotation.y = Math.PI / 4;
-    birdModel.add(head);
-    const beakM = mk(cone4, birdMats.beak, 0, 0.29, -1.16, 0.075, 0.22, 0.075);
-    beakM.rotation.x = -Math.PI / 2; beakM.rotation.y = Math.PI / 4;
-    birdModel.add(beakM);
-    for (const s of [-1, 1]) {
-      const e = mk(GEO.sphere, birdMats.eye, s * 0.1, 0.37, -0.9, 0.04);
-      e.userData.noInk = true;
-      birdModel.add(e);
+    const body = add(new THREE.Mesh(geo(paperSolid([[N, U, R], [N, R, D], [N, D, L], [N, L, U], [T, R, U], [T, D, R], [T, L, D], [T, U, L]], 0, 0.06, -0.03)), M.body));
+    body.scale.set(sx, sy, sz);
+    add(mk(GEO.ico, M.chest, 0, -0.1 * sy, -0.24, 0.22 * sx, 0.17 * sy, 0.4 * sz));
+    if (neck) {
+      const n = add(mk(GEO.box, M.body, 0, 0.18 + neck / 2, -0.66 - neck * 0.12, 0.13, neck + 0.2, 0.13));
+      n.rotation.x = -0.25;
     }
-    // forked tail
-    const tailGeo = paperCard([[-0.2, 0], [0.2, 0], [0.42, 0.66], [0.12, 0.46], [0, 0.58], [-0.12, 0.46], [-0.42, 0.66]]);
-    const tailM = new THREE.Mesh(tailGeo, birdMats.tail);
-    tailM.position.set(0, 0.12, 0.5);
-    tailM.rotation.x = -0.16;
-    birdModel.add(tailM);
+
+    // Head: a four-sided paper point
+    const hs = spec.bigEyes ? 1.2 : 1;
+    const head = add(mk(cone4, M.head, 0, hy, hz, 0.2 * hs, 0.46, 0.2 * hs));
+    head.rotation.x = -Math.PI / 2; head.rotation.y = Math.PI / 4;
+
+    // Beak: [radius, length, forward offset, downward tilt]
+    const [br, bl, boff, tilt] = {
+      short: [0.075, 0.22, -0.3, 0], needle: [0.032, 0.62, -0.5, 0], hook: [0.09, 0.25, -0.3, 0.38], huge: [0.15, 0.66, -0.5, 0.12],
+    }[spec.beakType || 'short'];
+    const beakM = add(mk(cone4, M.beak, 0, hy - 0.01 - tilt * 0.12, hz + boff, br, bl, br));
+    beakM.rotation.x = -Math.PI / 2 + tilt; beakM.rotation.y = Math.PI / 4;
+
+    // Eyes: white with an ink pupil (bigger, with a colored ring, for some birds)
+    const er = spec.bigEyes ? 0.1 : 0.068;
+    for (const s of [-1, 1]) {
+      if (spec.eyeRing) { const ring = add(mk(disc, M.ring, s * 0.12, hy + 0.07, hz - 0.03, er * 1.45, 0.02, er * 1.45)); ring.rotation.z = Math.PI / 2; }
+      const w = add(mk(GEO.sphere, M.eyeW, s * 0.12, hy + 0.07, hz - 0.04, er)); w.userData.noInk = true;
+      const p = add(mk(GEO.sphere, M.eye, s * (0.12 + er * 0.35), hy + 0.075, hz - 0.04 - er * 0.55, er * 0.55)); p.userData.noInk = true;
+    }
+
+    // Crest
+    if (spec.crest === 'spike') {
+      for (let i = 0; i < 3; i++) {
+        const c = add(mk(cone4, M.accent, 0, hy + 0.2 - i * 0.03, hz + 0.18 + i * 0.12, 0.05, 0.26 - i * 0.05, 0.05));
+        c.rotation.x = 0.6 + i * 0.25;
+      }
+    } else if (spec.crest === 'plume') {
+      const p = add(new THREE.Mesh(geo(paperCard([[-0.06, 0], [0.06, 0], [0.14, 0.55], [0, 0.85], [-0.08, 0.5]], 0.04)), M.accent));
+      p.position.set(0, hy + 0.14, hz + 0.1);
+      p.rotation.x = -1.05;
+    } else if (spec.crest === 'tufts') {
+      for (const s of [-1, 1]) {
+        const t = add(mk(cone4, M.accent, s * 0.16, hy + 0.22, hz + 0.06, 0.07, 0.3, 0.07));
+        t.rotation.z = -s * 0.45;
+      }
+    } else if (spec.crest === 'crown') {
+      for (let i = -1; i <= 1; i++) add(mk(cone4, M.accent, i * 0.09, hy + 0.2 + (i === 0 ? 0.04 : 0), hz + 0.08, 0.045, 0.2 + (i === 0 ? 0.08 : 0), 0.045));
+    }
+    if (spec.bandana) {
+      add(mk(GEO.box, M.band, 0, hy + 0.09, hz + 0.02, 0.36, 0.08, 0.34));
+      for (const s of [-1, 1]) {
+        const r = add(new THREE.Mesh(geo(paperCard([[0, 0], [0.07, 0], [0.16, 0.5], [0.04, 0.44]], 0.03)), M.band));
+        r.position.set(s * 0.06, hy + 0.08, hz + 0.18);
+        r.rotation.set(-0.35, s * 0.35, 0);
+        if (s < 0) r.scale.x = -1;
+      }
+    }
+
+    // Tail
+    const tailT = spec.tailType || 'fork';
+    if (tailT === 'peacock') {
+      // a big fan standing up behind, with eye spots
+      const fan = new THREE.Group();
+      const pts = [[0, 0]];
+      for (let i = 0; i <= 10; i++) { const a = -1.25 + (i / 10) * 2.5; pts.push([Math.sin(a) * 0.95, Math.cos(a) * 0.95]); }
+      fan.add(new THREE.Mesh(geo(paperCard(pts, 0.04)), M.tail));
+      for (let i = 0; i < 7; i++) {
+        const a = -1.05 + (i / 6) * 2.1;
+        const x = Math.sin(a) * 0.76, z = Math.cos(a) * 0.76;
+        const s1 = mk(disc, M.accent, x, 0.035, z, 0.11, 0.02, 0.11); s1.userData.noInk = true; fan.add(s1);
+        const s2 = mk(disc, M.tip, x, 0.05, z, 0.055, 0.02, 0.055); s2.userData.noInk = true; fan.add(s2);
+      }
+      fan.position.set(0, 0.18, 0.5);
+      fan.rotation.x = -0.5; // tilted back, low enough not to block your view
+      add(fan);
+    } else {
+      const shape = TAIL_SHAPES[tailT === 'streamers' ? 'fork' : tailT];
+      const t = add(new THREE.Mesh(geo(paperCard(shape)), M.tail));
+      t.position.set(0, 0.12, 0.5);
+      t.rotation.x = -0.16;
+      if (tailT === 'streamers') {
+        for (const s of [-1, 1]) {
+          const r = add(new THREE.Mesh(geo(paperCard([[-0.04, 0], [0.05, 0], [0.18, 1.1], [0.3, 1.6], [0.1, 1.28]], 0.03)), M.accent));
+          r.position.set(s * 0.1, 0.13, 0.6);
+          r.rotation.set(-0.12, s * 0.18, 0);
+          if (s < 0) r.scale.x = -1;
+        }
+      }
+    }
+
+    // Wings: the card, a lighter fold on top, and colored tips (mirrored for the left wing)
+    const W = WING_SHAPES[spec.wings || 'swift'];
+    const sp = W.span;
+    const wingGeo = geo(paperCard(W.w));
+    const foldGeo = geo(paperCard([[0.02, -0.26], [sp * 0.4, -0.16], [sp * 0.7, 0.08], [0.1, 0.18]], 0.02));
+    const tipGeo = geo(paperCard(W.tip, 0.02));
+    for (const s of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.position.set(s * 0.22 * sx, 0.12, -0.04);
+      const card = new THREE.Group();
+      card.add(new THREE.Mesh(wingGeo, M.wing));
+      const f = new THREE.Mesh(foldGeo, M.fold); f.position.y = 0.03; f.rotation.z = 0.06; card.add(f);
+      const tp = new THREE.Mesh(tipGeo, M.tip); tp.position.y = 0.035; card.add(tp);
+      card.scale.x = s;
+      pivot.add(card);
+      add(pivot);
+      wings.push({ pivot, card, s });
+    }
+
+    birdModel.scale.setScalar(spec.size || 1);
+    inkOutline(birdModel);
   }
-  // Wings: one card each (mirrored for the left), plus a lighter folded flap on top.
-  const WING_SHAPE = [[0, -0.3], [0.7, -0.18], [1.72, 0.34], [1.36, 0.33], [1.46, 0.56], [1.06, 0.43], [1.06, 0.64], [0.72, 0.46], [0.04, 0.38]];
-  const FOLD_SHAPE = [[0.02, -0.26], [0.68, -0.15], [1.2, 0.12], [0.1, 0.18]];
-  const wingGeo = paperCard(WING_SHAPE), foldGeo = paperCard(FOLD_SHAPE, 0.02);
-  const wings = [];
-  for (const s of [-1, 1]) {
-    const pivot = new THREE.Group();
-    pivot.position.set(s * 0.22, 0.12, -0.04);
-    const w = new THREE.Mesh(wingGeo, birdMats.wing);
-    const f = new THREE.Mesh(foldGeo, birdMats.wingFold);
-    f.position.y = 0.03;
-    f.rotation.z = 0.06;
-    const card = new THREE.Group();
-    card.add(w); card.add(f);
-    card.scale.x = s;            // mirror for the left wing
-    pivot.add(card);
-    birdModel.add(pivot);
-    wings.push({ pivot, card, s });
+
+  // ----- A flat side-view portrait of each bird, for the picker -----
+  const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+  function drawBirdIcon(g, spec, S) {
+    const k = S / 100;
+    g.save(); g.scale(k, k);
+    g.lineJoin = 'round'; g.lineCap = 'round'; g.lineWidth = 3; g.strokeStyle = INK_CSS;
+    const poly = (pts, fill) => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fillStyle = hex(fill); g.fill(); g.stroke(); };
+    const nk = (spec.neck || 0) * 55;
+    const tt = spec.tailType;
+    // tail (behind)
+    if (tt === 'peacock') {
+      g.beginPath(); g.moveTo(36, 56); g.arc(30, 48, 28, Math.PI * 0.55, Math.PI * 1.65); g.closePath(); g.fillStyle = hex(spec.tail); g.fill(); g.stroke();
+      for (const [x, y] of [[12, 34], [8, 50], [14, 64], [24, 26]]) {
+        g.beginPath(); g.arc(x, y, 4.5, 0, TAU); g.fillStyle = hex(spec.accent); g.fill();
+        g.beginPath(); g.arc(x, y, 2.2, 0, TAU); g.fillStyle = hex(spec.tip); g.fill();
+      }
+    } else if (tt === 'fan') poly([[34, 52], [8, 36], [4, 52], [8, 68], [34, 58]], spec.tail);
+    else if (tt === 'short') poly([[34, 50], [16, 47], [18, 61], [34, 58]], spec.tail);
+    else {
+      poly([[34, 52], [8, 40], [18, 55], [8, 68], [34, 58]], spec.tail);
+      if (tt === 'streamers') {
+        g.lineWidth = 3.5; g.strokeStyle = hex(spec.accent);
+        g.beginPath(); g.moveTo(20, 56); g.quadraticCurveTo(6, 74, -4, 70); g.moveTo(22, 52); g.quadraticCurveTo(4, 50, -4, 40); g.stroke();
+        g.strokeStyle = INK_CSS; g.lineWidth = 3;
+      }
+    }
+    // body + chest (and neck)
+    const bs = spec.bodyScale ? 1.12 : 1;
+    poly([[30, 56], [52, 36 - 3 * bs], [78, 47], [58, 72 + 2 * bs]], spec.body);
+    poly([[58, 72 + 2 * bs], [78, 47], [68, 64]], spec.chest);
+    if (nk) poly([[66, 46], [72, 46 - nk], [78, 44 - nk], [76, 50]], spec.body);
+    // head
+    const hy = -nk;
+    poly([[68, 44 + hy], [80, 28 + hy], [90, 44 + hy]], spec.head);
+    // beak
+    const bt = spec.beakType;
+    if (bt === 'needle') poly([[88, 39 + hy], [104, 41 + hy], [88, 42 + hy]], spec.beak);
+    else if (bt === 'huge') poly([[86, 33 + hy], [104, 42 + hy], [86, 47 + hy]], spec.beak);
+    else if (bt === 'hook') poly([[87, 37 + hy], [97, 40 + hy], [94, 47 + hy], [87, 43 + hy]], spec.beak);
+    else poly([[88, 37 + hy], [98, 41 + hy], [88, 44 + hy]], spec.beak);
+    // eye
+    const er = spec.bigEyes ? 5 : 3.6;
+    if (spec.eyeRing) { g.beginPath(); g.arc(81, 37 + hy, er + 2.2, 0, TAU); g.fillStyle = hex(spec.eyeRing); g.fill(); }
+    g.beginPath(); g.arc(81, 37 + hy, er, 0, TAU); g.fillStyle = '#fff'; g.fill(); g.lineWidth = 2; g.stroke();
+    g.beginPath(); g.arc(82.5, 37 + hy, er * 0.5, 0, TAU); g.fillStyle = INK_CSS; g.fill();
+    g.lineWidth = 3;
+    // crest / bandana
+    if (spec.crest === 'spike') { poly([[76, 33 + hy], [70, 20 + hy], [80, 30 + hy]], spec.accent); poly([[73, 36 + hy], [64, 26 + hy], [76, 34 + hy]], spec.accent); }
+    else if (spec.crest === 'plume') { g.lineWidth = 4; g.strokeStyle = hex(spec.accent); g.beginPath(); g.moveTo(78, 30 + hy); g.quadraticCurveTo(74, 10 + hy, 60, 8 + hy); g.stroke(); g.strokeStyle = INK_CSS; g.lineWidth = 3; }
+    else if (spec.crest === 'tufts') { poly([[74, 34 + hy], [70, 18 + hy], [80, 30 + hy]], spec.accent); poly([[80, 30 + hy], [84, 16 + hy], [86, 34 + hy]], spec.accent); }
+    else if (spec.crest === 'crown') { poly([[73, 32 + hy], [74, 22 + hy], [78, 29 + hy], [80, 18 + hy], [82, 29 + hy], [86, 22 + hy], [86, 34 + hy]], spec.accent); }
+    if (spec.bandana) {
+      poly([[71, 38 + hy], [80, 31 + hy], [89, 38 + hy], [88, 42 + hy], [80, 35 + hy], [72, 42 + hy]], spec.bandana);
+      poly([[72, 40 + hy], [60, 36 + hy], [62, 44 + hy]], spec.bandana);
+    }
+    // wing (folded up over the back) with its tip color
+    poly([[44, 52], [60, 18], [68, 50]], spec.wing);
+    poly([[56, 27], [60, 18], [63, 32]], spec.tip);
+    poly([[48, 50], [58, 30], [62, 49]], spec.fold);
+    g.restore();
   }
-  inkOutline(birdModel);
+  const birdIconURL = BIRDS.map((b) => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+    drawBirdIcon(cv.getContext('2d'), b, 128);
+    return cv.toDataURL();
+  });
+
+  let birdIndex = 0;
+  try { const saved = localStorage.getItem('wingsBird'); const i = BIRDS.findIndex((b) => b.id === saved); if (i >= 0) birdIndex = i; } catch (e) {}
+  buildBird(BIRDS[birdIndex]);
   const shieldBubble = mk(GEO.ico1, new THREE.MeshLambertMaterial({ color: 0x5eead4, emissive: 0x0d9488, transparent: true, opacity: 0.28, depthWrite: false }), 0, 0, 0, 1.25);
   shieldBubble.visible = false;
   birdRoot.add(shieldBubble);
@@ -773,6 +1051,9 @@
 
   // ---------- State ----------
   let state = 'menu', overReadyAt = 0;
+  // Steady camera (less motion): remembered between visits
+  let camLocked = false;
+  try { camLocked = localStorage.getItem('wingsCamLock') === '1'; } catch (e) {}
   let dist = 0, scroll = 0, bonus = 0, seedsGot = 0, powersGot = 0, score = 0, time = 0, shake = 0;
   let biomeIdx = 0, nextSpawn = 0, powerCd = 6, decoNext = 0, cloudNext = 0, seedNext = 0;
   let obstacles = [], seeds = [], bubbles = [], decos = [], particles = [];
@@ -1599,7 +1880,12 @@
         bird.ty = lerp(YMIN, YMAX, 0.5 + up * 0.5);
         bird.tx = right * XMAX;
       }
-      if (state === 'menu') { bird.tx = Math.sin(time * 0.6) * 2.5; bird.ty = 4.5 + Math.sin(time * 1.1) * 1.2; }
+      if (state === 'menu') {
+        // On wide screens the bird shows off beside the menu card; otherwise it drifts behind it
+        const side = viewW > 1000 ? 5 : 0;
+        bird.tx = side + Math.sin(time * 0.6) * (side ? 0.8 : 2.5);
+        bird.ty = 4.5 + Math.sin(time * 1.1) * 1.2;
+      }
       bird.tx = clamp(bird.tx, -XMAX, XMAX);
       bird.ty = clamp(bird.ty, YMIN, YMAX);
       const px = bird.x, py = bird.y;
@@ -1758,17 +2044,44 @@
     shadow.material.opacity = 0.32 * (1 - b.y / 13);
 
     // Chase camera: behind and a bit above the bird, leaning into its moves
-    camTarget.set(b.x * 0.62, b.y * 0.72 + 4.4, 11);
-    camera.position.lerp(camTarget, Math.min(1, dt * 5));
-    camLook.set(b.x * 0.78, b.y * 0.86 + 0.5, -16);
-    if (shake > 0) camera.position.add(new THREE.Vector3(rand(-1, 1) * shake, rand(-1, 1) * shake, 0));
-    camera.lookAt(camLook);
-    camera.rotation.z += clamp(-b.vx * 0.006, -0.08, 0.08);
+    if (camLocked) {
+      // Steady camera: parked in one spot with the whole flight area in view.
+      // No following, no tilting into turns, no shake — only the bird moves.
+      camTarget.set(0, 7.4, 14.5);
+      camera.position.lerp(camTarget, Math.min(1, dt * 4));
+      camLook.set(0, 4.6, -16);
+      camera.lookAt(camLook);
+    } else {
+      camTarget.set(b.x * 0.62, b.y * 0.72 + 4.4, 11);
+      camera.position.lerp(camTarget, Math.min(1, dt * 5));
+      camLook.set(b.x * 0.78, b.y * 0.86 + 0.5, -16);
+      if (shake > 0) camera.position.add(new THREE.Vector3(rand(-1, 1) * shake, rand(-1, 1) * shake, 0));
+      camera.lookAt(camLook);
+      camera.rotation.z += clamp(-b.vx * 0.006, -0.08, 0.08);
+    }
 
     renderer.render(scene, camera);
   }
 
   // ---------- Sound button ----------
+  // ---------- Steady camera toggle ----------
+  const camBtn = $('camlock'), camLabel = $('camLabel');
+  function refreshCamBtn() {
+    camBtn.classList.toggle('on', camLocked);
+    camLabel.classList.toggle('gone', !camLocked);
+    camBtn.setAttribute('aria-pressed', camLocked ? 'true' : 'false');
+  }
+  camBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  camBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    camBtn.blur();
+    camLocked = !camLocked;
+    try { localStorage.setItem('wingsCamLock', camLocked ? '1' : '0'); } catch (err) {}
+    refreshCamBtn();
+    banner(camLocked ? 'STEADY CAMERA' : 'CHASE CAMERA');
+  });
+  refreshCamBtn();
+
   const soundBtn = $('sound');
   function refreshSoundBtn() { soundBtn.textContent = muted ? '🔇' : '🔊'; }
   soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -1801,6 +2114,55 @@
   window.addEventListener('orientationchange', () => setTimeout(() => { resize(); recalibrateAfterTurn(); }, 150));
   window.focus();
 
+  // ---------- Bird picker ----------
+  const cardsEl = $('birdCards');
+  const cardEls = BIRDS.map((b, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bcard';
+    btn.title = b.name;
+    btn.setAttribute('aria-label', b.name);
+    btn.innerHTML = `<img src="${birdIconURL[i]}" alt="">`;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); selectBird(i); });
+    cardsEl.appendChild(btn);
+    return btn;
+  });
+  // Touching the picker must not start the game
+  $('picker').addEventListener('pointerdown', (e) => e.stopPropagation());
+  function selectBird(i, quiet = false) {
+    birdIndex = (i + BIRDS.length) % BIRDS.length;
+    const b = BIRDS[birdIndex];
+    buildBird(b);
+    try { localStorage.setItem('wingsBird', b.id); } catch (e) {}
+    cardEls.forEach((c, j) => c.classList.toggle('sel', j === birdIndex));
+    $('birdName').textContent = b.name;
+    $('birdBlurb').textContent = b.blurb;
+    $('changeBirdImg').src = birdIconURL[birdIndex];
+    const card = cardEls[birdIndex];
+    cardsEl.scrollTo({ left: card.offsetLeft - cardsEl.clientWidth / 2 + card.offsetWidth / 2, behavior: quiet ? 'auto' : 'smooth' });
+    if (!quiet) { initAudio(); tone(660, 990, 0.12, 'triangle', 0.07); tone(990, 1320, 0.1, 'triangle', 0.05, 0.07); }
+  }
+  // Left / right arrows pick a bird while you're on the menu
+  window.addEventListener('keydown', (e) => {
+    if (state !== 'menu') return;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') selectBird(birdIndex - 1);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') selectBird(birdIndex + 1);
+  });
+  // "Change bird" on the game-over sheet goes back to the menu
+  const changeBtn = $('changeBird');
+  changeBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  changeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    changeBtn.blur();
+    state = 'menu';
+    reset();
+    el.over.classList.add('hidden');
+    el.menu.classList.remove('hidden');
+    stickVisible();
+    selectBird(birdIndex, true);
+  });
+  requestAnimationFrame(() => selectBird(birdIndex, true));
+
   // Hooks for automated testing (harmless in normal play)
   window.__ww = {
     get state() { return state; }, get score() { return score; }, get dist() { return dist; }, get biome() { return curBiome(); },
@@ -1811,6 +2173,7 @@
     give(k) { timers[k] = POWERS[k].time; },
     get gyro() { return { on: gyroOn, raw: gyroRaw, neutral: gyroNeutral, rotated }; },
     get bubbles() { return bubbles; },
+    birds: BIRDS, pickBird: (i) => selectBird(i, true),
     spawn: { airplane, raptor, gullFlock, swordfish, wreckingBall, snowball, spawnBubble },
   };
 
