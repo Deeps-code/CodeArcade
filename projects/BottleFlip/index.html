@@ -15,21 +15,66 @@
   #sound, #theme {
     position: fixed; top: 12px; right: 12px; width: 42px; height: 42px;
     border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(10, 8, 30, 0.45); color: #fff; font-size: 18px; cursor: pointer;
+    background: rgba(10, 8, 30, 0.45); color: #fff; font-size: 18px; cursor: pointer; z-index: 5;
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
   #theme { right: 62px; }
+
+  /* Start menu */
+  .overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; color: #fff;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(16, 10, 40, 0.35), rgba(16, 10, 40, 0.82));
+    transition: opacity 0.35s;
+  }
+  .overlay.hidden { opacity: 0; }
+  h1 { margin: 0; font-size: clamp(44px, 13vw, 90px); line-height: 0.9; font-weight: 900; letter-spacing: -0.02em; }
+  h1 .a { color: #fff; text-shadow: 0 0 18px rgba(143, 224, 255, 0.75); }
+  h1 .b {
+    background: linear-gradient(90deg, #ffd400, #ff9a00, #e8321a);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 16px rgba(255, 154, 0, 0.5));
+  }
+  .sub { margin: 18px 0 0; color: #d4cdf2; font-size: 15px; max-width: 340px; line-height: 1.5; }
+  .cta {
+    margin-top: 28px; padding: 13px 28px; border-radius: 999px;
+    font-weight: 800; letter-spacing: 0.14em; font-size: 14px; color: #fff;
+    background: linear-gradient(90deg, #ff9a00, #e8321a);
+    box-shadow: 0 0 30px rgba(255, 154, 0, 0.45);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(255, 154, 0, 0.7); } }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 13px; color: #d4cdf2; }
+  .legend b { font-weight: 800; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <button id="theme" type="button" aria-label="Switch day / night">☀️</button>
 <button id="sound" type="button" aria-label="Toggle sound">🔊</button>
+<div class="overlay" id="menu">
+  <h1><span class="a">BOTTLE</span><br /><span class="b">FLIP</span></h1>
+  <p class="sub" id="howto"></p>
+  <div class="cta" id="startCta">TAP TO START</div>
+  <div class="legend">
+    <span><b style="color:#e8321a">Perfect</b> +3</span>
+    <span><b style="color:#ff9a00">Great</b> +2</span>
+    <span><b style="color:#ffd400">Good</b> +1</span>
+  </div>
+</div>
 <script>
   const TAU = Math.PI * 2;
   const rand = (a, b) => a + Math.random() * (b - a);
   const wrapAngle = (a) => (((a + Math.PI) % TAU) + TAU) % TAU - Math.PI;
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
+  const menu = document.getElementById('menu');
+  let started = false;
+  document.getElementById('startCta').textContent = (isTouch ? 'TAP' : 'CLICK') + ' TO START';
+  document.getElementById('howto').textContent = (isTouch ? 'Tap' : 'Click or press Space')
+    + ' when the line is inside the zone to flip the bottle. Hit the red center to land a perfect flip!';
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
@@ -424,6 +469,14 @@
 
   function tap() {
     initAudio();
+    if (!started) {
+      // First tap only closes the start menu; the next one flips.
+      started = true;
+      menu.classList.add('hidden');
+      s.msgT = 0;
+      [523, 659, 784].forEach((f, i) => tone(f, f, 0.12, 'triangle', 0.08, i * 0.07));
+      return;
+    }
     if (s.mode !== 'aim') return;
     // Which layer of the zone was the line in? (-1 = missed the zone)
     const dist = Math.abs(s.p - s.zoneC);
@@ -953,7 +1006,7 @@
     drawText(LIQUIDS[s.liquid].name.toUpperCase(), 20, 70, 13, LIQUIDS[s.liquid].top, 'left', '600');
     ctx.restore();
 
-    if (s.msg) {
+    if (s.msg && started) {
       // Springy pop-in, then (for results) drift up a little and fade away.
       const pop = easeOutBack(Math.min(s.msgT / 0.35, 1));
       let alpha = Math.min(s.msgT / 0.12, 1);
