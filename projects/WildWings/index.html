@@ -2004,15 +2004,32 @@
     // In landscape mode the screen still says "portrait", but you're holding the phone
     // turned left (its right edge on top), exactly like a normal landscape-left phone.
     if (rotated) ang = 90;
-    if (ang === 90) return { up: -e.gamma, right: e.beta };
-    if (ang === -90 || ang === 270) return { up: e.gamma, right: -e.beta };
-    if (ang === 180) return { up: -e.beta, right: -e.gamma };
-    return { up: e.beta, right: e.gamma };
+    // The raw beta/gamma angles wrap around (gamma jumps from -90 to +90 when the phone
+    // is tilted far or held upright), which made the bird flip to the opposite edge.
+    // Instead, work out which way "up" points in the phone's own frame and measure the
+    // tilt from that: it changes smoothly in every direction and never wraps.
+    const b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180;
+    const ux = -Math.sin(g) * Math.cos(b), uy = Math.sin(b), uz = Math.cos(g) * Math.cos(b);
+    // turn that into the screen's own left/right and up/down for the current orientation
+    let sx, sy;
+    if (ang === 90) { sx = -uy; sy = ux; }
+    else if (ang === -90 || ang === 270) { sx = uy; sy = -ux; }
+    else if (ang === 180) { sx = -ux; sy = -uy; }
+    else { sx = ux; sy = uy; }
+    const DEG = 180 / Math.PI;
+    return {
+      up: Math.atan2(sy, uz) * DEG,                        // tilt the top toward / away from you
+      right: Math.atan2(-sx, Math.hypot(sy, uz)) * DEG,    // tilt (or turn like a wheel) left / right
+    };
   }
+  // difference between two angles, always the short way round (-180..180)
+  const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
   window.addEventListener('deviceorientation', (e) => {
     if (e.beta == null || e.gamma == null) return;
     gyroSeen = true;
-    gyroRaw = readTilt(e);
+    const t = readTilt(e);
+    // a little smoothing takes out sensor jitter without adding noticeable lag
+    gyroRaw = gyroRaw ? { up: gyroRaw.up + angDiff(t.up, gyroRaw.up) * 0.45, right: gyroRaw.right + angDiff(t.right, gyroRaw.right) * 0.45 } : t;
     if (gyroOn && gyroNeutral == null) gyroNeutral = { ...gyroRaw };
   });
   function calibrateGyro() { gyroNeutral = gyroRaw ? { ...gyroRaw } : null; }
@@ -2114,8 +2131,8 @@
         }
       }
       if (gyroOn && gyroRaw && gyroNeutral) {
-        const up = clamp((gyroRaw.up - gyroNeutral.up) / GYRO_RANGE, -1, 1);
-        const right = clamp((gyroRaw.right - gyroNeutral.right) / GYRO_RANGE, -1, 1);
+        const up = clamp(angDiff(gyroRaw.up, gyroNeutral.up) / GYRO_RANGE, -1, 1);
+        const right = clamp(angDiff(gyroRaw.right, gyroNeutral.right) / GYRO_RANGE, -1, 1);
         bird.ty = lerp(YMIN, YMAX, 0.5 + up * 0.5);
         bird.tx = right * XMAX;
       }
