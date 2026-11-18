@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Rope Swing</title>
+<style>
+  html, body {
+    margin: 0; height: 100%; overflow: hidden; background: #0b0620; color: #eef;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    touch-action: none; overscroll-behavior: none;
+    user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+
+  .hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    padding: max(12px, env(safe-area-inset-top)) 18px 0;
+    pointer-events: none;
+  }
+  .label { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: #b9a8e6; }
+  .value { font-size: 28px; font-weight: 800; text-shadow: 0 0 12px rgba(255, 159, 67, 0.6); font-variant-numeric: tabular-nums; }
+  .meters { font-size: 12px; font-weight: 700; color: #ffcf8a; letter-spacing: 0.1em; font-variant-numeric: tabular-nums; }
+  .right { text-align: right; }
+  #sound {
+    position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 58px); right: 14px;
+    width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(20, 10, 40, 0.5);
+    color: #fff; font-size: 17px; z-index: 5;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+
+  #banner {
+    position: fixed; left: 0; right: 0; top: 34%;
+    text-align: center; font-size: clamp(30px, 9vw, 58px); font-weight: 900; letter-spacing: 0.12em;
+    color: #fff; text-shadow: 0 0 20px #ff9f43, 0 0 42px #ff4fa3;
+    opacity: 0; pointer-events: none;
+  }
+  #banner.show { animation: banner 1.5s ease-out; }
+  @keyframes banner {
+    0% { opacity: 0; transform: scale(0.6); }
+    15% { opacity: 1; transform: scale(1.06); }
+    70% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.12); }
+  }
+
+  .overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, rgba(11, 6, 32, 0.25), rgba(11, 6, 32, 0.78));
+    transition: opacity 0.35s;
+  }
+  .overlay.hidden { opacity: 0; }
+  h1 { margin: 0; font-size: clamp(44px, 13vw, 90px); line-height: 0.9; font-weight: 900; letter-spacing: -0.02em; }
+  h1 .a { color: #fff; text-shadow: 0 0 18px rgba(255, 159, 67, 0.75); }
+  h1 .b {
+    background: linear-gradient(90deg, #ffd23f, #ff9f43, #ff4fa3);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 16px rgba(255, 159, 67, 0.5));
+  }
+  .sub { margin: 18px 0 0; color: #cbbcef; font-size: 15px; max-width: 340px; line-height: 1.5; }
+  .kicker { letter-spacing: 0.24em; font-weight: 800; font-size: 14px; color: #ff9f43; text-shadow: 0 0 12px rgba(255, 159, 67, 0.6); }
+  .big { font-size: clamp(56px, 16vw, 96px); font-weight: 900; margin: 6px 0 0; text-shadow: 0 0 22px rgba(255, 159, 67, 0.65); font-variant-numeric: tabular-nums; }
+  .newbest { margin-top: 6px; color: #ffd23f; font-weight: 800; letter-spacing: 0.16em; font-size: 13px; text-shadow: 0 0 10px rgba(255, 210, 63, 0.6); }
+  .cta {
+    margin-top: 28px; padding: 13px 28px; border-radius: 999px;
+    font-weight: 800; letter-spacing: 0.14em; font-size: 14px; color: #fff;
+    background: linear-gradient(90deg, #ff9f43, #ff4fa3);
+    box-shadow: 0 0 30px rgba(255, 159, 67, 0.45);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(255, 159, 67, 0.7); } }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 13px; color: #cbbcef; }
+  .legend b { font-weight: 800; }
+  .gone { display: none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <div><div class="label">SCORE</div><div class="value" id="score">0</div><div class="meters" id="meters">0 m</div></div>
+  <div class="right"><div class="label">BEST</div><div class="value" id="best">0</div></div>
+</div>
+<button id="sound" type="button" aria-label="Toggle sound">🔊</button>
+<div id="banner"></div>
+
+<div class="overlay" id="menu">
+  <h1><span class="a">ROPE</span><br /><span class="b">SWING</span></h1>
+  <p class="sub" id="howto"></p>
+  <div class="cta" id="startCta">TAP TO START</div>
+  <div class="legend">
+    <span><b style="color:#4fd1ff">◎</b> Hook</span>
+    <span><b style="color:#ff5e5e">◎</b> Crumbles</span>
+    <span><b style="color:#ffd23f">●</b> +5</span>
+    <span><b style="color:#5dffb0">◯</b> Boost +10</span>
+  </div>
+</div>
+
+<div class="overlay hidden" id="over">
+  <div class="kicker">INTO THE LAVA</div>
+  <div class="big" id="finalScore">0</div>
+  <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
+  <p class="sub" id="overStats"></p>
+  <div class="cta" id="retryCta">TAP TO RETRY</div>
+</div>
+
+<script>
+  const TAU = Math.PI * 2;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  const verb = isTouch ? 'TAP' : 'CLICK';
+  document.getElementById('startCta').textContent = verb + ' TO START';
+  document.getElementById('retryCta').textContent = verb + ' TO RETRY';
+  document.getElementById('howto').textContent = isTouch
+    ? 'Hold anywhere to shoot a rope at the nearest hook ahead. Let go to fling yourself forward. Don\'t touch the lava!'
+    : 'Hold the mouse or Space to shoot a rope at the nearest hook ahead. Let go to fling yourself forward. Don\'t touch the lava!';
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const el = {
+    score: document.getElementById('score'),
+    meters: document.getElementById('meters'),
+    best: document.getElementById('best'),
+    banner: document.getElementById('banner'),
+    menu: document.getElementById('menu'),
+    over: document.getElementById('over'),
+    finalScore: document.getElementById('finalScore'),
+    newBest: document.getElementById('newBest'),
+    overStats: document.getElementById('overStats'),
+  };
+
+  // ---------- World ----------
+  // Everything is simulated in "world units"; the view scales so it feels the same on any screen.
+  const G = 1500;            // gravity
+  const R = 12;              // player radius
+  const RANGE = 450;         // how far the rope reaches
+  const PUMP = 120;          // a little push along the swing so swings don't die out
+  const MAX_SPEED = 1500;
+  const PX_PER_M = 40;
+  const START_X = 0;
+
+  let W = 0, H = 0, dpr = 1, scale = 1, VW = 0, VH = 0;
+  let lavaY = 0, platY = 0, playH = 700;
+  const bandY = (f) => lavaY + 34 - playH + f * playH;
+  let starsBg = [];
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    scale = clamp(Math.min(H / 700, W / 560), 0.55, 1.6);
+    VW = W / scale; VH = H / scale;
+    lavaY = VH - 34;
+    // On very tall screens keep the playable band a sensible height above the lava.
+    playH = Math.min(VH, 760);
+    platY = bandY(0.62);
+    starsBg = [];
+    for (let i = 0; i < 90; i++) starsBg.push({ x: Math.random(), y: Math.random() * 0.7, s: rand(0.6, 1.8), tw: rand(0, TAU) });
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- Sound ----------
+  let actx = null, master = null, noiseBuf = null;
+  let muted = false;
+  try { muted = localStorage.getItem('ropeMuted') === '1'; } catch (e) {}
+
+  function initAudio() {
+    if (!actx) {
+      try {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        master = actx.createGain();
+        master.gain.value = 0.6;
+        master.connect(actx.destination);
+        noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      } catch (e) { actx = null; }
+    }
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function tone(freq, endFreq, dur, type = 'sine', vol = 0.12, delay = 0) {
+    if (muted || !actx) return;
+    const t0 = actx.currentTime + delay;
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    o.frequency.exponentialRampToValueAtTime(endFreq, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(master);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  function noise(dur, vol, fromFreq, toFreq, delay = 0) {
+    if (muted || !actx) return;
+    const t0 = actx.currentTime + delay;
+    const src = actx.createBufferSource();
+    src.buffer = noiseBuf;
+    const filter = actx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(fromFreq, t0);
+    filter.frequency.exponentialRampToValueAtTime(toFreq, t0 + dur);
+    const g = actx.createGain();
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter).connect(g).connect(master);
+    src.start(t0); src.stop(t0 + dur + 0.03);
+  }
+  let lastCoinSfx = 0;
+  const sfx = {
+    start: () => [330, 440, 660].forEach((f, i) => tone(f, f * 1.01, 0.12, 'square', 0.05, i * 0.07)),
+    grab: () => { noise(0.08, 0.18, 6000, 1500); tone(500, 1100, 0.09, 'triangle', 0.08); },
+    release: () => noise(0.25, 0.12, 2500, 400),
+    coin: () => {
+      const now = performance.now();
+      const d = now - lastCoinSfx < 250 ? 0.04 : 0;
+      lastCoinSfx = now;
+      tone(988, 988, 0.07, 'square', 0.045, d); tone(1319, 1319, 0.14, 'square', 0.045, d + 0.06);
+    },
+    ring: () => { tone(400, 1600, 0.3, 'sawtooth', 0.06); tone(800, 2400, 0.25, 'sine', 0.06, 0.05); },
+    crumbleWarn: () => tone(220, 180, 0.12, 'square', 0.04),
+    crumble: () => { noise(0.35, 0.3, 3000, 200); tone(300, 80, 0.3, 'triangle', 0.08); },
+    milestone: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.14, 'triangle', 0.08, i * 0.09)),
+    splash: () => { noise(1.0, 0.55, 1800, 60); tone(140, 30, 0.9, 'sine', 0.35); },
+    gameOver: () => [392, 330, 262].forEach((f, i) => tone(f, f * 0.98, 0.22, 'triangle', 0.08, 0.5 + i * 0.18)),
+  };
+
+  // ---------- State ----------
+  let state = 'menu';
+  let overReadyAt = 0;
+  let holding = false;
+  let score = 0, bonus = 0, maxX = START_X, coinsGot = 0, ringsGot = 0, nextMilestone = 100;
+  let best = 0;
+  try { best = Number(localStorage.getItem('ropeBest')) || 0; } catch (e) {}
+  el.best.textContent = best;
+
+  let player, rope, target;
+  let anchors = [], coins = [], rings = [], particles = [], trail = [];
+  let camX = 0, camY = 0, time = 0, shake = 0;
+  let lastAnchorX = 0;
+
+  function reset() {
+    player = { x: START_X - 60, y: platY - R, vx: 0, vy: 0, alive: true };
+    rope = null; target = null;
+    anchors = []; coins = []; rings = []; particles = []; trail = [];
+    score = 0; bonus = 0; maxX = START_X; coinsGot = 0; ringsGot = 0; nextMilestone = 100;
+    // First hook is always an easy reach from the start ledge.
+    anchors.push(makeAnchor(START_X + 140, bandY(0.24), false, 0));
+    lastAnchorX = START_X + 140;
+    camX = player.x - VW * 0.35; camY = 0;
+    generate();
+    updateHud();
+  }
+
+  function makeAnchor(x, y, crumble, bob) {
+    return { x, y, baseY: y, crumble, bob, phase: rand(0, TAU), speed: rand(1.2, 2), breakT: -1, broken: false, pulse: 0 };
+  }
+
+  function generate() {
+    while (lastAnchorX < camX + VW + 700) {
+      const m = (lastAnchorX - START_X) / PX_PER_M;
+      const gap = rand(200, 270) + Math.min(170, m * 0.55);
+      const prev = anchors[anchors.length - 1];
+      const x = lastAnchorX + gap;
+      const y = bandY(rand(0.1, 0.4));
+      const crumble = m > 50 && Math.random() < Math.min(0.32, 0.08 + m / 1500);
+      const bob = m > 120 && Math.random() < Math.min(0.4, 0.15 + m / 2000) ? rand(35, 75) : 0;
+      const a = makeAnchor(x, y, crumble, bob);
+      anchors.push(a);
+
+      // Coins in a gentle arc between hooks.
+      if (Math.random() < 0.65) {
+        const n = 3 + Math.floor(Math.random() * 3);
+        const baseY = Math.max(prev.baseY, y) + rand(110, 190);
+        for (let i = 0; i < n; i++) {
+          const t = (i + 1) / (n + 1);
+          coins.push({ x: lerp(prev.x, x, t), y: baseY - Math.sin(t * Math.PI) * 70, got: false, spin: rand(0, TAU) });
+        }
+      } else if (m > 15 && Math.random() < 0.5) {
+        // A boost ring instead.
+        rings.push({ x: lerp(prev.x, x, 0.55), y: (prev.baseY + y) / 2 + rand(90, 160), got: false, t: 0 });
+      }
+      lastAnchorX = x;
+    }
+    // Drop things far behind the camera.
+    const cut = camX - 500;
+    anchors = anchors.filter((a) => a.x > cut || (rope && rope.a === a));
+    coins = coins.filter((c) => c.x > cut && !(c.got && c.fade <= 0));
+    rings = rings.filter((r) => r.x > cut);
+  }
+
+  function start() {
+    reset();
+    state = 'playing';
+    el.menu.classList.add('hidden');
+    el.over.classList.add('hidden');
+    sfx.start();
+  }
+
+  function die() {
+    state = 'over';
+    player.alive = false;
+    rope = null;
+    shake = 18;
+    sfx.splash(); sfx.gameOver();
+    for (let i = 0; i < 60; i++) {
+      const a = rand(-Math.PI, 0), s = rand(150, 650);
+      particles.push({ x: player.x, y: lavaY, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.6, 1.3), max: 1.3, c: Math.random() < 0.5 ? '#ff9f43' : '#ffd23f', r: rand(2, 5), g: 1 });
+    }
+    const isBest = score > best;
+    if (isBest) {
+      best = score;
+      try { localStorage.setItem('ropeBest', best); } catch (e) {}
+      el.best.textContent = best;
+    }
+    el.finalScore.textContent = score;
+    el.newBest.classList.toggle('gone', !isBest);
+    el.overStats.textContent = `${meters()} m swung · ${coinsGot} coins · ${ringsGot} boosts`;
+    overReadyAt = performance.now() + 700;
+    setTimeout(() => { if (state === 'over') el.over.classList.remove('hidden'); }, 600);
+  }
+
+  function meters() { return Math.max(0, Math.floor((maxX - START_X) / PX_PER_M)); }
+
+  function updateHud() {
+    score = meters() + bonus;
+    el.score.textContent = score;
+    el.meters.textContent = meters() + ' m';
+  }
+
+  function banner(text) {
+    el.banner.textContent = text;
+    el.banner.classList.remove('show');
+    void el.banner.offsetWidth;
+    el.banner.classList.add('show');
+  }
+
+  function burst(x, y, color, n, speed = 260) {
+    for (let i = 0; i < n; i++) {
+      const a = rand(0, TAU), s = rand(speed * 0.3, speed);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.3, 0.7), max: 0.7, c: color, r: rand(1.5, 3.5), g: 0.4 });
+    }
+  }
+
+  // ---------- Rope ----------
+  function findTarget() {
+    const p = player;
+    let bestA = null, bestD = Infinity;
+    for (const a of anchors) {
+      if (a.broken) continue;
+      const d = Math.hypot(a.x - p.x, a.y - p.y);
+      if (d > RANGE) continue;
+      // Hooks ahead of you are strongly preferred over ones behind.
+      const behind = a.x < p.x - 30;
+      const s = d + (behind ? 600 : 0) - (a.y < p.y ? 40 : 0);
+      if (s < bestD) { bestD = s; bestA = a; }
+    }
+    return bestA;
+  }
+
+  function attach(a) {
+    const d = Math.hypot(player.x - a.x, player.y - a.y);
+    rope = { a, len: clamp(d, 70, RANGE), shoot: 0 };
+    if (a.crumble && a.breakT < 0) { a.breakT = 0.85; sfx.crumbleWarn(); }
+    sfx.grab();
+    burst(a.x, a.y, a.crumble ? '#ff5e5e' : '#4fd1ff', 10, 160);
+  }
+
+  function detach() {
+    if (!rope) return;
+    rope = null;
+    // A small reward for letting go with speed.
+    const sp = Math.hypot(player.vx, player.vy);
+    if (sp > 300) { player.vx *= 1.04; player.vy *= 1.04; }
+    sfx.release();
+  }
+
+  // ---------- Physics ----------
+  function step(h) {
+    const p = player;
+    p.vy += G * h;
+
+    if (rope) {
+      const a = rope.a;
+      const dx = p.x - a.x, dy = p.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const tx = -dy / d, ty = dx / d;
+      const vt = p.vx * tx + p.vy * ty;
+      let s = Math.sign(vt);
+      if (Math.abs(vt) < 30) s = Math.sign(tx) || 1; // from rest, swing forward
+      p.vx += tx * s * PUMP * h;
+      p.vy += ty * s * PUMP * h;
+    }
+
+    p.vx *= 1 - 0.04 * h;
+    const sp = Math.hypot(p.vx, p.vy);
+    if (sp > MAX_SPEED) { p.vx *= MAX_SPEED / sp; p.vy *= MAX_SPEED / sp; }
+
+    const prevY = p.y;
+    p.x += p.vx * h;
+    p.y += p.vy * h;
+
+    if (rope) {
+      const a = rope.a;
+      const dx = p.x - a.x, dy = p.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      if (d > rope.len) {
+        const nx = dx / d, ny = dy / d;
+        p.x = a.x + nx * rope.len;
+        p.y = a.y + ny * rope.len;
+        const vr = p.vx * nx + p.vy * ny;
+        if (vr > 0) { p.vx -= nx * vr; p.vy -= ny * vr; }
+      }
+    }
+
+    // Start ledge
+    if (p.x > START_X - 400 && p.x < START_X + 10 && p.vy >= 0 && prevY + R <= platY + 1 && p.y + R > platY) {
+      p.y = platY - R;
+      p.vy = 0;
+      p.vx *= 1 - Math.min(1, 8 * h);
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dt) {
+    time += dt;
+    shake = Math.max(0, shake - 40 * dt);
+
+    for (const a of anchors) {
+      if (a.bob) a.y = a.baseY + Math.sin(time * a.speed + a.phase) * a.bob;
+      a.pulse = Math.max(0, a.pulse - dt * 3);
+      if (a.breakT > 0) {
+        a.breakT -= dt;
+        if (a.breakT <= 0 && !a.broken) {
+          a.broken = true;
+          if (rope && rope.a === a) rope = null;
+          sfx.crumble();
+          burst(a.x, a.y, '#ff5e5e', 26, 300);
+        }
+      }
+    }
+
+    if (state === 'playing') {
+      target = rope ? null : findTarget();
+      if (holding && !rope && target) attach(target);
+      if (!holding && rope) detach();
+      if (rope) rope.shoot = Math.min(1, rope.shoot + dt * 12);
+
+      const sub = 6;
+      for (let i = 0; i < sub; i++) step(dt / sub);
+
+      const p = player;
+      trail.push({ x: p.x, y: p.y });
+      if (trail.length > 22) trail.shift();
+      if (p.x > maxX) maxX = p.x;
+
+      for (const c of coins) {
+        if (!c.got && Math.hypot(c.x - p.x, c.y - p.y) < R + 14) {
+          c.got = true; c.fade = 0.4; coinsGot++; bonus += 5;
+          sfx.coin(); burst(c.x, c.y, '#ffd23f', 8, 180);
+        }
+      }
+      for (const r of rings) {
+        if (!r.got && Math.hypot(r.x - p.x, r.y - p.y) < 34) {
+          r.got = true; ringsGot++; bonus += 10;
+          const sp = Math.hypot(p.vx, p.vy) || 1;
+          p.vx += 380; p.vy = Math.min(p.vy, -120);
+          if (sp < 200) p.vy -= 200;
+          sfx.ring(); burst(r.x, r.y, '#5dffb0', 22, 320);
+          shake = 5;
+        }
+      }
+
+      updateHud();
+      if (meters() >= nextMilestone) {
+        banner(nextMilestone + ' M!');
+        sfx.milestone();
+        nextMilestone += 100;
+      }
+      if (p.y + R > lavaY) die();
+    }
+
+    // Camera
+    const p = player;
+    const tx = p.x - VW * 0.35;
+    camX = lerp(camX, tx, Math.min(1, dt * 5));
+    const ty = Math.min(0, p.y - VH * 0.22);
+    camY = lerp(camY, ty, Math.min(1, dt * 4));
+    generate();
+
+    for (const c of coins) { c.spin += dt * 4; if (c.got) c.fade -= dt; }
+    for (const r of rings) r.t += dt;
+    for (const q of particles) {
+      q.x += q.vx * dt; q.y += q.vy * dt;
+      q.vy += 900 * q.g * dt;
+      q.life -= dt;
+    }
+    particles = particles.filter((q) => q.life > 0);
+  }
+
+  // ---------- Draw ----------
+  function hills(par, amp, base, freq, color, seed) {
+    // Silhouette that scrolls slower than the world (parallax), in screen space.
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    const off = camX * par;
+    for (let sx = 0; sx <= W + 8; sx += 8) {
+      const wx = (sx / scale + off) * freq;
+      const y = base + (Math.sin(wx + seed) * 0.6 + Math.sin(wx * 2.3 + seed * 2) * 0.3 + Math.sin(wx * 5.1 + seed) * 0.1) * amp;
+      ctx.lineTo(sx, y - camY * par * scale * 0.5);
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0b0620');
+    g.addColorStop(0.55, '#2a0f4a');
+    g.addColorStop(0.85, '#6b1f4f');
+    g.addColorStop(1, '#c2410c');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    for (const s of starsBg) {
+      const x = ((s.x * W - camX * 0.05 * scale) % W + W) % W;
+      ctx.globalAlpha = 0.35 + 0.35 * Math.sin(time * 2 + s.tw);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x, s.y * H, s.s, s.s);
+    }
+    ctx.globalAlpha = 1;
+
+    // Big low moon
+    const mx = W * 0.78, my = H * 0.3;
+    const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 120 * scale);
+    mg.addColorStop(0, 'rgba(255, 210, 160, 0.9)');
+    mg.addColorStop(0.35, 'rgba(255, 159, 67, 0.35)');
+    mg.addColorStop(1, 'rgba(255, 159, 67, 0)');
+    ctx.fillStyle = mg;
+    ctx.fillRect(mx - 130 * scale, my - 130 * scale, 260 * scale, 260 * scale);
+
+    hills(0.12, 60 * scale, H * 0.72, 0.004, '#3a1356', 1);
+    hills(0.25, 50 * scale, H * 0.8, 0.007, '#2a0c3f', 4);
+    hills(0.45, 36 * scale, H * 0.88, 0.012, '#1a0629', 7);
+  }
+
+  function drawLava() {
+    const top = (lavaY - camY) * scale;
+    const g = ctx.createLinearGradient(0, top - 40 * scale, 0, H);
+    g.addColorStop(0, 'rgba(255, 120, 30, 0)');
+    g.addColorStop(0.3, 'rgba(255, 120, 30, 0.35)');
+    g.addColorStop(1, 'rgba(255, 80, 20, 0.6)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, top - 40 * scale, W, H - top + 40 * scale);
+
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let sx = 0; sx <= W + 6; sx += 6) {
+      const wx = sx / scale + camX;
+      const y = top + Math.sin(wx * 0.03 + time * 2.2) * 4 * scale + Math.sin(wx * 0.071 - time * 1.4) * 3 * scale;
+      ctx.lineTo(sx, y);
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    const lg = ctx.createLinearGradient(0, top, 0, H);
+    lg.addColorStop(0, '#ffd23f');
+    lg.addColorStop(0.15, '#ff9f43');
+    lg.addColorStop(1, '#b91c1c');
+    ctx.fillStyle = lg;
+    ctx.fill();
+
+    // Bubbles
+    for (let i = 0; i < 8; i++) {
+      const bx = ((i * 197 + Math.floor(time * 0.6 + i) * 89) % Math.max(1, W));
+      const ph = (time * 0.6 + i) % 1;
+      ctx.globalAlpha = 1 - ph;
+      ctx.fillStyle = '#ffe08a';
+      ctx.beginPath();
+      ctx.arc(bx, top + 6 * scale - ph * 10 * scale, (2 + ph * 4) * scale, 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawWorld() {
+    // Start ledge
+    if (START_X + 10 > camX - 10) {
+      ctx.fillStyle = '#1a0629';
+      ctx.fillRect(START_X - 400, platY, 410, lavaY - platY + 40);
+      ctx.fillStyle = '#ff9f43';
+      ctx.fillRect(START_X - 400, platY, 410, 4);
+    }
+
+    // Rings
+    for (const r of rings) {
+      if (r.got && r.t > 99) continue;
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      const pulse = 1 + Math.sin(r.t * 5) * 0.06;
+      ctx.scale(0.55 * pulse, pulse);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = r.got ? 'rgba(93, 255, 176, 0.2)' : '#5dffb0';
+      ctx.shadowColor = '#5dffb0'; ctx.shadowBlur = r.got ? 0 : 16;
+      ctx.beginPath(); ctx.arc(0, 0, 32, 0, TAU); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Coins
+    for (const c of coins) {
+      if (c.got && c.fade <= 0) continue;
+      ctx.save();
+      ctx.translate(c.x, c.got ? c.y - (0.4 - c.fade) * 60 : c.y);
+      ctx.globalAlpha = c.got ? Math.max(0, c.fade / 0.4) : 1;
+      ctx.scale(Math.abs(Math.cos(c.spin)) * 0.8 + 0.2, 1);
+      ctx.fillStyle = '#ffd23f';
+      ctx.shadowColor = '#ffd23f'; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, TAU); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff3b0';
+      ctx.beginPath(); ctx.arc(-2, -2, 3, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+
+    // Aim line to the hook you'd grab
+    if (state === 'playing' && !rope && target) {
+      ctx.save();
+      ctx.setLineDash([6, 8]);
+      ctx.lineDashOffset = -time * 40;
+      ctx.strokeStyle = target.crumble ? 'rgba(255, 94, 94, 0.45)' : 'rgba(79, 209, 255, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(target.x, target.y); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Hooks
+    for (const a of anchors) {
+      if (a.broken) continue;
+      const col = a.crumble ? '#ff5e5e' : '#4fd1ff';
+      const isT = a === target || (rope && rope.a === a);
+      let jx = 0;
+      if (a.breakT > 0) jx = Math.sin(time * 80) * 2.5;
+      ctx.save();
+      ctx.translate(a.x + jx, a.y);
+      if (a.bob) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, a.baseY - a.y - a.bob); ctx.lineTo(0, a.baseY - a.y + a.bob); ctx.stroke();
+      }
+      const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, isT ? 34 : 24);
+      gr.addColorStop(0, col + 'aa');
+      gr.addColorStop(1, col + '00');
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(0, 0, isT ? 34 : 24, 0, TAU); ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = col;
+      ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
+      if (a.crumble) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(-1, 1); ctx.lineTo(-3, 6); ctx.moveTo(4, -6); ctx.lineTo(2, 0); ctx.stroke();
+      }
+      if (isT && !rope) {
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = 0.6;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 16 + Math.sin(time * 8) * 3, 0, TAU); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Rope
+    if (rope && player.alive) {
+      const a = rope.a, p = player;
+      const ex = lerp(p.x, a.x, rope.shoot), ey = lerp(p.y, a.y, rope.shoot);
+      const d = Math.hypot(p.x - a.x, p.y - a.y);
+      const slack = Math.max(0, rope.len - d);
+      ctx.strokeStyle = '#ffe9c7';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#ff9f43'; ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.quadraticCurveTo((p.x + ex) / 2, (p.y + ey) / 2 + slack * 0.6, ex, ey);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Trail
+    for (let i = 0; i < trail.length; i++) {
+      const t = trail[i];
+      ctx.globalAlpha = (i / trail.length) * 0.35;
+      ctx.fillStyle = '#ff9f43';
+      ctx.beginPath(); ctx.arc(t.x, t.y, R * (i / trail.length), 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Player
+    if (player.alive) {
+      const p = player;
+      const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 2.6);
+      gr.addColorStop(0, 'rgba(255, 210, 63, 0.6)');
+      gr.addColorStop(1, 'rgba(255, 159, 67, 0)');
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(p.x, p.y, R * 2.6, 0, TAU); ctx.fill();
+      const bg = ctx.createRadialGradient(p.x - 4, p.y - 4, 1, p.x, p.y, R);
+      bg.addColorStop(0, '#fff');
+      bg.addColorStop(0.4, '#ffd23f');
+      bg.addColorStop(1, '#ff7a1a');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, TAU); ctx.fill();
+      // little face looking where you're going
+      const ang = Math.atan2(p.vy, p.vx || 1);
+      const fx = Math.cos(ang) * 4, fy = Math.sin(ang) * 3;
+      ctx.fillStyle = '#3a1356';
+      ctx.beginPath(); ctx.arc(p.x + fx - 3, p.y + fy - 2, 1.8, 0, TAU); ctx.arc(p.x + fx + 3, p.y + fy - 2, 1.8, 0, TAU); ctx.fill();
+    }
+
+    for (const q of particles) {
+      ctx.globalAlpha = Math.max(0, q.life / q.max);
+      ctx.fillStyle = q.c;
+      ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawBackground();
+    const sx = shake ? rand(-shake, shake) * 0.4 : 0, sy = shake ? rand(-shake, shake) * 0.4 : 0;
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, (-camX * scale + sx) * dpr, (-camY * scale + sy) * dpr);
+    drawWorld();
+    ctx.setTransform(dpr, 0, 0, dpr, sx * dpr, sy * dpr);
+    drawLava();
+
+    // Arrow when you're off the top of the screen
+    if (player.alive && (player.y - camY) * scale < -10) {
+      const x = (player.x - camX) * scale;
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x - 7, 20); ctx.lineTo(x + 7, 20); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // ---------- Input ----------
+  function press() {
+    initAudio();
+    holding = true;
+    if (state === 'menu') start();
+    else if (state === 'over' && performance.now() > overReadyAt) start();
+  }
+  function releaseInput() { holding = false; }
+
+  window.addEventListener('pointerdown', press);
+  window.addEventListener('pointerup', releaseInput);
+  window.addEventListener('pointercancel', releaseInput);
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      e.preventDefault();
+      if (!e.repeat) press();
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'ArrowUp' || e.code === 'KeyW') releaseInput();
+  });
+  window.addEventListener('blur', releaseInput);
+
+  const soundBtn = document.getElementById('sound');
+  function refreshSoundBtn() { soundBtn.textContent = muted ? '🔇' : '🔊'; }
+  soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  soundBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    muted = !muted;
+    try { localStorage.setItem('ropeMuted', muted ? '1' : '0'); } catch (err) {}
+    refreshSoundBtn();
+    soundBtn.blur();
+    if (!muted) { initAudio(); sfx.coin(); }
+  });
+  refreshSoundBtn();
+  window.focus();
+
+  // ---------- Start ----------
+  resize();
+  reset();
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+</script>
+</body>
+</html>

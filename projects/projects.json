@@ -14,5 +14,21 @@
     "folder": "BottleFlip",
     "thumbnail": "thumb.svg",
     "tags": ["game", "timing", "canvas"]
+  },
+  {
+    "id": "rope-swing",
+    "title": "Rope Swing",
+    "description": "Hold to grapple, let go to fling. Swing hook to hook over a lake of lava, and watch out for the ones that crumble.",
+    "folder": "RopeSwing",
+    "thumbnail": "thumb.svg",
+    "tags": ["game", "physics", "canvas"]
+  },
+  {
+    "id": "brick-storm",
+    "title": "Brick Storm",
+    "description": "Brick breaker where the wall keeps sinking toward you. Smash it with Blaster, Tesla, Nova and multiball before it lands.",
+    "folder": "BrickStorm",
+    "thumbnail": "thumb.svg",
+    "tags": ["game", "arcade", "canvas"]
   }
 ]

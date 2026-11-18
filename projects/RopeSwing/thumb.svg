@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0620"/><stop offset="0.55" stop-color="#2a0f4a"/><stop offset="0.85" stop-color="#6b1f4f"/><stop offset="1" stop-color="#c2410c"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd2a0" stop-opacity="0.9"/><stop offset="0.35" stop-color="#ff9f43" stop-opacity="0.35"/><stop offset="1" stop-color="#ff9f43" stop-opacity="0"/></radialGradient>
+    <radialGradient id="hook"><stop offset="0" stop-color="#4fd1ff" stop-opacity="0.7"/><stop offset="1" stop-color="#4fd1ff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="red"><stop offset="0" stop-color="#ff5e5e" stop-opacity="0.7"/><stop offset="1" stop-color="#ff5e5e" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ball" cx="0.35" cy="0.35" r="0.7"><stop offset="0" stop-color="#fff"/><stop offset="0.4" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff7a1a"/></radialGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#ffd23f" stop-opacity="0.6"/><stop offset="1" stop-color="#ff9f43" stop-opacity="0"/></radialGradient>
+    <linearGradient id="lava" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd23f"/><stop offset="0.25" stop-color="#ff9f43"/><stop offset="1" stop-color="#b91c1c"/></linearGradient>
+  </defs>
+  <rect width="320" height="200" fill="url(#sky)"/>
+  <circle cx="250" cy="62" r="60" fill="url(#moon)"/>
+  <g fill="#fff" opacity="0.6">
+    <rect x="30" y="20" width="1.5" height="1.5"/><rect x="110" y="34" width="1" height="1"/><rect x="180" y="16" width="1.5" height="1.5"/>
+    <rect x="300" y="28" width="1" height="1"/><rect x="70" y="60" width="1" height="1"/>
+  </g>
+  <path d="M0 150 Q40 128 80 142 T160 136 T240 146 T320 132 V200 H0Z" fill="#2a0c3f"/>
+  <path d="M0 168 Q50 152 100 164 T200 158 T320 162 V200 H0Z" fill="#1a0629"/>
+  <path d="M0 182 Q20 178 40 182 T80 182 T120 182 T160 182 T200 182 T240 182 T280 182 T320 182 V200 H0Z" fill="url(#lava)"/>
+  <g fill="#ffd23f">
+    <circle cx="190" cy="118" r="5"/><circle cx="212" cy="108" r="5"/><circle cx="234" cy="104" r="5"/>
+  </g>
+  <circle cx="120" cy="44" r="22" fill="url(#hook)"/>
+  <circle cx="120" cy="44" r="7" fill="none" stroke="#4fd1ff" stroke-width="2.5"/>
+  <circle cx="120" cy="44" r="2.8" fill="#fff"/>
+  <circle cx="268" cy="58" r="20" fill="url(#red)"/>
+  <circle cx="268" cy="58" r="7" fill="none" stroke="#ff5e5e" stroke-width="2.5"/>
+  <circle cx="268" cy="58" r="2.8" fill="#fff"/>
+  <g fill="#ff9f43">
+    <circle cx="76" cy="96" r="3" opacity="0.15"/><circle cx="88" cy="110" r="5" opacity="0.22"/><circle cx="104" cy="120" r="7" opacity="0.3"/>
+  </g>
+  <path d="M120 44 L148 124" stroke="#ffe9c7" stroke-width="2.5"/>
+  <circle cx="148" cy="124" r="26" fill="url(#glow)"/>
+  <circle cx="148" cy="124" r="11" fill="url(#ball)"/>
+  <circle cx="148" cy="122" r="1.6" fill="#3a1356"/><circle cx="154" cy="122" r="1.6" fill="#3a1356"/>
+</svg>
