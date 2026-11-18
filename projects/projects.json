@@ -38,5 +38,13 @@
     "folder": "WildWings",
     "thumbnail": "thumb.svg",
     "tags": ["game", "flying", "3d"]
+  },
+  {
+    "id": "neon-hoops",
+    "title": "Neon Hoops",
+    "description": "Slingshot shots at a neon hoop against the clock. Swish for bonus time, catch fire on a streak, and sink a buzzer beater.",
+    "folder": "NeonHoops",
+    "thumbnail": "thumb.svg",
+    "tags": ["game", "sports", "canvas"]
   }
 ]
