@@ -100,6 +100,42 @@
   .pill.on { display: inline-block; }
   .pill .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: currentColor; }
   .gone { display: none; }
+
+  /* ----- Customize button & panel ----- */
+  .customBtn {
+    pointer-events: auto; margin-top: 16px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 5px 16px 5px 6px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(20, 10, 40, 0.65); color: #fff; font: inherit; font-weight: 800; letter-spacing: 0.12em; font-size: 12px;
+  }
+  .customBtn img { width: 36px; height: 36px; }
+  .customBtn:active { transform: scale(0.96); }
+  #custom { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(6, 3, 18, 0.62); }
+  #custom.gone { display: none; }
+  .cpanel {
+    width: min(460px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; color: #fff;
+    background: linear-gradient(180deg, rgba(38, 18, 72, 0.97), rgba(18, 9, 40, 0.97));
+    border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 22px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+  .chead { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px 4px; }
+  .cname { font-size: 20px; font-weight: 900; }
+  #cDone {
+    cursor: pointer; padding: 9px 20px; border-radius: 999px; border: 0; color: #fff; font: inherit; font-weight: 900; letter-spacing: 0.14em; font-size: 13px;
+    background: linear-gradient(90deg, #ff9f43, #ff4fa3); box-shadow: 0 0 20px rgba(255, 159, 67, 0.45);
+  }
+  #cPreview { width: 100%; height: 140px; display: block; flex-shrink: 0; background: radial-gradient(ellipse at 50% 15%, rgba(255, 159, 67, 0.2), transparent 70%); }
+  .cscroll { overflow-y: auto; padding: 0 16px 18px; flex: 1; min-height: 0; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 159, 67, 0.5) transparent; }
+  .clab { font-size: 10px; font-weight: 800; letter-spacing: 0.18em; color: #b9a8e6; margin: 12px 0 7px; }
+  .chead .clab { margin: 0; }
+  .crow { display: flex; flex-wrap: wrap; gap: 7px; }
+  .sw { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); cursor: pointer; padding: 0; }
+  .sw.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 159, 67, 0.85); }
+  .chip { padding: 6px 11px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.06); color: #e9e2ff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .chip.on { background: linear-gradient(90deg, #ff9f43, #ff4fa3); border-color: transparent; color: #fff; }
+  .crow.skins { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .skin { padding: 3px 2px 6px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: #e9e2ff; font: inherit; font-size: 9.5px; font-weight: 800; cursor: pointer; line-height: 1.1; }
+  .skin img { width: 100%; max-width: 56px; display: block; margin: 0 auto 1px; pointer-events: none; }
+  .skin.on { background: rgba(255, 159, 67, 0.22); border-color: #ff9f43; }
+  #app.short #cPreview { height: 96px; }
 </style>
 </head>
 <body>
@@ -118,6 +154,7 @@
   <h1><span class="a">ROPE</span><br /><span class="b">SWING</span></h1>
   <p class="sub" id="howto"></p>
   <div class="cta" id="startCta">TAP TO START</div>
+  <button class="customBtn" type="button"><img class="lookIcon" alt="">CUSTOMIZE</button>
   <div class="legend">
     <span><b style="color:#4fd1ff">◎</b> Hook</span>
     <span><b style="color:#ff5e5e">◎</b> Crumbles</span>
@@ -140,6 +177,14 @@
   <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
   <p class="sub" id="overStats"></p>
   <div class="cta" id="retryCta">TAP TO RETRY</div>
+  <button class="customBtn" type="button"><img class="lookIcon" alt="">CUSTOMIZE</button>
+</div>
+<div id="custom" class="gone">
+  <div class="cpanel">
+    <div class="chead"><div><div class="clab">YOUR LOOK</div><div class="cname" id="cName">Sunny</div></div><button id="cDone" type="button">DONE</button></div>
+    <canvas id="cPreview"></canvas>
+    <div class="cscroll" id="cScroll"></div>
+  </div>
 </div>
 <button id="rotate" class="gone" type="button" aria-label="Toggle landscape mode" title="Landscape mode">⟳</button>
 </div>
@@ -880,21 +925,14 @@
       const ex = lerp(p.x, a.x, rope.shoot), ey = lerp(p.y, a.y, rope.shoot);
       const d = Math.hypot(p.x - a.x, p.y - a.y);
       const slack = Math.max(0, rope.len - d);
-      ctx.strokeStyle = '#ffe9c7';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#ff9f43'; ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.quadraticCurveTo((p.x + ex) / 2, (p.y + ey) / 2 + slack * 0.6, ex, ey);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      drawRopeLine(ctx, p.x, p.y, (p.x + ex) / 2, (p.y + ey) / 2 + slack * 0.6, ex, ey, ropeLook, time);
     }
 
     // Trail
     for (let i = 0; i < trail.length; i++) {
       const t = trail[i];
       ctx.globalAlpha = (i / trail.length) * 0.35;
-      ctx.fillStyle = '#ff9f43';
+      ctx.fillStyle = look.trail;
       ctx.beginPath(); ctx.arc(t.x, t.y, R * (i / trail.length), 0, TAU); ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -902,22 +940,8 @@
     // Player
     if (player.alive) {
       const p = player;
-      const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 2.6);
-      gr.addColorStop(0, 'rgba(255, 210, 63, 0.6)');
-      gr.addColorStop(1, 'rgba(255, 159, 67, 0)');
-      ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.arc(p.x, p.y, R * 2.6, 0, TAU); ctx.fill();
-      const bg = ctx.createRadialGradient(p.x - 4, p.y - 4, 1, p.x, p.y, R);
-      bg.addColorStop(0, '#fff');
-      bg.addColorStop(0.4, '#ffd23f');
-      bg.addColorStop(1, '#ff7a1a');
-      ctx.fillStyle = bg;
-      ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, TAU); ctx.fill();
-      // little face looking where you're going
-      const ang = Math.atan2(p.vy, p.vx || 1);
-      const fx = Math.cos(ang) * 4, fy = Math.sin(ang) * 3;
-      ctx.fillStyle = '#3a1356';
-      ctx.beginPath(); ctx.arc(p.x + fx - 3, p.y + fy - 2, 1.8, 0, TAU); ctx.arc(p.x + fx + 3, p.y + fy - 2, 1.8, 0, TAU); ctx.fill();
+      // your character (skin), looking where it's going
+      drawCharacter(ctx, p.x, p.y, R, look, p.vx, p.vy, time);
 
       // Power-up effects around the player
       const blinking = (t) => t < 1.5 && Math.floor(time * 8) % 2 === 0;
@@ -971,8 +995,409 @@
     }
   }
 
+  // ---------- Skins & rope styles ----------
+  // A "look" is a recipe: body colors, a pattern, eyes, headgear and a trail color.
+  // The rope has its own color, style and thickness. Pick a preset or mix your own.
+  const OPTIONS = {
+    pattern: [['none', 'None'], ['stripes', 'Stripes'], ['dots', 'Dots'], ['web', 'Web'], ['zigzag', 'Zigzag'], ['stars', 'Stars'], ['split', 'Half']],
+    eyes: [['happy', 'Happy'], ['big', 'Big'], ['shades', 'Shades'], ['angry', 'Fierce'], ['mask', 'Hero mask'], ['sleepy', 'Sleepy']],
+    hat: [['none', 'None'], ['cap', 'Cap'], ['crown', 'Crown'], ['ears', 'Cat ears'], ['antenna', 'Antenna'], ['horns', 'Horns'], ['halo', 'Halo'], ['leaf', 'Leaf'], ['bandana', 'Bandana']],
+    ropeStyle: [['classic', 'Classic'], ['glow', 'Glow'], ['dashed', 'Dashed'], ['chain', 'Chain'], ['silk', 'Silk'], ['rainbow', 'Rainbow']],
+    ropeWidth: [[1.6, 'Thin'], [2.6, 'Normal'], [4, 'Thick']],
+  };
+  const SWATCHES = ['#ffd23f', '#ff7a1a', '#ff4fa3', '#e63946', '#a78bfa', '#6d28d9', '#4fd1ff', '#2ec4b6', '#5dffb0', '#84cc16', '#f8fafc', '#94a3b8', '#3a3a52', '#14141f'];
+  const SKINS = [
+    { name: 'Sunny', look: { body: '#ffd23f', body2: '#ff7a1a', pattern: 'none', patColor: '#ffffff', eyes: 'happy', hat: 'none', hatColor: '#ff4fa3', trail: '#ff9f43' },
+      rope: { color: '#ffe9c7', style: 'classic', width: 2.6 } },
+    { name: 'Silk Spinner', look: { body: '#6d28d9', body2: '#2e1065', pattern: 'web', patColor: '#84cc16', eyes: 'mask', hat: 'none', hatColor: '#84cc16', trail: '#84cc16' },
+      rope: { color: '#f8fafc', style: 'silk', width: 1.6 } },
+    { name: 'Shinobi', look: { body: '#3a3a52', body2: '#14141f', pattern: 'none', patColor: '#e63946', eyes: 'angry', hat: 'bandana', hatColor: '#e63946', trail: '#e63946' },
+      rope: { color: '#94a3b8', style: 'chain', width: 2.6 } },
+    { name: 'Bolt Bot', look: { body: '#cbd5e1', body2: '#64748b', pattern: 'dots', patColor: '#475569', eyes: 'big', hat: 'antenna', hatColor: '#4fd1ff', trail: '#4fd1ff' },
+      rope: { color: '#4fd1ff', style: 'glow', width: 2.6 } },
+    { name: 'Mochi', look: { body: '#ffb3c6', body2: '#ff4fa3', pattern: 'none', patColor: '#ffffff', eyes: 'happy', hat: 'ears', hatColor: '#ffb3c6', trail: '#ff8fab' },
+      rope: { color: '#ff8fab', style: 'glow', width: 2.6 } },
+    { name: 'Duke', look: { body: '#a78bfa', body2: '#5b21b6', pattern: 'stars', patColor: '#ffd23f', eyes: 'happy', hat: 'crown', hatColor: '#ffd23f', trail: '#ffd23f' },
+      rope: { color: '#ffd23f', style: 'chain', width: 2.6 } },
+    { name: 'Skater', look: { body: '#2ec4b6', body2: '#0f766e', pattern: 'zigzag', patColor: '#ffd23f', eyes: 'shades', hat: 'cap', hatColor: '#ff4fa3', trail: '#2ec4b6' },
+      rope: { color: '#ffd23f', style: 'dashed', width: 2.6 } },
+    { name: 'Blaze', look: { body: '#ff7a1a', body2: '#b91c1c', pattern: 'split', patColor: '#e63946', eyes: 'angry', hat: 'horns', hatColor: '#3a3a52', trail: '#ff4d2e' },
+      rope: { color: '#ff7a1a', style: 'rainbow', width: 4 } },
+    { name: 'Halo', look: { body: '#f8fafc', body2: '#a5b4fc', pattern: 'none', patColor: '#ffffff', eyes: 'sleepy', hat: 'halo', hatColor: '#ffd23f', trail: '#c7d2fe' },
+      rope: { color: '#f8fafc', style: 'silk', width: 1.6 } },
+    { name: 'Ribbit', look: { body: '#84cc16', body2: '#3f6212', pattern: 'dots', patColor: '#bef264', eyes: 'big', hat: 'leaf', hatColor: '#5dffb0', trail: '#84cc16' },
+      rope: { color: '#bef264', style: 'classic', width: 2.6 } },
+  ];
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  let skinIndex = 0;                 // -1 = your own custom mix
+  let look = clone(SKINS[0].look), ropeLook = clone(SKINS[0].rope);
+  try {
+    const saved = JSON.parse(localStorage.getItem('ropeLook') || 'null');
+    if (saved && saved.look && saved.rope) { look = Object.assign(look, saved.look); ropeLook = Object.assign(ropeLook, saved.rope); skinIndex = saved.skin ?? -1; }
+  } catch (e) {}
+  function saveLook() { try { localStorage.setItem('ropeLook', JSON.stringify({ skin: skinIndex, look, rope: ropeLook })); } catch (e) {} }
+
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    const c = (v) => Math.round(f >= 0 ? v + (255 - v) * f : v * (1 + f));
+    return `rgb(${c((n >> 16) & 255)}, ${c((n >> 8) & 255)}, ${c(n & 255)})`;
+  }
+  function starPath(g, x, y, r) {
+    g.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    g.closePath();
+  }
+
+  // Draw a character at (x, y) with radius r. (vx, vy) is the direction it's moving.
+  function drawCharacter(g, x, y, r, L, vx = 1, vy = 0, t = 0) {
+    // glow
+    const gl = g.createRadialGradient(x, y, 0, x, y, r * 2.6);
+    gl.addColorStop(0, shade(L.trail, 0.2).replace('rgb', 'rgba').replace(')', ', 0.55)'));
+    gl.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gl;
+    g.beginPath(); g.arc(x, y, r * 2.6, 0, TAU); g.fill();
+    // headgear that sits behind the body
+    if (L.hat === 'halo') {
+      g.save(); g.strokeStyle = L.hatColor; g.lineWidth = r * 0.22; g.shadowColor = L.hatColor; g.shadowBlur = r * 0.8;
+      g.beginPath(); g.ellipse(x, y - r * 1.35, r * 0.75, r * 0.24, 0, 0, TAU); g.stroke(); g.restore();
+    }
+    if (L.hat === 'ears') {
+      for (const s of [-1, 1]) {
+        g.fillStyle = L.hatColor;
+        g.beginPath(); g.moveTo(x + s * r * 0.95, y - r * 0.2); g.lineTo(x + s * r * 0.75, y - r * 1.35); g.lineTo(x + s * r * 0.15, y - r * 0.85); g.closePath(); g.fill();
+        g.fillStyle = '#ff4fa3';
+        g.beginPath(); g.moveTo(x + s * r * 0.78, y - r * 0.45); g.lineTo(x + s * r * 0.7, y - r * 1.05); g.lineTo(x + s * r * 0.35, y - r * 0.8); g.closePath(); g.fill();
+      }
+    }
+    if (L.hat === 'horns') {
+      g.fillStyle = L.hatColor;
+      for (const s of [-1, 1]) {
+        g.beginPath(); g.moveTo(x + s * r * 0.75, y - r * 0.55); g.quadraticCurveTo(x + s * r * 1.15, y - r * 1.3, x + s * r * 0.6, y - r * 1.55);
+        g.quadraticCurveTo(x + s * r * 0.75, y - r * 1.0, x + s * r * 0.3, y - r * 0.85); g.closePath(); g.fill();
+      }
+    }
+    // body
+    const bg = g.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+    bg.addColorStop(0, shade(L.body, 0.55));
+    bg.addColorStop(0.45, L.body);
+    bg.addColorStop(1, L.body2);
+    g.fillStyle = bg;
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    // pattern (clipped to the body)
+    if (L.pattern !== 'none') {
+      g.save();
+      g.beginPath(); g.arc(x, y, r, 0, TAU); g.clip();
+      g.fillStyle = L.patColor; g.strokeStyle = L.patColor;
+      if (L.pattern === 'stripes') {
+        g.translate(x, y); g.rotate(-0.6); g.globalAlpha = 0.85;
+        for (let i = -3; i <= 3; i++) g.fillRect(i * r * 0.62 - r * 0.15, -r * 1.5, r * 0.3, r * 3);
+      } else if (L.pattern === 'dots') {
+        g.globalAlpha = 0.85;
+        for (const [dx, dy, s] of [[-0.45, -0.1, 0.2], [0.35, 0.45, 0.17], [0.5, -0.45, 0.13], [-0.15, 0.6, 0.12], [0.05, -0.65, 0.1]]) { g.beginPath(); g.arc(x + dx * r, y + dy * r, s * r, 0, TAU); g.fill(); }
+      } else if (L.pattern === 'web') {
+        g.lineWidth = Math.max(0.8, r * 0.07); g.globalAlpha = 0.9;
+        g.beginPath();
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; g.moveTo(x, y); g.lineTo(x + Math.cos(a) * r * 1.1, y + Math.sin(a) * r * 1.1); }
+        for (const rr of [0.35, 0.65, 0.95]) {
+          for (let i = 0; i <= 8; i++) {
+            const a = (i / 8) * TAU, b = ((i + 0.5) / 8) * TAU;
+            const px = x + Math.cos(a) * r * rr, py = y + Math.sin(a) * r * rr;
+            if (i === 0) g.moveTo(px, py); else g.quadraticCurveTo(x + Math.cos(b - TAU / 16) * r * rr * 0.8, y + Math.sin(b - TAU / 16) * r * rr * 0.8, px, py);
+          }
+        }
+        g.stroke();
+      } else if (L.pattern === 'zigzag') {
+        g.lineWidth = r * 0.22; g.lineJoin = 'miter'; g.globalAlpha = 0.9;
+        g.beginPath();
+        for (let i = 0; i <= 6; i++) g.lineTo(x - r * 1.1 + i * r * 0.37, y + (i % 2 ? -r * 0.2 : r * 0.2));
+        g.stroke();
+      } else if (L.pattern === 'stars') {
+        for (const [dx, dy, s] of [[-0.4, -0.25, 0.28], [0.42, 0.35, 0.22], [0.1, 0.62, 0.15]]) { starPath(g, x + dx * r, y + dy * r, s * r); g.fill(); }
+      } else if (L.pattern === 'split') {
+        g.globalAlpha = 0.9;
+        g.beginPath(); g.moveTo(x, y - r * 1.2); g.lineTo(x - r * 1.2, y - r * 1.2); g.lineTo(x - r * 1.2, y + r * 1.2); g.lineTo(x, y + r * 1.2);
+        g.quadraticCurveTo(x - r * 0.3, y, x, y - r * 1.2); g.fill();
+      }
+      g.restore();
+    }
+    // shine
+    g.fillStyle = 'rgba(255,255,255,0.35)';
+    g.beginPath(); g.ellipse(x - r * 0.38, y - r * 0.45, r * 0.28, r * 0.17, -0.6, 0, TAU); g.fill();
+    // face, looking where it's going
+    const ang = Math.atan2(vy, vx || 1);
+    const fx = Math.cos(ang) * r * 0.32, fy = Math.sin(ang) * r * 0.22;
+    const ex = r * 0.26, ey = -r * 0.16;
+    const ink = '#1c1233';
+    if (L.eyes === 'happy') {
+      g.fillStyle = ink;
+      g.beginPath(); g.arc(x + fx - ex, y + fy + ey, r * 0.15, 0, TAU); g.arc(x + fx + ex, y + fy + ey, r * 0.15, 0, TAU); g.fill();
+    } else if (L.eyes === 'big') {
+      for (const s of [-1, 1]) {
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(x + fx + s * ex, y + fy + ey, r * 0.27, 0, TAU); g.fill();
+        g.fillStyle = ink; g.beginPath(); g.arc(x + fx + s * ex + Math.cos(ang) * r * 0.08, y + fy + ey + Math.sin(ang) * r * 0.06, r * 0.13, 0, TAU); g.fill();
+      }
+    } else if (L.eyes === 'shades') {
+      g.fillStyle = ink;
+      g.beginPath(); g.roundRect ? g.roundRect(x + fx - r * 0.62, y + fy + ey - r * 0.17, r * 1.24, r * 0.34, r * 0.14) : g.rect(x + fx - r * 0.62, y + fy + ey - r * 0.17, r * 1.24, r * 0.34); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x + fx - r * 0.45, y + fy + ey - r * 0.1, r * 0.22, r * 0.07);
+    } else if (L.eyes === 'angry') {
+      g.fillStyle = ink; g.strokeStyle = ink; g.lineWidth = r * 0.12; g.lineCap = 'round';
+      g.beginPath(); g.arc(x + fx - ex, y + fy + ey + r * 0.05, r * 0.13, 0, TAU); g.arc(x + fx + ex, y + fy + ey + r * 0.05, r * 0.13, 0, TAU); g.fill();
+      g.beginPath(); g.moveTo(x + fx - ex - r * 0.2, y + fy + ey - r * 0.28); g.lineTo(x + fx - ex + r * 0.15, y + fy + ey - r * 0.12);
+      g.moveTo(x + fx + ex + r * 0.2, y + fy + ey - r * 0.28); g.lineTo(x + fx + ex - r * 0.15, y + fy + ey - r * 0.12); g.stroke();
+    } else if (L.eyes === 'mask') {
+      // big angular hero-mask lenses
+      for (const s of [-1, 1]) {
+        const cx = x + fx + s * r * 0.3, cy = y + fy + ey;
+        g.fillStyle = ink;
+        g.beginPath(); g.moveTo(cx - s * r * 0.08, cy - r * 0.2); g.lineTo(cx + s * r * 0.4, cy - r * 0.32); g.lineTo(cx + s * r * 0.3, cy + r * 0.16); g.lineTo(cx - s * r * 0.04, cy + r * 0.14); g.closePath(); g.fill();
+        g.fillStyle = '#fff';
+        g.beginPath(); g.moveTo(cx - s * r * 0.02, cy - r * 0.13); g.lineTo(cx + s * r * 0.3, cy - r * 0.22); g.lineTo(cx + s * r * 0.24, cy + r * 0.08); g.lineTo(cx + s * r * 0.01, cy + r * 0.07); g.closePath(); g.fill();
+      }
+    } else if (L.eyes === 'sleepy') {
+      g.strokeStyle = ink; g.lineWidth = r * 0.11; g.lineCap = 'round';
+      g.beginPath(); g.arc(x + fx - ex, y + fy + ey, r * 0.13, 0.15, Math.PI - 0.15); g.moveTo(x + fx + ex + r * 0.13, y + fy + ey); g.arc(x + fx + ex, y + fy + ey, r * 0.13, 0.15, Math.PI - 0.15); g.stroke();
+    }
+    // headgear in front
+    if (L.hat === 'cap') {
+      const dir = vx >= 0 ? 1 : -1;
+      g.fillStyle = L.hatColor;
+      g.beginPath(); g.arc(x, y - r * 0.35, r * 0.78, Math.PI, 0); g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(x + dir * r * 0.7, y - r * 0.4, r * 0.55, r * 0.14, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.arc(x, y - r * 1.1, r * 0.1, 0, TAU); g.fill();
+    } else if (L.hat === 'crown') {
+      g.fillStyle = L.hatColor;
+      g.beginPath(); g.moveTo(x - r * 0.55, y - r * 0.7); g.lineTo(x - r * 0.6, y - r * 1.35); g.lineTo(x - r * 0.28, y - r * 1.0); g.lineTo(x, y - r * 1.5);
+      g.lineTo(x + r * 0.28, y - r * 1.0); g.lineTo(x + r * 0.6, y - r * 1.35); g.lineTo(x + r * 0.55, y - r * 0.7); g.closePath(); g.fill();
+      g.fillStyle = '#e63946'; g.beginPath(); g.arc(x, y - r * 0.92, r * 0.1, 0, TAU); g.fill();
+    } else if (L.hat === 'antenna') {
+      g.strokeStyle = shade(L.body2, -0.3); g.lineWidth = r * 0.1;
+      g.beginPath(); g.moveTo(x, y - r * 0.95); g.lineTo(x + Math.sin(t * 6) * r * 0.15, y - r * 1.55); g.stroke();
+      g.fillStyle = L.hatColor; g.shadowColor = L.hatColor; g.shadowBlur = r * 0.8;
+      g.beginPath(); g.arc(x + Math.sin(t * 6) * r * 0.15, y - r * 1.6, r * 0.2, 0, TAU); g.fill(); g.shadowBlur = 0;
+    } else if (L.hat === 'leaf') {
+      g.strokeStyle = '#3f6212'; g.lineWidth = r * 0.1;
+      g.beginPath(); g.moveTo(x, y - r * 0.95); g.lineTo(x + r * 0.05, y - r * 1.3); g.stroke();
+      g.fillStyle = L.hatColor;
+      g.beginPath(); g.ellipse(x + r * 0.35, y - r * 1.35, r * 0.38, r * 0.17, -0.5, 0, TAU); g.fill();
+    } else if (L.hat === 'bandana') {
+      const dir = vx >= 0 ? 1 : -1;
+      g.save(); g.beginPath(); g.arc(x, y, r, 0, TAU); g.clip();
+      g.fillStyle = L.hatColor; g.fillRect(x - r, y - r * 0.62, r * 2, r * 0.3); g.restore();
+      g.fillStyle = L.hatColor;
+      const wave = Math.sin(t * 12) * r * 0.15;
+      g.beginPath(); g.moveTo(x - dir * r * 0.85, y - r * 0.5); g.lineTo(x - dir * r * 1.75, y - r * 0.75 + wave); g.lineTo(x - dir * r * 1.6, y - r * 0.4 + wave); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(x - dir * r * 0.85, y - r * 0.45); g.lineTo(x - dir * r * 1.55, y - r * 0.1 - wave); g.lineTo(x - dir * r * 1.35, y + r * 0.1 - wave); g.closePath(); g.fill();
+    }
+  }
+
+  // Draw a rope from (x1, y1) to (x2, y2), sagging through (cx, cy).
+  function drawRopeLine(g, x1, y1, cx, cy, x2, y2, RL, t = 0) {
+    const w = RL.width;
+    const curve = () => { g.beginPath(); g.moveTo(x1, y1); g.quadraticCurveTo(cx, cy, x2, y2); };
+    g.save();
+    g.lineCap = 'round';
+    if (RL.style === 'classic') {
+      g.strokeStyle = RL.color; g.lineWidth = w; g.shadowColor = 'rgba(255,159,67,0.6)'; g.shadowBlur = 6; curve(); g.stroke();
+    } else if (RL.style === 'glow') {
+      g.strokeStyle = RL.color; g.lineWidth = w * 1.6; g.shadowColor = RL.color; g.shadowBlur = 14; g.globalAlpha = 0.7; curve(); g.stroke();
+      g.globalAlpha = 1; g.shadowBlur = 0; g.strokeStyle = '#fff'; g.lineWidth = Math.max(1, w * 0.45); curve(); g.stroke();
+    } else if (RL.style === 'dashed') {
+      g.strokeStyle = RL.color; g.lineWidth = w; g.setLineDash([w * 3, w * 2.2]); g.lineDashOffset = -t * 60; curve(); g.stroke();
+    } else if (RL.style === 'silk') {
+      g.strokeStyle = RL.color; g.lineWidth = Math.max(1, w * 0.7); g.shadowColor = RL.color; g.shadowBlur = 5; g.globalAlpha = 0.9; curve(); g.stroke();
+      g.globalAlpha = 0.35; g.lineWidth = w * 2.2; g.shadowBlur = 0; curve(); g.stroke();
+    } else if (RL.style === 'chain' || RL.style === 'rainbow') {
+      // walk along the curve
+      const pts = [];
+      let len = 0, px = x1, py = y1;
+      for (let i = 0; i <= 40; i++) {
+        const u = i / 40, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
+        const qx = a * x1 + b * cx + c * x2, qy = a * y1 + b * cy + c * y2;
+        if (i) len += Math.hypot(qx - px, qy - py);
+        pts.push([qx, qy, len]); px = qx; py = qy;
+      }
+      if (RL.style === 'rainbow') {
+        g.lineWidth = w * 1.2;
+        for (let i = 1; i < pts.length; i++) {
+          g.strokeStyle = `hsl(${(pts[i][2] * 2.2 - t * 220) % 360}, 95%, 62%)`;
+          g.beginPath(); g.moveTo(pts[i - 1][0], pts[i - 1][1]); g.lineTo(pts[i][0], pts[i][1]); g.stroke();
+        }
+      } else {
+        const step = Math.max(4, w * 2.4);
+        g.strokeStyle = RL.color; g.lineWidth = Math.max(1, w * 0.55);
+        let next = 0, k = 0;
+        for (let i = 1; i < pts.length; i++) {
+          while (pts[i][2] >= next) {
+            const f = (next - pts[i - 1][2]) / Math.max(0.001, pts[i][2] - pts[i - 1][2]);
+            const lx = lerp(pts[i - 1][0], pts[i][0], f), ly = lerp(pts[i - 1][1], pts[i][1], f);
+            const ang = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0]);
+            g.beginPath(); g.ellipse(lx, ly, step * 0.62, k % 2 ? w * 0.4 : w * 0.9, ang, 0, TAU); g.stroke();
+            next += step; k++;
+          }
+        }
+      }
+    }
+    g.restore();
+  }
+
+  // ---------- Customizer panel ----------
+  const customEl = document.getElementById('custom');
+  const scrollEl = document.getElementById('cScroll');
+  let customOpen = false;
+  const previewCv = document.getElementById('cPreview');
+  const pctx = previewCv.getContext('2d');
+  function iconFor(L, size = 64) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = size;
+    const g = cv.getContext('2d');
+    drawCharacter(g, size / 2, size * 0.56, size * 0.27, L, 1, 0.2, 0);
+    return cv.toDataURL();
+  }
+  const sections = [];
+  function addSection(title, buildRow) {
+    const sec = document.createElement('div'); sec.className = 'csec';
+    sec.innerHTML = `<div class="clab">${title}</div><div class="crow"></div>`;
+    scrollEl.appendChild(sec);
+    const row = sec.querySelector('.crow');
+    const refresh = buildRow(row);
+    sections.push(refresh);
+  }
+  function swatchRow(getter, setter) {
+    return (row) => {
+      const els = SWATCHES.map((c) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'sw'; b.style.background = c; b.setAttribute('aria-label', c);
+        b.addEventListener('click', () => { setter(c); changed(); });
+        row.appendChild(b);
+        return [b, c];
+      });
+      return () => els.forEach(([b, c]) => b.classList.toggle('on', getter().toLowerCase() === c.toLowerCase()));
+    };
+  }
+  function chipRow(options, getter, setter) {
+    return (row) => {
+      const els = options.map(([v, label]) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip'; b.textContent = label;
+        b.addEventListener('click', () => { setter(v); changed(); });
+        row.appendChild(b);
+        return [b, v];
+      });
+      return () => els.forEach(([b, v]) => b.classList.toggle('on', getter() === v));
+    };
+  }
+  // presets
+  addSection('SKINS', (row) => {
+    row.classList.add('skins');
+    const els = SKINS.map((s, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'skin';
+      b.innerHTML = `<img src="${iconFor(s.look)}" alt=""><span>${s.name}</span>`;
+      b.addEventListener('click', () => { skinIndex = i; look = clone(s.look); ropeLook = clone(s.rope); changed(true); });
+      row.appendChild(b);
+      return b;
+    });
+    return () => els.forEach((b, i) => b.classList.toggle('on', skinIndex === i));
+  });
+  addSection('BODY COLOR', swatchRow(() => look.body, (c) => { look.body = c; look.body2 = shade(c, -0.45).replace(/rgb\((\d+), (\d+), (\d+)\)/, (m, r, g2, b) => '#' + [r, g2, b].map((v) => (+v).toString(16).padStart(2, '0')).join('')); }));
+  addSection('PATTERN', chipRow(OPTIONS.pattern, () => look.pattern, (v) => { look.pattern = v; }));
+  addSection('PATTERN COLOR', swatchRow(() => look.patColor, (c) => { look.patColor = c; }));
+  addSection('EYES', chipRow(OPTIONS.eyes, () => look.eyes, (v) => { look.eyes = v; }));
+  addSection('HEADGEAR', chipRow(OPTIONS.hat, () => look.hat, (v) => { look.hat = v; }));
+  addSection('HEADGEAR COLOR', swatchRow(() => look.hatColor, (c) => { look.hatColor = c; }));
+  addSection('TRAIL & GLOW', swatchRow(() => look.trail, (c) => { look.trail = c; }));
+  addSection('ROPE COLOR', swatchRow(() => ropeLook.color, (c) => { ropeLook.color = c; }));
+  addSection('ROPE STYLE', chipRow(OPTIONS.ropeStyle, () => ropeLook.style, (v) => { ropeLook.style = v; }));
+  addSection('ROPE THICKNESS', chipRow(OPTIONS.ropeWidth, () => ropeLook.width, (v) => { ropeLook.width = v; }));
+
+  function refreshCustom() {
+    sections.forEach((f) => f());
+    document.getElementById('cName').textContent = skinIndex >= 0 ? SKINS[skinIndex].name : 'Your own mix';
+    const icon = iconFor(look, 64);
+    document.querySelectorAll('.lookIcon').forEach((img) => { img.src = icon; });
+  }
+  function changed(fromPreset = false) {
+    if (!fromPreset) skinIndex = -1;  // any tweak makes it your own mix
+    saveLook();
+    refreshCustom();
+    initAudio(); tone(880, 1180, 0.07, 'triangle', 0.05);
+  }
+  let previewRaf = 0;
+  function drawPreview(now) {
+    const dpr2 = Math.min(window.devicePixelRatio || 1, 2);
+    const w = previewCv.clientWidth, h = previewCv.clientHeight;
+    if (previewCv.width !== Math.round(w * dpr2)) { previewCv.width = Math.round(w * dpr2); previewCv.height = Math.round(h * dpr2); }
+    const g = pctx;
+    g.setTransform(dpr2, 0, 0, dpr2, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const t = now / 1000;
+    // hook
+    const ax = w / 2, ay = 18;
+    const len = h * 0.62, sw = Math.sin(t * 2.2) * 0.9;
+    const px = ax + Math.sin(sw) * len, py = ay + Math.cos(sw) * len;
+    const vx = Math.cos(t * 2.2) * Math.cos(sw), vy = -Math.sin(sw) * Math.cos(t * 2.2);
+    drawRopeLine(g, px, py, (px + ax) / 2, (py + ay) / 2, ax, ay, ropeLook, t);
+    g.strokeStyle = '#4fd1ff'; g.lineWidth = 3; g.beginPath(); g.arc(ax, ay, 8, 0, TAU); g.stroke();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(ax, ay, 3, 0, TAU); g.fill();
+    for (let i = 1; i <= 6; i++) {
+      const tt = t - i * 0.035, s2 = Math.sin(tt * 2.2) * 0.9;
+      g.globalAlpha = 0.25 * (1 - i / 7);
+      g.fillStyle = look.trail;
+      g.beginPath(); g.arc(ax + Math.sin(s2) * len, ay + Math.cos(s2) * len, 14 * (1 - i / 8), 0, TAU); g.fill();
+    }
+    g.globalAlpha = 1;
+    drawCharacter(g, px, py, 16, look, vx, vy, t);
+    if (customOpen) previewRaf = requestAnimationFrame(drawPreview);
+  }
+  function openCustom() {
+    customOpen = true;
+    holding = false;
+    customEl.classList.remove('gone');
+    refreshCustom();
+    cancelAnimationFrame(previewRaf);
+    previewRaf = requestAnimationFrame(drawPreview);
+  }
+  function closeCustom() {
+    customOpen = false;
+    customEl.classList.add('gone');
+    cancelAnimationFrame(previewRaf);
+  }
+  // Taps inside the panel never start the game
+  customEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+  document.getElementById('cDone').addEventListener('click', (e) => { e.stopPropagation(); closeCustom(); });
+  document.querySelectorAll('.customBtn').forEach((b) => {
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); openCustom(); });
+  });
+  // Drag to scroll the options (the page blocks native touch scrolling, and in landscape
+  // mode the game is turned, so this follows the finger along the game's own up/down).
+  const drag = { id: null, y0: 0, top0: 0, moved: false, suppress: false };
+  const isTurned = () => landscape && window.innerHeight > window.innerWidth; // landscape mode is turning the game
+  const dragY = (e) => (isTurned() ? -e.clientX : e.clientY);
+  scrollEl.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return; // mice use the wheel / scrollbar
+    Object.assign(drag, { id: e.pointerId, y0: dragY(e), top0: scrollEl.scrollTop, moved: false });
+  });
+  scrollEl.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== drag.id) return;
+    const dy = dragY(e) - drag.y0;
+    if (!drag.moved && Math.abs(dy) > 8) { drag.moved = true; try { scrollEl.setPointerCapture(e.pointerId); } catch (err) {} }
+    if (drag.moved) scrollEl.scrollTop = drag.top0 - dy;
+  });
+  const endDrag = (e) => {
+    if (e.pointerId !== drag.id) return;
+    drag.id = null;
+    if (drag.moved) { drag.suppress = true; setTimeout(() => { drag.suppress = false; }, 60); }
+  };
+  scrollEl.addEventListener('pointerup', endDrag);
+  scrollEl.addEventListener('pointercancel', endDrag);
+  // the end of a drag isn't a tap on whatever button it ended over
+  scrollEl.addEventListener('click', (e) => { if (drag.suppress) { e.stopPropagation(); e.preventDefault(); } }, true);
+  refreshCustom();
+
   // ---------- Input ----------
   function press() {
+    if (customOpen) return;
     initAudio();
     holding = true;
     if (state === 'menu') start();
@@ -989,6 +1414,7 @@
       if (!e.repeat) press();
     }
   });
+  window.addEventListener('keydown', (e) => { if (customOpen && e.code === 'Escape') closeCustom(); });
   window.addEventListener('keyup', (e) => {
     if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'ArrowUp' || e.code === 'KeyW') releaseInput();
   });
