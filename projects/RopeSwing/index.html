@@ -341,7 +341,7 @@
   let state = 'menu';
   let overReadyAt = 0;
   let holding = false;
-  let score = 0, bonus = 0, maxX = START_X, coinsGot = 0, ringsGot = 0, nextMilestone = 100;
+  let score = 0, bonus = 0, maxX = START_X, coinsGot = 0, ringsGot = 0, nextMilestone = 100, zoneShown = 0;
 
   // ---------- Power-ups (all temporary) ----------
   const POWERS = {
@@ -379,7 +379,7 @@
     player = { x: START_X - 60, y: platY - R, vx: 0, vy: 0, alive: true };
     rope = null; target = null;
     anchors = []; coins = []; rings = []; particles = []; trail = [];
-    score = 0; bonus = 0; maxX = START_X; coinsGot = 0; ringsGot = 0; nextMilestone = 100;
+    score = 0; bonus = 0; maxX = START_X; coinsGot = 0; ringsGot = 0; nextMilestone = 100; zoneShown = 0;
     powerups = []; powersGot = 0; nextPowerX = START_X + 700;
     for (const k in timers) timers[k] = 0;
     // First hook is always an easy reach from the start ledge.
@@ -681,7 +681,13 @@
       }
 
       updateHud();
-      if (meters() >= nextMilestone) {
+      const zoneNow = Math.floor(meters() / ZONE_LEN);
+      if (zoneNow > zoneShown) {
+        zoneShown = zoneNow;
+        banner(ZONES[zoneNow % ZONES.length].name);
+        sfx.milestone();
+        while (meters() >= nextMilestone) nextMilestone += 100;
+      } else if (meters() >= nextMilestone) {
         banner(nextMilestone + ' M!');
         sfx.milestone();
         nextMilestone += 100;
@@ -719,51 +725,177 @@
   }
 
   // ---------- Draw ----------
-  function hills(par, amp, base, freq, color, seed) {
-    // Silhouette that scrolls slower than the world (parallax), in screen space.
+  // ---------- Background zones ----------
+  // The scenery changes the farther you swing (every 250 m), fading from one zone to the next.
+  const ZONE_LEN = 250;
+  const ZONES = [
+    { name: 'VOLCANO DUSK', sky: ['#0b0620', '#2a0f4a', '#6b1f4f', '#c2410c'], glow: '255, 159, 67', core: '255, 210, 160', stars: 0.7,
+      style: 'hills', layers: ['#3a1356', '#2a0c3f', '#1a0629'] },
+    { name: 'NEON CITY', sky: ['#05031a', '#1b0b3f', '#4a1063', '#ff4fa3'], glow: '255, 79, 163', core: '255, 205, 232', stars: 0.35,
+      style: 'city', layers: ['#2c1254', '#1b0a38', '#0d0620'], extra: 'windows' },
+    { name: 'FROZEN PEAKS', sky: ['#020b1c', '#0b2545', '#1d4e6e', '#5fa8c8'], glow: '180, 230, 255', core: '240, 250, 255', stars: 0.95,
+      style: 'peaks', layers: ['#33597a', '#1f3b57', '#10233a'], extra: 'aurora' },
+    { name: 'JUNGLE SUNSET', sky: ['#1a0b05', '#5a1d0e', '#c2410c', '#ffb347'], glow: '255, 196, 90', core: '255, 240, 190', stars: 0.12,
+      style: 'trees', layers: ['#5a3412', '#33200a', '#190f04'] },
+    { name: 'CRYSTAL CAVES', sky: ['#07020f', '#1e0838', '#3b0f6b', '#7c3aed'], glow: '94, 234, 212', core: '215, 255, 248', stars: 0.5,
+      style: 'crystals', layers: ['#3e1c74', '#28104d', '#140726'] },
+    { name: 'DEEP SPACE', sky: ['#000005', '#04041a', '#0b0b30', '#221f66'], glow: '167, 139, 250', core: '232, 222, 255', stars: 1.0,
+      style: 'rocks', layers: ['#221f45', '#15132e', '#09081b'], extra: 'planet' },
+  ];
+  const hash01 = (i) => { const v = Math.sin(i * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+  const zoneAt = (m) => ZONES[Math.floor(m / ZONE_LEN) % ZONES.length];
+
+  // One parallax silhouette layer (depth 0 = far, 2 = near), drawn in screen space.
+  const LAYER = [
+    { par: 0.12, amp: 60, base: 0.72, freq: 0.004, seed: 1 },
+    { par: 0.25, amp: 50, base: 0.8, freq: 0.007, seed: 4 },
+    { par: 0.45, amp: 36, base: 0.88, freq: 0.012, seed: 7 },
+  ];
+  function ridge(Z, depth) {
+    const Lr = LAYER[depth];
+    const amp = Lr.amp * scale, base = H * Lr.base, off = camX * Lr.par;
+    const lift = camY * Lr.par * scale * 0.5;
+    const color = Z.layers[depth];
     ctx.fillStyle = color;
+    if (Z.style === 'city' || Z.style === 'crystals') {
+      // blocks / spires placed on a scrolling grid
+      const sp = (Z.style === 'crystals' ? 52 + depth * 30 : 26 + depth * 16) * scale;
+      const offPx = off * scale;
+      const first = Math.floor(offPx / sp) - 1;
+      for (let k = first; k < first + Math.ceil(W / sp) + 3; k++) {
+        const x = k * sp - offPx;
+        const r = hash01(k * 3.7 + depth * 11);
+        if (Z.style === 'city') {
+          const h = amp * (1.1 + r * 1.9), w = sp * (0.72 + hash01(k + 5) * 0.26);
+          const top = base - h - lift;
+          ctx.fillRect(x, top, w, H - top);
+          if (hash01(k + 9) > 0.75) ctx.fillRect(x + w * 0.45, top - amp * 0.35, w * 0.08, amp * 0.35); // antenna
+          if (Z.extra === 'windows' && depth === 1) {
+            for (let wy = top + 6 * scale; wy < base + amp * 0.4 - lift; wy += 9 * scale) {
+              for (let wx = x + 4 * scale; wx < x + w - 6 * scale; wx += 7 * scale) {
+                const hv = hash01(wx * 0.31 + wy * 0.77 + k);
+                if (hv > 0.72) {
+                  ctx.fillStyle = hv > 0.9 ? 'rgba(79, 209, 255, 0.85)' : 'rgba(255, 214, 120, 0.85)';
+                  ctx.fillRect(wx, wy, 2.6 * scale, 3.6 * scale);
+                }
+              }
+            }
+            ctx.fillStyle = color;
+          }
+        } else {
+          const h = amp * (1.1 + r * 2.8), w = sp * (0.55 + hash01(k + 2) * 0.35);
+          const cx = x + sp / 2, top = base - h - lift;
+          ctx.beginPath();
+          ctx.moveTo(cx - w / 2, base + amp - lift); ctx.lineTo(cx - w * 0.12, top + h * 0.15); ctx.lineTo(cx, top);
+          ctx.lineTo(cx + w * 0.16, top + h * 0.2); ctx.lineTo(cx + w / 2, base + amp - lift);
+          ctx.closePath(); ctx.fill();
+          // crystal edge glow
+          ctx.strokeStyle = 'rgba(' + Z.glow + ', ' + (0.18 + depth * 0.1) + ')'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(cx - w * 0.12, top + h * 0.15); ctx.lineTo(cx, top); ctx.lineTo(cx + w * 0.16, top + h * 0.2); ctx.stroke();
+        }
+      }
+      ctx.fillRect(0, base + amp * 0.6 - lift, W, H);
+      return;
+    }
     ctx.beginPath();
     ctx.moveTo(0, H);
-    const off = camX * par;
+    const pts = [];
     for (let sx = 0; sx <= W + 8; sx += 8) {
-      const wx = (sx / scale + off) * freq;
-      const y = base + (Math.sin(wx + seed) * 0.6 + Math.sin(wx * 2.3 + seed * 2) * 0.3 + Math.sin(wx * 5.1 + seed) * 0.1) * amp;
-      ctx.lineTo(sx, y - camY * par * scale * 0.5);
+      const wx = (sx / scale + off) * Lr.freq;
+      const wave = Math.sin(wx + Lr.seed) * 0.6 + Math.sin(wx * 2.3 + Lr.seed * 2) * 0.3 + Math.sin(wx * 5.1 + Lr.seed) * 0.1;
+      let y;
+      if (Z.style === 'peaks') {
+        const u = wx * 1.7 + Lr.seed, tri = Math.abs(((u % 2) + 2) % 2 - 1);
+        y = base - (tri * 1.4 + Math.abs(Math.sin(u * 0.37)) * 0.6) * amp * 1.1 + amp * 0.5;
+      } else if (Z.style === 'trees') {
+        y = base + wave * amp * 0.5 - Math.abs(Math.sin(wx * 11 + Lr.seed)) * amp * 0.45;
+      } else if (Z.style === 'rocks') {
+        y = base + wave * amp * 0.8 - Math.abs(Math.sin(wx * 3.3 + Lr.seed)) * amp * 0.35;
+      } else {
+        y = base + wave * amp;
+      }
+      y -= lift;
+      pts.push([sx, y]);
+      ctx.lineTo(sx, y);
     }
     ctx.lineTo(W, H);
     ctx.closePath();
     ctx.fill();
+    if (Z.style === 'peaks') {
+      // frosty highlight along the ridge line
+      ctx.strokeStyle = 'rgba(235, 248, 255, ' + (0.35 - depth * 0.1) + ')'; ctx.lineWidth = 2;
+      ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+    }
   }
 
-  function drawBackground() {
+  let zoneAlpha = 1;
+  function drawZone(Z) {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#0b0620');
-    g.addColorStop(0.55, '#2a0f4a');
-    g.addColorStop(0.85, '#6b1f4f');
-    g.addColorStop(1, '#c2410c');
+    g.addColorStop(0, Z.sky[0]); g.addColorStop(0.55, Z.sky[1]); g.addColorStop(0.85, Z.sky[2]); g.addColorStop(1, Z.sky[3]);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    for (const s of starsBg) {
-      const x = ((s.x * W - camX * 0.05 * scale) % W + W) % W;
-      ctx.globalAlpha = 0.35 + 0.35 * Math.sin(time * 2 + s.tw);
+    for (const st of starsBg) {
+      const x = ((st.x * W - camX * 0.05 * scale) % W + W) % W;
+      ctx.globalAlpha = (0.35 + 0.35 * Math.sin(time * 2 + st.tw)) * Z.stars * zoneAlpha;
       ctx.fillStyle = '#fff';
-      ctx.fillRect(x, s.y * H, s.s, s.s);
+      ctx.fillRect(x, st.y * H, st.s, st.s);
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = zoneAlpha;
 
-    // Big low moon
+    if (Z.extra === 'aurora') {
+      for (let k = 0; k < 2; k++) {
+        ctx.beginPath();
+        for (let sx = 0; sx <= W + 20; sx += 20) {
+          const y = H * (0.14 + k * 0.08) + Math.sin(sx * 0.004 + time * 0.35 + k * 2) * H * 0.05 + Math.sin(sx * 0.011 - time * 0.2) * H * 0.015;
+          if (sx) ctx.lineTo(sx, y); else ctx.moveTo(sx, y);
+        }
+        ctx.lineWidth = (46 - k * 14) * scale;
+        ctx.strokeStyle = k ? 'rgba(167, 139, 250, 0.1)' : 'rgba(93, 255, 176, 0.12)';
+        ctx.stroke();
+        ctx.lineWidth = 4 * scale;
+        ctx.strokeStyle = k ? 'rgba(196, 181, 253, 0.25)' : 'rgba(134, 255, 196, 0.3)';
+        ctx.stroke();
+      }
+    }
+
+    // Big low moon / sun glow in the zone's color
     const mx = W * 0.78, my = H * 0.3;
     const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 120 * scale);
-    mg.addColorStop(0, 'rgba(255, 210, 160, 0.9)');
-    mg.addColorStop(0.35, 'rgba(255, 159, 67, 0.35)');
-    mg.addColorStop(1, 'rgba(255, 159, 67, 0)');
+    mg.addColorStop(0, 'rgba(' + Z.core + ', 0.9)');
+    mg.addColorStop(0.35, 'rgba(' + Z.glow + ', 0.35)');
+    mg.addColorStop(1, 'rgba(' + Z.glow + ', 0)');
     ctx.fillStyle = mg;
     ctx.fillRect(mx - 130 * scale, my - 130 * scale, 260 * scale, 260 * scale);
 
-    hills(0.12, 60 * scale, H * 0.72, 0.004, '#3a1356', 1);
-    hills(0.25, 50 * scale, H * 0.8, 0.007, '#2a0c3f', 4);
-    hills(0.45, 36 * scale, H * 0.88, 0.012, '#1a0629', 7);
+    if (Z.extra === 'planet') {
+      const px = W * 0.24, py = H * 0.26, pr = 46 * scale;
+      const pg = ctx.createRadialGradient(px - pr * 0.4, py - pr * 0.4, pr * 0.1, px, py, pr);
+      pg.addColorStop(0, '#f0abfc'); pg.addColorStop(0.5, '#a855f7'); pg.addColorStop(1, '#3b0764');
+      ctx.strokeStyle = 'rgba(253, 224, 171, 0.55)'; ctx.lineWidth = 5 * scale;
+      ctx.beginPath(); ctx.ellipse(px, py, pr * 1.8, pr * 0.42, -0.35, Math.PI, TAU); ctx.stroke(); // back half of the ring
+      ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(px, py, pr, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(px, py, pr * 1.8, pr * 0.42, -0.35, 0, Math.PI); ctx.stroke(); // front half
+    }
+
+    for (let d = 0; d < 3; d++) ridge(Z, d);
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw the current zone, cross-fading into the next one over the last 30 m
+  function drawBackground() {
+    const m = meters();
+    const into = m % ZONE_LEN;
+    const FADE = 30;
+    zoneAlpha = 1;
+    drawZone(zoneAt(m));
+    if (into > ZONE_LEN - FADE) {
+      zoneAlpha = (into - (ZONE_LEN - FADE)) / FADE;
+      ctx.globalAlpha = zoneAlpha;
+      drawZone(zoneAt(m + FADE));
+      zoneAlpha = 1;
+      ctx.globalAlpha = 1;
+    }
   }
 
   function drawLava() {
