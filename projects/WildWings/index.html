@@ -2538,6 +2538,7 @@
       theme: 'paper',                      // 'neon' or 'paper'
       top: 'calc(max(14px, env(safe-area-inset-top)) + 84px)', right: '118px',      // where the button sits (next to sound)
       isPlaying: () => (state === 'playing'),
+      restart: () => { start(); },
       menu: () => { state = 'menu'; reset(); el.over.classList.add('hidden'); el.menu.classList.remove('hidden'); stickVisible(); selectBird(birdIndex, true); },
       onChange: (p) => { for (const k in keys) keys[k] = false; Object.assign(stick, { id: null, jx: 0, jy: 0 }); stickHome(); },
     };
@@ -2563,8 +2564,9 @@
         font-size: clamp(38px, 11vw, 64px); letter-spacing: .12em; line-height: 1;
         ${neon ? 'text-shadow: 0 0 22px rgba(79,209,255,.7), 0 0 44px rgba(167,139,250,.5);' : ''} }
       #pausedCard .pc-s { margin-top: 14px; font-weight: 800; letter-spacing: .14em; font-size: 13px; opacity: .85; }
-      #pausedCard .pc-btns { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
-      #pausedCard .pc-b { cursor: pointer; font: inherit; font-weight: 900; letter-spacing: .12em; font-size: 14px; padding: 11px 20px;
+      #pausedCard .pc-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 18px auto 0; width: min(92vw, 470px); }
+      @media (max-width: 440px) { #pausedCard .pc-b { font-size: 12px; letter-spacing: .04em; padding: 10px 10px; } #pausedCard .pc-btns { gap: 6px; width: 96vw; } }
+      #pausedCard .pc-b { cursor: pointer; font: inherit; font-weight: 900; letter-spacing: .1em; font-size: 14px; padding: 11px 16px; white-space: nowrap;
         ${neon
           ? 'border-radius: 999px; border: 1px solid rgba(255,255,255,.25); color: #fff; background: rgba(255,255,255,.08);'
           : 'border-radius: 14px; border: 2.5px solid #23243a; color: #23243a; background: #f6eedc; box-shadow: 3px 3px 0 rgba(35,36,58,.28);'} }
@@ -2580,8 +2582,8 @@
     const card = document.createElement('div');
     card.id = 'pausedCard';
     card.innerHTML = `<div class="pc-in"><div class="pc-t">PAUSED</div>`
-      + `<div class="pc-btns"><button type="button" class="pc-b" data-act="resume">▶ RESUME</button><button type="button" class="pc-b pc-r" data-act="menu">☰ MENU</button></div>`
-      + `<div class="pc-k">${coarse ? 'or tap anywhere to resume' : 'P / Esc to resume · M for menu'}</div></div>`;
+      + `<div class="pc-btns"><button type="button" class="pc-b" data-act="resume">▶ RESUME</button><button type="button" class="pc-b pc-r" data-act="retry">↻ RETRY</button><button type="button" class="pc-b pc-r" data-act="menu">☰ MENU</button></div>`
+      + `<div class="pc-k">${coarse ? 'or tap anywhere to resume' : 'P / Esc to resume · R to retry · M for menu'}</div></div>`;
     host.appendChild(btn);
     host.appendChild(card);
     card.querySelectorAll('.pc-b').forEach((b) => {
@@ -2589,7 +2591,8 @@
       b.addEventListener('click', (e) => {
         e.stopPropagation(); b.blur();
         set(false);
-        if (b.dataset.act === 'menu') cfg.menu();
+        if (b.dataset.act === 'retry') cfg.restart();
+        else if (b.dataset.act === 'menu') cfg.menu();
       });
     });
 
@@ -2622,6 +2625,7 @@
         e.stopImmediatePropagation();
         e.preventDefault();
         if (!e.repeat && (toggleKey || k === 'Space' || k === 'Enter' || k === 'NumpadEnter')) set(false);
+        else if (!e.repeat && k === 'KeyR') { set(false); cfg.restart(); }
         else if (!e.repeat && k === 'KeyM') { set(false); cfg.menu(); }
         return;
       }
