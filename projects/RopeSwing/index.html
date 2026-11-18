@@ -23,6 +23,16 @@
   .value { font-size: 28px; font-weight: 800; text-shadow: 0 0 12px rgba(255, 159, 67, 0.6); font-variant-numeric: tabular-nums; }
   .meters { font-size: 12px; font-weight: 700; color: #ffcf8a; letter-spacing: 0.1em; font-variant-numeric: tabular-nums; }
   .right { text-align: right; }
+  /* Everything lives in #app so landscape mode can rotate the whole game at once. */
+  #app { position: fixed; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
+  #rotate {
+    position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 106px); right: 14px;
+    width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(20, 10, 40, 0.5);
+    color: #fff; font-size: 19px; line-height: 1; z-index: 5;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #rotate.on { border-color: rgba(255, 159, 67, 0.7); background: rgba(255, 159, 67, 0.22); }
   #sound {
     position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 58px); right: 14px;
     width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
@@ -79,6 +89,7 @@
 </style>
 </head>
 <body>
+<div id="app">
 <canvas id="c"></canvas>
 
 <div class="hud">
@@ -106,6 +117,8 @@
   <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
   <p class="sub" id="overStats"></p>
   <div class="cta" id="retryCta">TAP TO RETRY</div>
+</div>
+<button id="rotate" class="gone" type="button" aria-label="Toggle landscape mode" title="Landscape mode">⟳</button>
 </div>
 
 <script>
@@ -154,9 +167,23 @@
   const bandY = (f) => lavaY + 34 - playH + f * playH;
   let starsBg = [];
 
+  // ---------- Landscape mode (phones) ----------
+  // When it's on and the phone is held upright, the whole game is drawn rotated 90°,
+  // so you turn the phone sideways and get a wide view. If the phone is already
+  // sideways, nothing needs rotating. Works everywhere (iPhone can't lock orientation).
+  const app = document.getElementById('app');
+  const rotateBtn = document.getElementById('rotate');
+  let landscape = false;
+  try { landscape = isTouch && localStorage.getItem('ropeLandscape') === '1'; } catch (e) {}
+
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth; H = window.innerHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const rotated = landscape && vh > vw;
+    W = rotated ? vh : vw; H = rotated ? vw : vh;
+    app.style.width = W + 'px'; app.style.height = H + 'px';
+    app.style.transform = rotated ? `translateX(${vw}px) rotate(90deg)` : '';
+    rotateBtn.classList.toggle('on', landscape);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     scale = clamp(Math.min(H / 700, W / 560), 0.55, 1.6);
@@ -812,6 +839,21 @@
     if (!muted) { initAudio(); sfx.coin(); }
   });
   refreshSoundBtn();
+
+  // Landscape toggle: only offered on touch devices.
+  if (isTouch) rotateBtn.classList.remove('gone');
+  rotateBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  rotateBtn.addEventListener('pointerup', (e) => e.stopPropagation());
+  rotateBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    landscape = !landscape;
+    try { localStorage.setItem('ropeLandscape', landscape ? '1' : '0'); } catch (err) {}
+    rotateBtn.blur();
+    resize();
+    // The view changed size: re-place the start ledge and first hooks if we haven't started.
+    if (state === 'menu') reset();
+  });
+  window.addEventListener('orientationchange', () => setTimeout(resize, 150));
   window.focus();
 
   // ---------- Start ----------
