@@ -109,6 +109,23 @@
   #app { position: fixed; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
   #rotate { top: calc(max(12px, env(safe-area-inset-top)) + 154px); font-size: 19px; line-height: 1; }
   #rotate.on { border-color: rgba(251, 191, 36, 0.9); background: rgba(251, 191, 36, 0.35); }
+
+  /* Floating joystick (touch): appears under your thumb, rests faintly in the corner */
+  #stick {
+    position: fixed; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.55); background: radial-gradient(circle, rgba(10, 20, 40, 0.15), rgba(10, 20, 40, 0.35));
+    pointer-events: none; z-index: 4; opacity: 0.28; transition: opacity 0.2s;
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  }
+  #stick.active { opacity: 1; transition: none; }
+  #stick::before, #stick::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.25); }
+  #stick::before { left: 50%; top: 14px; bottom: 14px; width: 2px; margin-left: -1px; }
+  #stick::after { top: 50%; left: 14px; right: 14px; height: 2px; margin-top: -1px; }
+  #knob {
+    position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #bae6fd 55%, #38bdf8);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), 0 0 16px rgba(56, 189, 248, 0.6);
+  }
   #noGL { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #0c4a6e; font-size: 16px; line-height: 1.5; }
 </style>
 </head>
@@ -128,6 +145,7 @@
 <div id="gyroLabel" class="gone">TILT</div>
 <button class="btn gone" id="rotate" type="button" aria-label="Toggle landscape mode" title="Landscape mode">⟳</button>
 <div id="banner"></div>
+<div id="stick" class="gone"><div id="knob"></div></div>
 
 <div class="overlay" id="menu">
   <h1><span class="a">WILD</span><br /><span class="b">WINGS</span></h1>
@@ -169,7 +187,7 @@
   $('startCta').textContent = verb + ' TO START';
   $('retryCta').textContent = verb + ' TO RETRY';
   $('howto').textContent = isTouch
-    ? 'Drag anywhere to fly your bird. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!'
+    ? 'Touch anywhere and use the joystick to fly your bird. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!'
     : 'Steer your bird with the arrow keys or WASD. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!';
   if (isTouch) {
     $('gyroTip').textContent = 'Tap 📱 to steer by tilting · ⟳ to play sideways';
@@ -223,6 +241,7 @@
     rotateBtn.classList.toggle('on', landscape);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setSize(W, H);
+    if (stick.id === null) stickHome(); // keep the resting joystick in the corner of the new view
     camera.aspect = W / H;
     // Keep a wide enough view sideways, even on a tall phone screen.
     const minHorizontal = 78 * Math.PI / 180;
@@ -487,7 +506,7 @@
   try { best = Number(localStorage.getItem('wingsBest')) || 0; } catch (e) {}
   el.best.textContent = best;
 
-  const bird = { x: 0, y: 4, tx: 0, ty: 4, vx: 0, vy: 0, size: 1, hearts: 3, inv: 0, alive: true, fallV: 0, flap: 0, spin: 0 };
+  const bird = { x: 0, y: 4, tx: 0, ty: 4, vx: 0, vy: 0, size: 1, hearts: 3, inv: 0, alive: true, fallV: 0, flap: 0, spin: 0, glide: 0, glideCd: 2.5, glideMix: 0 };
   const keys = {};
 
   const curBiome = () => BIOMES[biomeIdx % BIOMES.length];
@@ -504,7 +523,7 @@
     dist = 0; bonus = 0; seedsGot = 0; powersGot = 0; score = 0;
     biomeIdx = 0; nextSpawn = 60; powerCd = rand(6, 8); seedNext = 30;
     for (const k in timers) timers[k] = 0;
-    Object.assign(bird, { x: 0, y: 4, tx: 0, ty: 4, vx: 0, vy: 0, size: 1, hearts: 3, inv: 0, alive: true, fallV: 0, spin: 0 });
+    Object.assign(bird, { x: 0, y: 4, tx: 0, ty: 4, vx: 0, vy: 0, size: 1, hearts: 3, inv: 0, alive: true, fallV: 0, spin: 0, glide: 0, glideCd: 2.5, glideMix: 0 });
     birdModel.rotation.set(0, 0, 0);
     calibrateGyro();
     updateHud();
@@ -517,11 +536,15 @@
     el.over.classList.add('hidden');
     sfx.start();
     banner(BIOME_NAMES.ocean);
+    stickVisible();
   }
 
   function gameOver() {
     state = 'over';
     bird.alive = false;
+    Object.assign(stick, { id: null, jx: 0, jy: 0 });
+    stickHome();
+    stickVisible();
     bird.fallV = 2;
     sfx.die(); sfx.gameOver();
     shake = 0.6;
@@ -1099,7 +1122,6 @@
   }
 
   // ---------- Input ----------
-  let drag = null;
   function tryStart() {
     initAudio();
     if (state === 'menu') start();
@@ -1109,32 +1131,62 @@
   function toView(e) {
     return rotated ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };
   }
+  // ---------- Touch joystick ----------
+  // Touch anywhere: the joystick jumps under your thumb. Push the knob to fly that way;
+  // the further you push, the faster the bird moves. Let go and it drifts back to its corner.
+  const stickEl = $('stick'), knobEl = $('knob');
+  const STICK_R = 50;           // how far the knob can travel (px)
+  const STICK_SPEED = { x: 15, y: 11 };
+  const stick = { id: null, cx: 0, cy: 0, jx: 0, jy: 0 };
+  function stickHome() {
+    // Resting spot: bottom-left corner of the game view
+    stickEl.style.left = '92px';
+    stickEl.style.top = (viewH - 104) + 'px';
+    knobEl.style.transform = '';
+    stickEl.classList.remove('active');
+  }
+  function stickVisible() {
+    stickEl.classList.toggle('gone', !(isTouch && state === 'playing' && !gyroOn));
+  }
+
   // The mouse never steers: on a computer you fly with the keyboard, and a click only starts the game.
   window.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'mouse') {
-      const p = toView(e);
-      drag = { sx: p.x, sy: p.y, tx: bird.tx, ty: bird.ty, id: e.pointerId };
-    }
+    const wasPlaying = state === 'playing';
     tryStart();
+    if (e.pointerType === 'mouse' || gyroOn || stick.id !== null) return;
+    if (!wasPlaying && state !== 'playing') return;
+    const p = toView(e);
+    Object.assign(stick, { id: e.pointerId, cx: p.x, cy: p.y, jx: 0, jy: 0 });
+    stickEl.style.left = p.x + 'px';
+    stickEl.style.top = p.y + 'px';
+    knobEl.style.transform = '';
+    stickEl.classList.add('active');
+    stickVisible();
   });
   window.addEventListener('pointermove', (e) => {
-    if (e.pointerType === 'mouse') return;
-    if (!drag || drag.id !== e.pointerId || gyroOn) return;
-    // Relative drag: the bird moves with your finger but never sits under it.
+    if (e.pointerType === 'mouse' || e.pointerId !== stick.id) return;
     const p = toView(e);
-    bird.tx = drag.tx + ((p.x - drag.sx) / viewW) * XMAX * 2.6;
-    bird.ty = drag.ty - ((p.y - drag.sy) / viewH) * (YMAX - YMIN) * 1.7;
+    let dx = p.x - stick.cx, dy = p.y - stick.cy;
+    const d = Math.hypot(dx, dy);
+    if (d > STICK_R) { dx *= STICK_R / d; dy *= STICK_R / d; }
+    knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+    stick.jx = dx / STICK_R;
+    stick.jy = dy / STICK_R;
   });
-  const endDrag = (e) => { if (drag && drag.id === e.pointerId) drag = null; };
-  window.addEventListener('pointerup', endDrag);
-  window.addEventListener('pointercancel', endDrag);
+  const endStick = (e) => {
+    if (e.pointerId !== stick.id) return;
+    Object.assign(stick, { id: null, jx: 0, jy: 0 });
+    stickHome();
+  };
+  window.addEventListener('pointerup', endStick);
+  window.addEventListener('pointercancel', endStick);
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
     if ((e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') && !e.repeat) tryStart();
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; drag = null; });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; Object.assign(stick, { id: null, jx: 0, jy: 0 }); stickHome(); });
 
   // ---------- Gyro (tilt steering) ----------
   // Tilt the top of the phone toward you to climb, away to dive; tilt left/right to steer.
@@ -1163,6 +1215,7 @@
   function refreshGyroBtn() {
     el.gyro.classList.toggle('on', gyroOn);
     el.gyroLabel.classList.toggle('gone', !gyroOn);
+    stickVisible(); // gyro steers instead of the joystick
   }
   function setGyro(on) {
     gyroOn = on;
@@ -1247,6 +1300,15 @@
       if (keys.ArrowDown || keys.KeyS) bird.ty -= k;
       if (keys.ArrowLeft || keys.KeyA) bird.tx -= k;
       if (keys.ArrowRight || keys.KeyD) bird.tx += k;
+      if (stick.id !== null && !gyroOn) {
+        // Small dead zone in the middle, then a gentle curve for fine control
+        const m = Math.hypot(stick.jx, stick.jy);
+        if (m > 0.12) {
+          const s = Math.pow((m - 0.12) / 0.88, 1.3) / m;
+          bird.tx += stick.jx * s * STICK_SPEED.x * dt;
+          bird.ty -= stick.jy * s * STICK_SPEED.y * dt;
+        }
+      }
       if (gyroOn && gyroRaw && gyroNeutral) {
         const up = clamp((gyroRaw.up - gyroNeutral.up) / GYRO_RANGE, -1, 1);
         const right = clamp((gyroRaw.right - gyroNeutral.right) / GYRO_RANGE, -1, 1);
@@ -1261,7 +1323,20 @@
       bird.y = lerp(bird.y, bird.ty, Math.min(1, dt * 7));
       bird.vx = (bird.x - px) / Math.max(dt, 1e-4);
       bird.vy = (bird.y - py) / Math.max(dt, 1e-4);
-      bird.flap += dt * (bird.vy > 1 ? 22 : 13);
+      // Every so often the bird stops flapping and glides with its wings held out.
+      // Climbing hard needs flapping, so a steep climb cuts a glide short.
+      const climbing = bird.vy > 2.2;
+      if (bird.glide > 0) {
+        bird.glide -= dt;
+        if (climbing) bird.glide = 0;
+        if (bird.glide <= 0) bird.glideCd = rand(2.5, 5.5);
+      } else {
+        bird.glideCd -= dt * (bird.vy < -0.5 ? 1.8 : 1); // dives make it want to glide sooner
+        if (bird.glideCd <= 0 && !climbing) bird.glide = rand(1.0, 2.6);
+      }
+      bird.glideMix = lerp(bird.glideMix, bird.glide > 0 ? 1 : 0, Math.min(1, dt * 5));
+      // Flap speed eases down as it settles into a glide (and picks up hard when climbing)
+      bird.flap += dt * (climbing ? 22 : 13) * (1 - bird.glideMix * 0.9);
       bird.size = lerp(bird.size, timers.tiny > 0 ? 0.55 : 1, Math.min(1, dt * 8));
       bird.inv = Math.max(0, bird.inv - dt);
     } else {
@@ -1367,8 +1442,12 @@
     // Bank into turns, pitch with climbs
     if (b.alive) {
       birdModel.rotation.z = lerp(birdModel.rotation.z, clamp(-b.vx * 0.07, -0.8, 0.8), Math.min(1, dt * 8));
-      birdModel.rotation.x = lerp(birdModel.rotation.x, clamp(b.vy * 0.05, -0.5, 0.5), Math.min(1, dt * 8));
-      const f = Math.sin(b.flap) * 0.65;
+      // (nose dips a touch while gliding)
+      birdModel.rotation.x = lerp(birdModel.rotation.x, clamp(b.vy * 0.05, -0.5, 0.5) - 0.06 * b.glideMix, Math.min(1, dt * 8));
+      // Blend between flapping and a gliding pose (wings held slightly up, with a gentle wobble)
+      const flapAngle = Math.sin(b.flap) * 0.65;
+      const glideAngle = 0.14 + Math.sin(time * 2.2) * 0.04;
+      const f = lerp(flapAngle, glideAngle, b.glideMix);
       for (const w of wings) w.pivot.rotation.z = w.s * f;
     } else {
       birdModel.rotation.z = b.spin;
