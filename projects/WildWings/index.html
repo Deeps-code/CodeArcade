@@ -145,7 +145,10 @@
     background: rgba(35, 36, 58, 0.28);
     transition: opacity 0.35s;
   }
-  .overlay.hidden { opacity: 0; }
+  /* A hidden card must not catch taps: its buttons (Change bird / Customize) used to stay
+     clickable while invisible, so a tap during play could trigger them. */
+  .overlay.hidden { opacity: 0; visibility: hidden; transition: opacity 0.35s, visibility 0s linear 0.35s; }
+  .overlay.hidden * { pointer-events: none !important; }
   .overlay.hidden .sheet { transform: translateY(24px) rotate(2deg) scale(0.96); }
   .sheet {
     position: relative; width: min(440px, 100%); max-height: 100%; overflow: hidden;
@@ -1085,6 +1088,177 @@
   let birdIndex = 0;
   try { const saved = localStorage.getItem('wingsBird'); const i = BIRDS.findIndex((b) => b.id === saved); if (i >= 0) birdIndex = i; } catch (e) {}
   buildBird(BIRDS[birdIndex]);
+  // ---------- Trails ----------
+  // Every bird leaves wind streaks off its wingtips, plus its own signature trail
+  // (flames for Ember, snowflakes for Frost...). Trail bits are flat paper cut-outs
+  // that drift off behind the bird as the world rushes past.
+  const TRAIL_TEX = (() => {
+    const make = (draw) => spriteTexture((g, s) => { g.lineJoin = 'round'; g.lineCap = 'round'; draw(g, s); }, 64);
+    const ink = (g, w = 3) => { g.lineWidth = w; g.strokeStyle = 'rgba(35, 36, 58, 0.85)'; g.stroke(); };
+    return {
+      puff: make((g, s) => {
+        const r = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+        r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.55, 'rgba(255,255,255,0.75)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = r; g.beginPath(); g.arc(s / 2, s / 2, s / 2, 0, TAU); g.fill();
+      }),
+      flame: make((g, s) => {
+        const lg = g.createLinearGradient(0, s * 0.1, 0, s * 0.95);
+        lg.addColorStop(0, '#fffbe0'); lg.addColorStop(0.3, '#ffe066'); lg.addColorStop(0.65, '#ff8a1f'); lg.addColorStop(1, '#ff3d2e');
+        g.beginPath(); g.moveTo(s * 0.5, s * 0.06);
+        g.bezierCurveTo(s * 0.78, s * 0.36, s * 0.86, s * 0.6, s * 0.72, s * 0.8);
+        g.quadraticCurveTo(s * 0.5, s * 0.98, s * 0.28, s * 0.8);
+        g.bezierCurveTo(s * 0.14, s * 0.6, s * 0.3, s * 0.42, s * 0.42, s * 0.3);
+        g.quadraticCurveTo(s * 0.46, s * 0.2, s * 0.5, s * 0.06);
+        g.fillStyle = lg; g.fill();
+        g.beginPath(); g.ellipse(s * 0.5, s * 0.7, s * 0.1, s * 0.16, 0, 0, TAU); g.fillStyle = '#fff8d6'; g.fill();
+      }),
+      spark: make((g, s) => {
+        g.beginPath();
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU - Math.PI / 2, r = i % 2 ? s * 0.12 : s * 0.46; g.lineTo(s / 2 + Math.cos(a) * r, s / 2 + Math.sin(a) * r); }
+        g.closePath(); g.fillStyle = '#fff'; g.fill(); ink(g, 2);
+      }),
+      star: make((g, s) => {
+        g.beginPath();
+        for (let i = 0; i < 10; i++) { const a = (i / 10) * TAU - Math.PI / 2, r = i % 2 ? s * 0.2 : s * 0.44; g.lineTo(s / 2 + Math.cos(a) * r, s / 2 + Math.sin(a) * r); }
+        g.closePath(); g.fillStyle = '#fff'; g.fill(); ink(g, 2.5);
+      }),
+      heart: make((g, s) => {
+        g.beginPath(); g.moveTo(s * 0.5, s * 0.84);
+        g.bezierCurveTo(s * 0.08, s * 0.56, s * 0.12, s * 0.16, s * 0.5, s * 0.34);
+        g.bezierCurveTo(s * 0.88, s * 0.16, s * 0.92, s * 0.56, s * 0.5, s * 0.84);
+        g.fillStyle = '#fff'; g.fill(); ink(g, 2.5);
+      }),
+      flake: make((g, s) => {
+        g.strokeStyle = 'rgba(35, 36, 58, 0.85)'; g.lineWidth = 7;
+        const arms = () => { g.beginPath(); for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI; g.moveTo(s / 2 - Math.cos(a) * s * 0.42, s / 2 - Math.sin(a) * s * 0.42); g.lineTo(s / 2 + Math.cos(a) * s * 0.42, s / 2 + Math.sin(a) * s * 0.42); } };
+        arms(); g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = 3.5; arms(); g.stroke();
+      }),
+      feather: make((g, s) => {
+        g.beginPath(); g.moveTo(s * 0.5, s * 0.05);
+        g.quadraticCurveTo(s * 0.86, s * 0.42, s * 0.52, s * 0.9);
+        g.quadraticCurveTo(s * 0.2, s * 0.46, s * 0.5, s * 0.05);
+        g.fillStyle = '#fff'; g.fill(); ink(g, 2.5);
+        g.beginPath(); g.moveTo(s * 0.5, s * 0.12); g.lineTo(s * 0.52, s * 0.96); ink(g, 2);
+      }),
+      leaf: make((g, s) => {
+        g.beginPath(); g.moveTo(s * 0.12, s * 0.5);
+        g.quadraticCurveTo(s * 0.5, s * 0.05, s * 0.9, s * 0.5);
+        g.quadraticCurveTo(s * 0.5, s * 0.95, s * 0.12, s * 0.5);
+        g.fillStyle = '#fff'; g.fill(); ink(g, 2.5);
+        g.beginPath(); g.moveTo(s * 0.14, s * 0.5); g.lineTo(s * 0.86, s * 0.5); ink(g, 1.8);
+      }),
+      dot: make((g, s) => { g.beginPath(); g.arc(s / 2, s / 2, s * 0.36, 0, TAU); g.fillStyle = '#fff'; g.fill(); ink(g, 3); }),
+    };
+  })();
+  // What each bird leaves behind. colors tint the white cut-outs; vy = drift up (+) or down (-);
+  // grow = how much it grows (+) or shrinks (-) over its life; spin = tumbling speed.
+  const TRAILS = {
+    skydart:  [{ tex: 'puff', colors: ['#ffffff', '#dff2ff'], rate: 22, life: 0.75, size: [0.3, 0.55], vy: 0.1, grow: 1.4, alpha: 0.55 }],
+    ember:    [{ tex: 'flame', colors: ['#ffffff'], rate: 46, life: 0.5, size: [0.4, 0.75], vy: 1.4, grow: -0.85, alpha: 1, flicker: true },
+               { tex: 'spark', colors: ['#ffd166', '#ff9f1c'], rate: 14, life: 0.8, size: [0.12, 0.2], vy: 1.8, grow: -0.5, alpha: 1, spread: 0.6 }],
+    zippy:    [{ tex: 'spark', colors: ['#9bf6e0', '#ff9ecf', '#ffffff'], rate: 30, life: 0.6, size: [0.16, 0.3], vy: 0.2, grow: -0.6, alpha: 1, twinkle: true, spread: 0.4 }],
+    hoot:     [{ tex: 'star', colors: ['#ffd166', '#c9b6f2'], rate: 16, life: 1.0, size: [0.2, 0.34], vy: 0.15, grow: -0.4, alpha: 1, spin: 3, spread: 0.45 }],
+    pinky:    [{ tex: 'heart', colors: ['#ff8fab', '#ffc2d4', '#ff6f91'], rate: 13, life: 1.0, size: [0.22, 0.36], vy: 0.7, grow: 0.2, alpha: 1, spread: 0.35 }],
+    tuco:     [{ tex: 'leaf', colors: ['#52b788', '#95d5b2', '#ff9f1c', '#ffd166'], rate: 16, life: 1.1, size: [0.24, 0.36], vy: -0.5, grow: 0, alpha: 1, spin: 5, spread: 0.5 }],
+    frost:    [{ tex: 'flake', colors: ['#ffffff', '#cfeeff'], rate: 22, life: 1.05, size: [0.22, 0.36], vy: -0.45, grow: -0.2, alpha: 1, spin: 2.5, spread: 0.55 }],
+    goldwing: [{ tex: 'feather', colors: ['#e9c46a', '#d4a373', '#ffd166'], rate: 9, life: 1.3, size: [0.3, 0.44], vy: -0.6, grow: 0, alpha: 1, spin: 2.2, spread: 0.5 },
+               { tex: 'spark', colors: ['#ffe08a'], rate: 10, life: 0.6, size: [0.12, 0.2], vy: 0.1, grow: -0.6, alpha: 1, twinkle: true, spread: 0.7 }],
+    dazzle:   [{ tex: 'dot', colors: ['rainbow'], rate: 32, life: 0.8, size: [0.16, 0.26], vy: 0.05, grow: -0.5, alpha: 1, spread: 0.3 }],
+    shadow:   [{ tex: 'puff', colors: ['#3b3b5c', '#4a4e69', '#2b2b44'], rate: 26, life: 0.9, size: [0.35, 0.6], vy: 0.25, grow: 1.6, alpha: 0.6 },
+               { tex: 'spark', colors: ['#e63946'], rate: 6, life: 0.5, size: [0.12, 0.18], vy: 0.4, grow: -0.6, alpha: 1, spread: 0.5 }],
+  };
+  const MAX_TRAIL = 140;
+  const trailBits = [];
+  const trailPool = [];
+  const trailAcc = [0, 0];
+  let rainbowHue = 0;
+  function trailSprite() {
+    const sp = trailPool.pop() || new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false }));
+    scene.add(sp);
+    return sp;
+  }
+  function emitTrail(T, dt, slot) {
+    trailAcc[slot] += T.rate * dt;
+    while (trailAcc[slot] >= 1) {
+      trailAcc[slot] -= 1;
+      if (trailBits.length >= MAX_TRAIL) return;
+      const sp = trailSprite();
+      sp.material.map = TRAIL_TEX[T.tex];
+      let c = T.colors[Math.floor(Math.random() * T.colors.length)];
+      if (c === 'rainbow') { rainbowHue = (rainbowHue + 23) % 360; sp.material.color.setHSL(rainbowHue / 360, 0.85, 0.62); }
+      else sp.material.color.set(c);
+      sp.material.rotation = rand(0, TAU);
+      sp.material.needsUpdate = true;
+      const sz = rand(T.size[0], T.size[1]) * bird.size * 1.6;
+      const spread = (T.spread || 0.2) * bird.size;
+      // start just behind the bird's tail
+      sp.position.set(bird.x + rand(-spread, spread), bird.y + rand(-spread, spread) * 0.6 + 0.05, 0.75 * bird.size + rand(0, 0.3));
+      sp.scale.setScalar(sz);
+      trailBits.push({ sp, T, age: 0, life: T.life * rand(0.8, 1.2), size: sz,
+        vx: rand(-0.4, 0.4), vy: T.vy + rand(-0.2, 0.2), vz: rand(0.5, 1.5), spin: (T.spin || 0) * rand(-1, 1) });
+    }
+  }
+
+  // Wind streaks: a thin ribbon trailing from each wingtip
+  const STREAK_N = 18;
+  const streaks = [-1, 1].map((side) => {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(STREAK_N * 2 * 3), col = new Float32Array(STREAK_N * 2 * 4);
+    for (let i = 0; i < STREAK_N; i++) {
+      const a = 0.5 * (1 - i / (STREAK_N - 1)) ** 1.5;
+      for (let k = 0; k < 2; k++) col.set([1, 1, 1, a], (i * 2 + k) * 4);
+    }
+    const idx = [];
+    for (let i = 0; i < STREAK_N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    geo.setIndex(idx);
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+    return { side, mesh, pos, hist: [] };
+  });
+
+  function updateTrails(dt, spd) {
+    const flying = bird.alive && (state === 'playing' || state === 'menu');
+    if (flying) {
+      (TRAILS[birdSpec.id] || TRAILS.skydart).forEach((T, i) => emitTrail(T, dt, i));
+    }
+    for (let i = trailBits.length - 1; i >= 0; i--) {
+      const b = trailBits[i];
+      b.age += dt;
+      const u = b.age / b.life;
+      if (u >= 1) { scene.remove(b.sp); trailPool.push(b.sp); trailBits.splice(i, 1); continue; }
+      b.sp.position.x += b.vx * dt;
+      b.sp.position.y += b.vy * dt;
+      b.sp.position.z += (spd + b.vz) * dt;       // left behind as the world rushes past
+      b.sp.scale.setScalar(Math.max(0.01, b.size * (1 + b.T.grow * u)));
+      b.sp.material.rotation += b.spin * dt;
+      let a = b.T.alpha * (1 - u * u);
+      if (b.T.twinkle) a *= 0.55 + 0.45 * Math.sin((b.age + i) * 25);
+      if (b.T.flicker) a *= 0.8 + 0.2 * Math.sin(b.age * 40 + i);
+      b.sp.material.opacity = a;
+    }
+    // wingtip streaks
+    const span = 1.5 * (birdSpec.size || 1) * bird.size * 1.15;
+    for (const s of streaks) {
+      const w = wings.find((q) => q.s === s.side);
+      const rot = w ? w.pivot.rotation.z * s.side : 0;
+      const tipX = bird.x + s.side * Math.cos(rot) * span;
+      const tipY = bird.y + 0.12 + Math.sin(rot) * span;
+      for (const h of s.hist) h.z += spd * dt;
+      s.hist.unshift({ x: tipX, y: tipY, z: 0.15 });
+      if (s.hist.length > STREAK_N) s.hist.length = STREAK_N;
+      s.mesh.visible = flying && s.hist.length > 2;
+      for (let i = 0; i < STREAK_N; i++) {
+        const h = s.hist[Math.min(i, s.hist.length - 1)];
+        const half = 0.05 * (1 - i / STREAK_N);
+        s.pos.set([h.x - half, h.y, h.z, h.x + half, h.y, h.z], i * 6);
+      }
+      s.mesh.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+
   const shieldBubble = mk(GEO.ico1, new THREE.MeshLambertMaterial({ color: 0x5eead4, emissive: 0x0d9488, transparent: true, opacity: 0.28, depthWrite: false }), 0, 0, 0, 1.25);
   shieldBubble.visible = false;
   birdRoot.add(shieldBubble);
@@ -1997,6 +2171,7 @@
       o.root.visible = z < 9.5;
     }
     for (const d of decos) d.root.position.z += spd * dt;
+    updateTrails(dt, spd);
     for (const s of seeds) { s.root.position.z += spd * dt; s.spin += dt * 3; s.root.rotation.set(s.spin, s.spin * 1.3, 0); }
     for (const p of bubbles) { p.root.position.z += spd * dt; p.t += dt; p.root.position.y = p.baseY + Math.sin(p.t * 3) * 0.3; const pulse = 1.9 + Math.sin(p.t * 5) * 0.08; p.token.scale.set(pulse, pulse, 1); }
 
