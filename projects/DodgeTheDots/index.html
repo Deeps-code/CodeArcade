@@ -1274,6 +1274,7 @@
       theme: 'neon',                      // 'neon' or 'paper'
       top: 'calc(max(12px, env(safe-area-inset-top)) + 58px)', right: '62px',      // where the button sits (next to sound)
       isPlaying: () => (state === 'play'),
+      restart: () => { start(); },
       onChange: (p) => { for (const k in keys) keys[k] = false; },
     };
     const coarse = window.matchMedia('(pointer: coarse)').matches;
@@ -1298,6 +1299,13 @@
         font-size: clamp(38px, 11vw, 64px); letter-spacing: .12em; line-height: 1;
         ${neon ? 'text-shadow: 0 0 22px rgba(79,209,255,.7), 0 0 44px rgba(167,139,250,.5);' : ''} }
       #pausedCard .pc-s { margin-top: 14px; font-weight: 800; letter-spacing: .14em; font-size: 13px; opacity: .85; }
+      #pausedCard .pc-btns { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
+      #pausedCard .pc-b { cursor: pointer; font: inherit; font-weight: 900; letter-spacing: .12em; font-size: 14px; padding: 11px 20px;
+        ${neon
+          ? 'border-radius: 999px; border: 1px solid rgba(255,255,255,.25); color: #fff; background: rgba(255,255,255,.08);'
+          : 'border-radius: 14px; border: 2.5px solid #23243a; color: #23243a; background: #f6eedc; box-shadow: 3px 3px 0 rgba(35,36,58,.28);'} }
+      #pausedCard .pc-b[data-act="resume"] { ${neon ? 'background: linear-gradient(90deg, #4fd1ff, #a78bfa); border-color: transparent; box-shadow: 0 0 22px rgba(79,209,255,.45);' : 'background: #ff7a59; color: #fff;'} }
+      #pausedCard .pc-b:active { transform: scale(.95); }
       #pausedCard .pc-k { margin-top: 6px; font-size: 11px; letter-spacing: .1em; opacity: .55; font-weight: 700; }
     `;
     document.head.appendChild(css);
@@ -1307,9 +1315,19 @@
     btn.innerHTML = ICON_PAUSE;
     const card = document.createElement('div');
     card.id = 'pausedCard';
-    card.innerHTML = `<div class="pc-in"><div class="pc-t">PAUSED</div><div class="pc-s">${coarse ? 'TAP' : 'CLICK'} TO RESUME</div>${coarse ? '' : '<div class="pc-k">or press P / Esc</div>'}</div>`;
+    card.innerHTML = `<div class="pc-in"><div class="pc-t">PAUSED</div>`
+      + `<div class="pc-btns"><button type="button" class="pc-b" data-act="resume">▶ RESUME</button><button type="button" class="pc-b pc-r" data-act="retry">↻ RETRY</button></div>`
+      + `<div class="pc-k">${coarse ? 'or tap anywhere to resume' : 'P / Esc to resume · R to retry'}</div></div>`;
     host.appendChild(btn);
     host.appendChild(card);
+    card.querySelectorAll('.pc-b').forEach((b) => {
+      b.addEventListener('pointerdown', (e) => e.stopPropagation());
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); b.blur();
+        set(false);
+        if (b.dataset.act === 'retry') cfg.restart();
+      });
+    });
 
     let paused = false;
     function set(p) {
@@ -1340,6 +1358,7 @@
         e.stopImmediatePropagation();
         e.preventDefault();
         if (!e.repeat && (toggleKey || k === 'Space' || k === 'Enter' || k === 'NumpadEnter')) set(false);
+        else if (!e.repeat && k === 'KeyR') { set(false); cfg.restart(); }
         return;
       }
       if (toggleKey && !e.repeat && cfg.isPlaying()) { e.preventDefault(); e.stopImmediatePropagation(); set(true); }
