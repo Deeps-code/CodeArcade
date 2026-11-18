@@ -98,9 +98,6 @@ export default function App() {
         </nav>
 
         <header className="hero">
-          <span className="eyebrow">
-            <span className="pulse-dot" /> Insert coin to play
-          </span>
           <h1 className="title">
             Code<span className="title-accent">Arcade</span>
           </h1>
