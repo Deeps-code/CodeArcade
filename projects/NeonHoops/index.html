@@ -638,6 +638,8 @@
     if (bb.resolved || id !== bb.shotId) return;   // already handled (e.g. by a quick re-shoot)
     bb.resolved = true;
     if (!bb.scored) {
+      const hs = hoopOnScreen();
+      popups.push({ x: hs.x, y: hs.y - 30, text: bb.touched ? 'RIM OUT' : 'MISS', life: 0.9, c: '#9ca3af' });
       if (streak >= 3) banner('FIRE OUT');
       streak = 0;
       sfx.miss();
@@ -1123,8 +1125,9 @@
 
   // ---------- Front view: projection, physics, drawing ----------
   function frontF() { return clamp(Math.min(VW * 1.7, VH * 0.95), 480, 900); }  // focal length
+  let camZ = 0;   // how far the camera has pushed in toward the hoop (front view)
   function proj(x, y, z) {
-    const f = frontF(), k = f / Math.max(0.2, z);
+    const f = frontF(), k = f / Math.max(0.2, z - camZ);
     return { x: VW / 2 + x * k, y: VH * 0.5 - (y - F3.camY) * k, k };
   }
   const RIM_PTS = 18;
@@ -1164,6 +1167,9 @@
     if (!fb.scored && fb.vy < 0 && prevY > fh.y && fb.y <= fh.y && Math.hypot(fb.x - fh.x, fb.z - F3.hoopZ) < F3.rimR - F3.rb * 0.55) scored();
   }
   function updateFront(dt) {
+    // During a shot the camera eases in toward the hoop (like a TV replay), then back out
+    const camTarget = fb.mode === 'flight' ? clamp((fb.z - F3.startZ) * 0.33, 0, 1.25) : 0;
+    camZ = lerp(camZ, camTarget, Math.min(1, dt * (camTarget > camZ ? 2.2 : 3.5)));
     // hoop slides (and later bobs) as you score, like the side view
     const slide = made >= 6 ? Math.min(1, (made - 5) / 6) : 0, bob = made >= 14 ? Math.min(1, (made - 13) / 6) : 0;
     fh.x = Math.sin(hoop.t * (0.9 + slide * 0.6)) * 0.9 * slide;
@@ -1275,7 +1281,9 @@
       ctx.beginPath(); ctx.ellipse(r.c.x + sway * v, cyk, hw, r.ry * lerp(1, 0.5, v), 0, 0, Math.PI); ctx.stroke();
     }
     ctx.setLineDash([]);
-    ctx.strokeStyle = T.rim; ctx.lineWidth = 5; ctx.shadowColor = T.rim; ctx.shadowBlur = T.glow ? 14 : 4;
+    const flash = net > 0.55;
+    ctx.strokeStyle = flash ? '#ffffff' : T.rim; ctx.lineWidth = Math.max(5, r.rx * 0.07);
+    ctx.shadowColor = flash ? '#ffffff' : T.rim; ctx.shadowBlur = flash ? 22 : (T.glow ? 14 : 4);
     ctx.beginPath(); ctx.ellipse(r.c.x, r.c.y, r.rx, r.ry, 0, 0, Math.PI); ctx.stroke();
     ctx.shadowBlur = 0;
   }
@@ -1317,9 +1325,34 @@
     ctx.beginPath(); ctx.arc(p0.x, p0.y, rr + 9, -Math.PI / 2, -Math.PI / 2 + TAU * v.pull); ctx.stroke();
     ctx.shadowBlur = 0;
   }
+  // The ball's shadow on the glass: darker and tighter the closer it gets to the board
+  function drawBoardShadow() {
+    if (fb.mode === 'ready') return;
+    const d = F3.boardZ - fb.z;
+    if (d < 0 || d > 1.6) return;
+    if (Math.abs(fb.x - fh.x) > 0.95 || fb.y < fh.y - 0.3 || fb.y > fh.y + 1.0) return;
+    const p = proj(fb.x, fb.y - d * 0.15, F3.boardZ - 0.005);
+    const bl = proj(fh.x - 0.9, fh.y - 0.15, F3.boardZ), tr = proj(fh.x + 0.9, fh.y + 0.9, F3.boardZ);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bl.x, tr.y, tr.x - bl.x, bl.y - tr.y); ctx.clip();
+    const r = F3.rb * p.k * (1 + d * 0.9);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    g.addColorStop(0, 'rgba(0, 0, 0, ' + (0.45 * (1 - d / 1.6)) + ')'); g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
   function drawFront() {
     drawCourtFront();
+    const alpha = fb.mode === 'ready' ? Math.min(1, fb.spawnT * 4) : 1;
+    const live = fb.mode !== 'ready';
+    // Layers, back to front, so it's always clear where the ball is:
+    //   behind the board  ->  board & back of the rim  ->  inside the hoop  ->  net & front of the rim  ->  in front
+    const behindBoard = live && fb.z > F3.boardZ;
+    const insideHoop = live && !behindBoard && fb.z > F3.hoopZ - F3.rimR && fb.y < fh.y + F3.rb * 1.5;
+    if (behindBoard) drawFrontBall(alpha);
     drawFrontHoopBack();
+    drawBoardShadow();
     drawTrail(ctx, LOOK, Math.max(6, F3.rb * proj(fb.x, fb.y, fb.z).k));
     for (const f of flames) {
       const u = f.life / f.max;
@@ -1328,11 +1361,9 @@
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * u, 0, TAU); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    // past the front of the rim (or dropping through it), the ball is drawn behind the net
-    const behind = fb.mode !== 'ready' && fb.z > F3.hoopZ - F3.rimR * 0.8 && fb.y < fh.y + 0.35;
-    const alpha = fb.mode === 'ready' ? Math.min(1, fb.spawnT * 4) : 1;
-    if (behind) { drawFrontBall(alpha); drawFrontHoopFront(); }
-    else { drawFrontHoopFront(); drawFrontBall(alpha); }
+    if (insideHoop) drawFrontBall(alpha);
+    drawFrontHoopFront();
+    if (!behindBoard && !insideHoop) drawFrontBall(alpha);
     if (fb.mode === 'ready' && !drag && state === 'playing') {
       const p = proj(fb.x, fb.y, fb.z), rr = F3.rb * p.k;
       ctx.globalAlpha = 0.5 + 0.5 * Math.sin(time * 5);
