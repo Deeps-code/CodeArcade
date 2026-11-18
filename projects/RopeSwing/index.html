@@ -85,6 +85,20 @@
   @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(255, 159, 67, 0.7); } }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 13px; color: #cbbcef; }
   .legend b { font-weight: 800; }
+  #pills {
+    position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 76px); left: 18px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    pointer-events: none;
+  }
+  .pill {
+    display: none; position: relative; overflow: hidden;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(20, 10, 40, 0.55); border: 1px solid currentColor;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill.on { display: inline-block; }
+  .pill .bar { position: absolute; left: 0; bottom: 0; height: 2px; background: currentColor; }
   .gone { display: none; }
 </style>
 </head>
@@ -96,6 +110,7 @@
   <div><div class="label">SCORE</div><div class="value" id="score">0</div><div class="meters" id="meters">0 m</div></div>
   <div class="right"><div class="label">BEST</div><div class="value" id="best">0</div></div>
 </div>
+<div id="pills"></div>
 <button id="sound" type="button" aria-label="Toggle sound">🔊</button>
 <div id="banner"></div>
 
@@ -108,6 +123,14 @@
     <span><b style="color:#ff5e5e">◎</b> Crumbles</span>
     <span><b style="color:#ffd23f">●</b> +5</span>
     <span><b style="color:#5dffb0">◯</b> Boost +10</span>
+  </div>
+  <div class="legend" style="margin-top:12px">
+    <span>🔥 Lava Proof</span>
+    <span>🧲 Magnet</span>
+    <span>🪢 Long Rope</span>
+    <span>🚀 Rocket</span>
+    <span>⏱️ Slow-mo</span>
+    <span><b style="color:#ffd23f">×2</b> Double</span>
   </div>
 </div>
 
@@ -126,6 +149,7 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
   const verb = isTouch ? 'TAP' : 'CLICK';
@@ -260,6 +284,10 @@
     crumbleWarn: () => tone(220, 180, 0.12, 'square', 0.04),
     crumble: () => { noise(0.35, 0.3, 3000, 200); tone(300, 80, 0.3, 'triangle', 0.08); },
     milestone: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.14, 'triangle', 0.08, i * 0.09)),
+    power: () => { tone(500, 1200, 0.2, 'triangle', 0.08); tone(750, 1800, 0.25, 'sine', 0.06, 0.08); },
+    powerEnd: () => tone(700, 250, 0.3, 'triangle', 0.05),
+    lavaBounce: () => { noise(0.4, 0.3, 2500, 300); tone(200, 900, 0.3, 'triangle', 0.1); },
+    rocket: () => { noise(0.6, 0.25, 1500, 4000); tone(120, 500, 0.6, 'sawtooth', 0.06); },
     splash: () => { noise(1.0, 0.55, 1800, 60); tone(140, 30, 0.9, 'sine', 0.35); },
     gameOver: () => [392, 330, 262].forEach((f, i) => tone(f, f * 0.98, 0.22, 'triangle', 0.08, 0.5 + i * 0.18)),
   };
@@ -269,6 +297,30 @@
   let overReadyAt = 0;
   let holding = false;
   let score = 0, bonus = 0, maxX = START_X, coinsGot = 0, ringsGot = 0, nextMilestone = 100;
+
+  // ---------- Power-ups (all temporary) ----------
+  const POWERS = {
+    lava:   { icon: '🔥', label: 'LAVA PROOF', color: '#ff9f43', time: 6 },
+    magnet: { icon: '🧲', label: 'MAGNET', color: '#f472b6', time: 8 },
+    rope:   { icon: '🪢', label: 'LONG ROPE', color: '#4fd1ff', time: 8 },
+    rocket: { icon: '🚀', label: 'ROCKET', color: '#ff5e5e', time: 2.5 },
+    slow:   { icon: '⏱️', label: 'SLOW-MO', color: '#a5b4fc', time: 5 },
+    double: { icon: '×2', label: 'DOUBLE', color: '#ffd23f', time: 10 },
+  };
+  const timers = {};
+  const pillEls = {};
+  for (const k in POWERS) {
+    timers[k] = 0;
+    const el2 = document.createElement('div');
+    el2.className = 'pill';
+    el2.style.color = POWERS[k].color;
+    el2.innerHTML = `${POWERS[k].icon} ${POWERS[k].label} <span class="t"></span>s<span class="bar"></span>`;
+    document.getElementById('pills').appendChild(el2);
+    pillEls[k] = { root: el2, t: el2.querySelector('.t'), bar: el2.querySelector('.bar') };
+  }
+  let powerups = [], powersGot = 0, nextPowerX = 0;
+  const range = () => RANGE * (timers.rope > 0 ? 1.6 : 1);
+  const mult = () => (timers.double > 0 ? 2 : 1);
   let best = 0;
   try { best = Number(localStorage.getItem('ropeBest')) || 0; } catch (e) {}
   el.best.textContent = best;
@@ -283,6 +335,8 @@
     rope = null; target = null;
     anchors = []; coins = []; rings = []; particles = []; trail = [];
     score = 0; bonus = 0; maxX = START_X; coinsGot = 0; ringsGot = 0; nextMilestone = 100;
+    powerups = []; powersGot = 0; nextPowerX = START_X + 700;
+    for (const k in timers) timers[k] = 0;
     // First hook is always an easy reach from the start ledge.
     anchors.push(makeAnchor(START_X + 140, bandY(0.24), false, 0));
     lastAnchorX = START_X + 140;
@@ -319,6 +373,11 @@
         // A boost ring instead.
         rings.push({ x: lerp(prev.x, x, 0.55), y: (prev.baseY + y) / 2 + rand(90, 160), got: false, t: 0 });
       }
+      // Every so often, a power-up bubble floats between two hooks.
+      if (x > nextPowerX && Math.random() < 0.45) {
+        powerups.push({ x: lerp(prev.x, x, 0.45), y: (prev.baseY + y) / 2 + rand(50, 130), kind: pick(Object.keys(POWERS)), t: 0, got: false });
+        nextPowerX = x + rand(1300, 2100);
+      }
       lastAnchorX = x;
     }
     // Drop things far behind the camera.
@@ -326,6 +385,7 @@
     anchors = anchors.filter((a) => a.x > cut || (rope && rope.a === a));
     coins = coins.filter((c) => c.x > cut && !(c.got && c.fade <= 0));
     rings = rings.filter((r) => r.x > cut);
+    powerups = powerups.filter((u) => u.x > cut && !u.got);
   }
 
   function start() {
@@ -354,7 +414,9 @@
     }
     el.finalScore.textContent = score;
     el.newBest.classList.toggle('gone', !isBest);
-    el.overStats.textContent = `${meters()} m swung · ${coinsGot} coins · ${ringsGot} boosts`;
+    el.overStats.textContent = `${meters()} m swung · ${coinsGot} coins · ${ringsGot} boosts · ${powersGot} power-ups`;
+    for (const k in timers) timers[k] = 0;
+    updateHud();
     overReadyAt = performance.now() + 700;
     setTimeout(() => { if (state === 'over') el.over.classList.remove('hidden'); }, 600);
   }
@@ -365,6 +427,11 @@
     score = meters() + bonus;
     el.score.textContent = score;
     el.meters.textContent = meters() + ' m';
+    for (const k in POWERS) {
+      const t = timers[k], pe = pillEls[k];
+      pe.root.classList.toggle('on', t > 0);
+      if (t > 0) { pe.t.textContent = t.toFixed(1); pe.bar.style.width = (t / POWERS[k].time) * 100 + '%'; }
+    }
   }
 
   function banner(text) {
@@ -388,7 +455,7 @@
     for (const a of anchors) {
       if (a.broken) continue;
       const d = Math.hypot(a.x - p.x, a.y - p.y);
-      if (d > RANGE) continue;
+      if (d > range()) continue;
       // Hooks ahead of you are strongly preferred over ones behind.
       const behind = a.x < p.x - 30;
       const s = d + (behind ? 600 : 0) - (a.y < p.y ? 40 : 0);
@@ -399,7 +466,7 @@
 
   function attach(a) {
     const d = Math.hypot(player.x - a.x, player.y - a.y);
-    rope = { a, len: clamp(d, 70, RANGE), shoot: 0, held: 0 };
+    rope = { a, len: clamp(d, 70, range()), shoot: 0, held: 0 };
     if (a.crumble && a.breakT < 0) { a.breakT = 0.85; sfx.crumbleWarn(); }
     sfx.grab();
     burst(a.x, a.y, a.crumble ? '#ff5e5e' : '#4fd1ff', 10, 160);
@@ -462,6 +529,16 @@
 
   // ---------- Update ----------
   function update(dt) {
+    // Power-up timers tick in real time; Slow-mo then halves everything else.
+    if (state === 'playing') {
+      for (const k in timers) {
+        if (timers[k] > 0) {
+          timers[k] = Math.max(0, timers[k] - dt);
+          if (timers[k] === 0) sfx.powerEnd();
+        }
+      }
+    }
+    if (timers.slow > 0) dt *= 0.5;
     time += dt;
     shake = Math.max(0, shake - 40 * dt);
 
@@ -480,8 +557,17 @@
     }
 
     if (state === 'playing') {
-      target = rope ? null : findTarget();
+      const rocketing = timers.rocket > 0;
+      target = rope || rocketing ? null : findTarget();
       if (holding && !rope && target) attach(target);
+      if (rocketing) {
+        // Rocket: let go of any rope and blast forward, steering toward a safe height.
+        if (rope) rope = null;
+        const p = player;
+        p.vx = lerp(p.vx, 950, Math.min(1, dt * 4));
+        p.vy = lerp(p.vy, (bandY(0.3) - p.y) * 3, Math.min(1, dt * 5)) - G * dt; // cancel gravity
+        if (Math.random() < 0.8) particles.push({ x: p.x - 14, y: p.y + rand(-4, 4), vx: rand(-260, -120), vy: rand(-40, 40), life: rand(0.2, 0.4), max: 0.4, c: Math.random() < 0.5 ? '#ffd23f' : '#ff5e5e', r: rand(2, 4), g: 0 });
+      }
       if (!holding && rope) detach();
       if (rope) {
         rope.shoot = Math.min(1, rope.shoot + dt * 12);
@@ -516,19 +602,36 @@
       if (p.x > maxX) maxX = p.x;
 
       for (const c of coins) {
-        if (!c.got && Math.hypot(c.x - p.x, c.y - p.y) < R + 14) {
-          c.got = true; c.fade = 0.4; coinsGot++; bonus += 5;
+        if (c.got) continue;
+        if (timers.magnet > 0) {
+          const dx = p.x - c.x, dy = p.y - c.y, d = Math.hypot(dx, dy) || 1;
+          if (d < 260) { c.x += (dx / d) * 700 * dt; c.y += (dy / d) * 700 * dt; }
+        }
+        if (Math.hypot(c.x - p.x, c.y - p.y) < R + 14) {
+          c.got = true; c.fade = 0.4; coinsGot++; bonus += 5 * mult();
           sfx.coin(); burst(c.x, c.y, '#ffd23f', 8, 180);
         }
       }
       for (const r of rings) {
         if (!r.got && Math.hypot(r.x - p.x, r.y - p.y) < 34) {
-          r.got = true; ringsGot++; bonus += 10;
+          r.got = true; ringsGot++; bonus += 10 * mult();
           const sp = Math.hypot(p.vx, p.vy) || 1;
           p.vx += 380; p.vy = Math.min(p.vy, -120);
           if (sp < 200) p.vy -= 200;
           sfx.ring(); burst(r.x, r.y, '#5dffb0', 22, 320);
           shake = 5;
+        }
+      }
+
+      for (const u of powerups) {
+        if (!u.got && Math.hypot(u.x - p.x, u.y + Math.sin(u.t * 3) * 8 - p.y) < R + 24) {
+          u.got = true;
+          powersGot++;
+          const P = POWERS[u.kind];
+          timers[u.kind] = P.time;
+          banner(P.label + '!');
+          burst(u.x, u.y, P.color, 24, 280);
+          if (u.kind === 'rocket') { sfx.rocket(); shake = 6; } else sfx.power();
         }
       }
 
@@ -538,7 +641,17 @@
         sfx.milestone();
         nextMilestone += 100;
       }
-      if (p.y + R > lavaY) die();
+      if (p.y + R > lavaY) {
+        if (timers.lava > 0) {
+          // Lava Proof: bounce off the lava instead of burning up.
+          p.y = lavaY - R;
+          p.vy = -Math.max(900, Math.abs(p.vy) * 0.9);
+          p.vx = Math.max(p.vx, 250);
+          burst(p.x, lavaY, '#ffd23f', 20, 300);
+          sfx.lavaBounce();
+          shake = 6;
+        } else die();
+      }
     }
 
     // Camera
@@ -551,6 +664,7 @@
 
     for (const c of coins) { c.spin += dt * 4; if (c.got) c.fade -= dt; }
     for (const r of rings) r.t += dt;
+    for (const u of powerups) u.t += dt;
     for (const q of particles) {
       q.x += q.vx * dt; q.y += q.vy * dt;
       q.vy += 900 * q.g * dt;
@@ -684,6 +798,33 @@
       ctx.restore();
     }
 
+    // Power-up bubbles
+    for (const u of powerups) {
+      const P = POWERS[u.kind];
+      const y = u.y + Math.sin(u.t * 3) * 8;
+      ctx.save();
+      ctx.shadowColor = P.color; ctx.shadowBlur = 14;
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.strokeStyle = P.color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(u.x, y, 20 + Math.sin(u.t * 6) * 1.5, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath(); ctx.arc(u.x - 7, y - 8, 4, 0, TAU); ctx.fill();
+      ctx.font = u.kind === 'double' ? '900 15px system-ui, sans-serif' : '18px system-ui, sans-serif';
+      ctx.fillStyle = P.color;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(P.icon, u.x, y + 1);
+    }
+
+    // Long Rope: show how far you can now reach
+    if (state === 'playing' && timers.rope > 0) {
+      ctx.strokeStyle = 'rgba(79, 209, 255, 0.12)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 10]);
+      ctx.beginPath(); ctx.arc(player.x, player.y, range(), 0, TAU); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     // Aim line to the hook you'd grab
     if (state === 'playing' && !rope && target) {
       ctx.save();
@@ -777,6 +918,32 @@
       const fx = Math.cos(ang) * 4, fy = Math.sin(ang) * 3;
       ctx.fillStyle = '#3a1356';
       ctx.beginPath(); ctx.arc(p.x + fx - 3, p.y + fy - 2, 1.8, 0, TAU); ctx.arc(p.x + fx + 3, p.y + fy - 2, 1.8, 0, TAU); ctx.fill();
+
+      // Power-up effects around the player
+      const blinking = (t) => t < 1.5 && Math.floor(time * 8) % 2 === 0;
+      if (timers.lava > 0 && !blinking(timers.lava)) {
+        ctx.strokeStyle = '#ff9f43'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let i = 0; i <= 24; i++) {
+          const a = (i / 24) * TAU, rr = R + 8 + Math.sin(a * 6 + time * 12) * 3;
+          ctx.lineTo(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr);
+        }
+        ctx.closePath(); ctx.stroke();
+      }
+      if (timers.magnet > 0 && !blinking(timers.magnet)) {
+        ctx.strokeStyle = 'rgba(244, 114, 182, 0.4)'; ctx.lineWidth = 2;
+        ctx.setLineDash([4, 8]); ctx.lineDashOffset = time * 30;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 55 + Math.sin(time * 4) * 5, 0, TAU); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (timers.rocket > 0) {
+        ctx.fillStyle = '#ff5e5e';
+        ctx.beginPath(); ctx.moveTo(p.x - R - 2, p.y - 6); ctx.lineTo(p.x - R - 2 - rand(14, 26), p.y); ctx.lineTo(p.x - R - 2, p.y + 6); ctx.fill();
+      }
+    }
+    if (timers.slow > 0) {
+      ctx.fillStyle = 'rgba(165, 180, 252, 0.06)';
+      ctx.fillRect(camX - 50, camY - 50, VW + 100, VH + 100);
     }
 
     for (const q of particles) {
