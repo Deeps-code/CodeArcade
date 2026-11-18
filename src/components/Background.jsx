@@ -157,13 +157,16 @@ export default function Background() {
     function init() {
       W = window.innerWidth
       H = window.innerHeight
-      // Phones / small screens: a lighter background (1x resolution, 30 fps, fewer things).
+      // Phones / small screens: a lighter background (30 fps, fewer pieces and twinkling stars).
       // It sits behind the content, so the difference is hard to see but saves a lot of work.
       lite = isTouch || W < 700
-      dpr = lite ? 1 : Math.min(window.devicePixelRatio || 1, 2)
+      // Always match the screen's real sharpness (up to 2x) so the shapes stay crisp;
+      // lite mode saves its work with fewer things and 30 fps instead.
+      dpr = Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = W * dpr
       canvas.height = H * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.imageSmoothingQuality = 'high' // smooth, sharp downscaling of the piece sprites
 
       starLayer = buildStarLayer()
       galaxyR = Math.max(70, Math.min(W, H) * 0.2)
@@ -362,19 +365,22 @@ export default function Background() {
 
     // Each piece's glowing outline is drawn ONCE into a small sprite, then just stamped
     // every frame. Canvas glow (shadowBlur) is very slow, especially on phones.
-    const GLOW = 12
+    const GLOW = 8
+    // Sprites are drawn sharper than the screen so rotating / scaling them never looks soft.
+    const spriteRes = () => Math.min(dpr * 1.5, 3)
     function makeSprite(p) {
       const half = p.size * 1.5 + GLOW * 1.6
       const c = document.createElement('canvas')
-      c.width = c.height = Math.ceil(half * 2 * dpr)
+      const r = spriteRes()
+      c.width = c.height = Math.ceil(half * 2 * r)
       const g = c.getContext('2d')
-      g.setTransform(dpr, 0, 0, dpr, half * dpr, half * dpr)
+      g.setTransform(r, 0, 0, r, half * r, half * r)
       pc = g
       shapePath(p.type, p.size)
       pc = ctx
       g.fillStyle = p.color + '14' // very faint fill (hex alpha)
       g.fill('evenodd')
-      g.lineWidth = 2
+      g.lineWidth = 2.2
       g.lineJoin = 'round'
       g.strokeStyle = p.color
       g.shadowColor = p.color
