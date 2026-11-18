@@ -729,6 +729,21 @@
     { id: 'gym', name: 'Retro Gym', sky: ['#3b1d12', '#6b2d1b', '#8a3c22'], lights: 'rgba(255, 220, 160, 0.3)', backdrop: 'bleachers', crowd: ['#5c2416', '#4a1d12'],
       wall: '#7a2e1e', stripe: '#facc15', floor: ['#d89c5c', '#a86a34'], floorStyle: 'wood', line: '#7a2e1e',
       pole: '#374151', glass: 'rgba(255, 255, 255, 0.92)', frame: '#f8fafc', rim: '#f97316', net: 'rgba(255, 255, 255, 0.95)', square: '#dc2626' },
+    { id: 'rooftop', name: 'Rooftop', sky: ['#020617', '#111a3a', '#3b2a5c'], lights: null, backdrop: 'skyline', crowd: ['#0b1020', '#141b33'], moon: true,
+      wall: '#1a1f2e', stripe: '#22d3ee', floor: ['#3f4656', '#1f2430'], floorStyle: 'tiles', line: '#fde047',
+      pole: '#111827', glass: 'rgba(255, 255, 255, 0.18)', frame: '#22d3ee', rim: '#fb7185', net: 'rgba(226, 232, 240, 0.95)', chain: true, glow: true },
+    { id: 'jungle', name: 'Jungle Temple', sky: ['#052e16', '#14532d', '#4d7c0f'], lights: 'rgba(250, 255, 200, 0.16)', backdrop: 'jungle', crowd: ['#14532d', '#166534'],
+      wall: '#57534e', stripe: '#84cc16', floor: ['#a8a29e', '#57534e'], floorStyle: 'stone', line: '#facc15',
+      pole: '#44403c', glass: 'rgba(236, 252, 203, 0.55)', frame: '#a3e635', rim: '#eab308', net: 'rgba(254, 249, 195, 0.95)', square: '#65a30d', fireflies: true },
+    { id: 'volcano', name: 'Volcano', sky: ['#1c0a05', '#450a0a', '#9a3412'], lights: null, backdrop: 'volcano', crowd: ['#1c1917', '#292524'],
+      wall: '#1c1917', stripe: '#f97316', floor: ['#292524', '#0c0a09'], floorStyle: 'lava', line: '#fb923c',
+      pole: '#0c0a09', glass: 'rgba(254, 215, 170, 0.14)', frame: '#f97316', rim: '#fde047', net: 'rgba(254, 215, 170, 0.9)', chain: true, embers: true, glow: true },
+    { id: 'reef', name: 'Coral Reef', sky: ['#0c4a6e', '#0369a1', '#0891b2'], lights: 'rgba(186, 230, 253, 0.18)', backdrop: 'reef', crowd: ['#f472b6', '#fb923c'],
+      wall: '#075985', stripe: '#67e8f9', floor: ['#fcd34d', '#b45309'], floorStyle: 'sand', line: '#f0f9ff',
+      pole: '#0e7490', glass: 'rgba(207, 250, 254, 0.3)', frame: '#67e8f9', rim: '#f472b6', net: 'rgba(240, 253, 250, 0.9)', bubbles: true, glow: true },
+    { id: 'canyon', name: 'Desert Canyon', sky: ['#7c2d12', '#ea580c', '#fdba74'], lights: null, backdrop: 'mesa', crowd: ['#9a3412', '#c2410c'], sun: true,
+      wall: '#78350f', stripe: '#fde68a', floor: ['#d97706', '#92400e'], floorStyle: 'cracks', line: '#fffbeb',
+      pole: '#451a03', glass: 'rgba(255, 251, 235, 0.8)', frame: '#fffbeb', rim: '#0d9488', net: 'rgba(255, 251, 235, 0.95)', square: '#0d9488' },
   ];
   let arenaIndex = 0;
   try { const a = ARENAS.findIndex((x) => x.id === localStorage.getItem('hoopsArena')); if (a >= 0) arenaIndex = a; } catch (e) {}
@@ -810,6 +825,120 @@
       }
     } else if (T.backdrop === 'space') {
       for (let k = 0; k * 60 < VW + 60; k++) { ctx.fillStyle = T.crowd[k % 2]; ctx.beginPath(); ctx.arc(k * 60, cy + 30, 40 + hashN(k) * 24, Math.PI, TAU); ctx.fill(); }
+    } else if (T.backdrop === 'skyline') {
+      // stars, a moon and a tall city skyline seen from the roof
+      for (let i = 0; i < 50; i++) { ctx.globalAlpha = 0.3 + 0.4 * hashN(i + 3); ctx.fillStyle = '#fff'; ctx.fillRect(hashN(i) * VW, hashN(i + 40) * cy * 0.6, 1.4, 1.4); }
+      ctx.globalAlpha = 1;
+      const mx = VW * 0.78, my = cy * 0.28;
+      const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 70);
+      mg.addColorStop(0, 'rgba(254, 249, 195, 0.35)'); mg.addColorStop(1, 'rgba(254, 249, 195, 0)');
+      ctx.fillStyle = mg; ctx.fillRect(mx - 70, my - 70, 140, 140);
+      ctx.fillStyle = '#fef9c3'; ctx.beginPath(); ctx.arc(mx, my, 20, 0, TAU); ctx.fill();
+      for (let layer = 0; layer < 2; layer++) {
+        const step = layer ? 30 : 46;
+        for (let k = 0; k * step < VW + 50; k++) {
+          const h = (layer ? 50 : 110) + hashN(k + layer * 30) * (layer ? 90 : 150), x = k * step - 8, w = step - 4;
+          ctx.fillStyle = T.crowd[layer];
+          ctx.fillRect(x, cy - h, w, h + 20);
+          if (layer) for (let wy = cy - h + 7; wy < cy - 4; wy += 10) for (let wx = x + 4; wx < x + w - 5; wx += 8) {
+            if (hashN(wx * 1.7 + wy * 0.3) > 0.55) { ctx.fillStyle = hashN(wx + wy) > 0.5 ? 'rgba(103, 232, 249, 0.8)' : 'rgba(253, 224, 140, 0.85)'; ctx.fillRect(wx, wy, 3, 4); }
+          }
+        }
+      }
+      // roof railing
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, cy - 10); ctx.lineTo(VW, cy - 10);
+      for (let x = 0; x < VW; x += 26) { ctx.moveTo(x, cy - 10); ctx.lineTo(x, cy + 18); }
+      ctx.stroke();
+    } else if (T.backdrop === 'jungle') {
+      // a stepped stone temple in the trees, with hanging vines
+      const tx = VW * 0.5;
+      for (let s = 0; s < 4; s++) { const w = 220 - s * 44, h = 26; ctx.fillStyle = s % 2 ? '#78716c' : '#6b6560'; ctx.fillRect(tx - w / 2, cy - 4 - (s + 1) * h, w, h); }
+      ctx.fillStyle = '#292524'; ctx.fillRect(tx - 14, cy - 4 - 4 * 26 + 6, 28, 20);
+      for (let k = 0; k * 44 < VW + 60; k++) {
+        const x = k * 44 + hashN(k + 2) * 20 - 10, r = 30 + hashN(k) * 26;
+        if (Math.abs(x - tx) < 120) continue;
+        ctx.fillStyle = T.crowd[k % 2];
+        ctx.beginPath(); ctx.arc(x, cy - 30 - hashN(k + 6) * 50, r, 0, TAU); ctx.fill();
+        ctx.fillRect(x - 4, cy - 40, 8, 60);
+      }
+      ctx.strokeStyle = '#3f6212'; ctx.lineWidth = 3;
+      for (let k = 0; k < 9; k++) {
+        const x = hashN(k + 21) * VW, len = 40 + hashN(k + 22) * 90, sw = Math.sin(time * 1.3 + k) * 6;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.quadraticCurveTo(x + sw, len * 0.6, x + sw * 0.5, len); ctx.stroke();
+        ctx.fillStyle = '#65a30d'; ctx.beginPath(); ctx.ellipse(x + sw * 0.5, len, 6, 3, 0.5, 0, TAU); ctx.fill();
+      }
+    } else if (T.backdrop === 'volcano') {
+      // a smoking volcano with lava running down it
+      const vx = VW * 0.62;
+      ctx.fillStyle = '#1c1917';
+      ctx.beginPath(); ctx.moveTo(vx - 260, cy + 20); ctx.lineTo(vx - 46, cy - 170); ctx.lineTo(vx + 46, cy - 170); ctx.lineTo(vx + 260, cy + 20); ctx.closePath(); ctx.fill();
+      const glow = 0.6 + 0.4 * Math.sin(time * 2.4);
+      const lg = ctx.createRadialGradient(vx, cy - 170, 0, vx, cy - 170, 90);
+      lg.addColorStop(0, 'rgba(253, 186, 116, ' + (0.8 * glow) + ')'); lg.addColorStop(1, 'rgba(234, 88, 12, 0)');
+      ctx.fillStyle = lg; ctx.fillRect(vx - 90, cy - 260, 180, 180);
+      ctx.strokeStyle = '#f97316'; ctx.lineWidth = 4; ctx.shadowColor = '#f97316'; ctx.shadowBlur = 10;
+      for (const d of [-1, 0.3, 1]) { ctx.beginPath(); ctx.moveTo(vx + d * 24, cy - 168); ctx.quadraticCurveTo(vx + d * 70, cy - 90, vx + d * 120, cy + 10); ctx.stroke(); }
+      ctx.shadowBlur = 0;
+      for (let i = 0; i < 5; i++) {
+        const t = (time * 0.25 + i / 5) % 1;
+        ctx.fillStyle = 'rgba(68, 64, 60, ' + (0.5 * (1 - t)) + ')';
+        ctx.beginPath(); ctx.arc(vx + Math.sin(i * 3 + time * 0.5) * 20 * t, cy - 180 - t * 140, 18 + t * 40, 0, TAU); ctx.fill();
+      }
+      for (let k = 0; k * 70 < VW + 70; k++) { ctx.fillStyle = T.crowd[k % 2]; ctx.beginPath(); ctx.moveTo(k * 70 - 50, cy + 20); ctx.lineTo(k * 70, cy - 30 - hashN(k) * 40); ctx.lineTo(k * 70 + 50, cy + 20); ctx.fill(); }
+    } else if (T.backdrop === 'reef') {
+      // light rays from the surface, coral and swaying kelp
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.07)';
+      for (let i = 0; i < 5; i++) { const x = VW * (0.1 + i * 0.22) + Math.sin(time * 0.4 + i) * 20; ctx.beginPath(); ctx.moveTo(x - 20, 0); ctx.lineTo(x + 20, 0); ctx.lineTo(x + 90, cy); ctx.lineTo(x + 10, cy); ctx.fill(); }
+      ctx.strokeStyle = '#15803d'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      for (let k = 0; k < 10; k++) {
+        const x = hashN(k + 31) * VW, h = 60 + hashN(k + 32) * 90, sw = Math.sin(time * 1.6 + k) * 12;
+        ctx.beginPath(); ctx.moveTo(x, cy + 18); ctx.quadraticCurveTo(x - sw, cy - h * 0.5, x + sw, cy - h); ctx.stroke();
+      }
+      ctx.lineCap = 'butt';
+      for (let k = 0; k * 52 < VW + 52; k++) {
+        const x = k * 52 + hashN(k + 5) * 16, r = 14 + hashN(k) * 16;
+        ctx.fillStyle = T.crowd[k % 2];
+        for (let j = 0; j < 3; j++) { ctx.beginPath(); ctx.arc(x + (j - 1) * r * 0.7, cy + 10 - j % 2 * r * 0.6, r * (j === 1 ? 1 : 0.7), Math.PI, TAU); ctx.fill(); }
+      }
+      // a few fish
+      for (let i = 0; i < 4; i++) {
+        const fx = ((time * (24 + i * 8) + hashN(i) * VW) % (VW + 60)) - 30, fy = cy * (0.3 + hashN(i + 9) * 0.4) + Math.sin(time * 2 + i) * 6;
+        ctx.fillStyle = i % 2 ? '#facc15' : '#fb7185';
+        ctx.beginPath(); ctx.ellipse(fx, fy, 9, 5, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(fx - 8, fy); ctx.lineTo(fx - 15, fy - 5); ctx.lineTo(fx - 15, fy + 5); ctx.fill();
+      }
+    } else if (T.backdrop === 'mesa') {
+      // flat-topped rock mesas and a few cacti
+      for (let layer = 0; layer < 2; layer++) {
+        for (let k = 0; k < 4; k++) {
+          const x = (hashN(k + layer * 7) * 1.2 - 0.1) * VW, w = 110 + hashN(k + 3 + layer) * 120, h = (layer ? 50 : 100) + hashN(k + 11 + layer) * 60;
+          ctx.fillStyle = layer ? T.crowd[1] : T.crowd[0];
+          ctx.beginPath(); ctx.moveTo(x - w / 2 - 24, cy + 20); ctx.lineTo(x - w / 2, cy - h); ctx.lineTo(x + w / 2, cy - h); ctx.lineTo(x + w / 2 + 24, cy + 20); ctx.fill();
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.12)'; ctx.fillRect(x - w / 2, cy - h + 16, w, 6);
+        }
+      }
+      ctx.fillStyle = '#166534';
+      for (const cx of [VW * 0.12, VW * 0.86]) {
+        ctx.fillRect(cx - 6, cy - 50, 12, 70);
+        ctx.fillRect(cx - 22, cy - 34, 16, 8); ctx.fillRect(cx - 22, cy - 50, 8, 20);
+        ctx.fillRect(cx + 6, cy - 26, 16, 8); ctx.fillRect(cx + 14, cy - 42, 8, 20);
+      }
+    }
+    if (T.moon && T.backdrop !== 'skyline') { ctx.fillStyle = '#fef9c3'; ctx.beginPath(); ctx.arc(VW * 0.8, 60, 18, 0, TAU); ctx.fill(); }
+    if (T.fireflies || T.embers || T.bubbles) {
+      for (let i = 0; i < 40; i++) {
+        let x, y, r, c;
+        if (T.fireflies) { x = hashN(i) * VW + Math.sin(time * 0.8 + i) * 18; y = hashN(i + 9) * baseY * 0.9 + Math.cos(time * 0.7 + i * 2) * 12; r = 1.8; c = 'rgba(217, 249, 157, ' + (0.3 + 0.7 * Math.max(0, Math.sin(time * 3 + i * 1.7))) + ')'; }
+        else {
+          const sp = T.embers ? 40 + hashN(i + 3) * 50 : 25 + hashN(i + 3) * 30;
+          x = hashN(i) * VW + Math.sin(time * 1.5 + i) * 10; y = baseY - ((hashN(i + 9) * baseY + time * sp) % baseY);
+          r = T.embers ? 1.5 + hashN(i + 4) * 1.5 : 2 + hashN(i + 4) * 3;
+          c = T.embers ? 'rgba(253, 186, 116, ' + (0.4 + 0.6 * hashN(i + 2)) + ')' : 'rgba(224, 242, 254, 0.45)';
+        }
+        if (T.bubbles) { ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); }
+        else { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+      }
     }
     if (T.snow) {
       ctx.fillStyle = '#fff';
@@ -845,6 +974,36 @@
     } else if (T.floorStyle === 'ice') {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'; ctx.lineWidth = 1.5;
       for (let i = 0; i < 6; i++) { const x = hashN(i) * VW; ctx.beginPath(); ctx.moveTo(x, baseY + 6); ctx.lineTo(x + 30 + hashN(i + 1) * 40, baseY + 20 + hashN(i + 2) * 30); ctx.stroke(); }
+    } else if (T.floorStyle === 'tiles') {
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; ctx.lineWidth = 1;
+      for (let k = 1, y = baseY; y < VH; k++) { y = baseY + (VH - baseY) * (k / 6) ** 1.5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VW, y); ctx.stroke(); }
+      for (let x = -VW; x < VW * 2; x += 60) { ctx.beginPath(); ctx.moveTo(VW / 2 + (x - VW / 2) * 0.4, baseY); ctx.lineTo(x, VH); ctx.stroke(); }
+    } else if (T.floorStyle === 'stone') {
+      ctx.strokeStyle = 'rgba(41, 37, 36, 0.4)'; ctx.lineWidth = 1.5;
+      for (let r = 0, y = baseY; y < VH; r++, y += 22) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(VW, y); ctx.stroke();
+        for (let x = (r % 2) * 35; x < VW; x += 70) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 22); ctx.stroke(); }
+      }
+      ctx.fillStyle = 'rgba(77, 124, 15, 0.35)';
+      for (let i = 0; i < 30; i++) ctx.fillRect(hashN(i + 60) * VW, baseY + hashN(i + 61) * (VH - baseY), 5, 2);
+    } else if (T.floorStyle === 'lava') {
+      ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.shadowColor = '#f97316'; ctx.shadowBlur = 8;
+      ctx.globalAlpha = 0.6 + 0.3 * Math.sin(time * 2);
+      for (let i = 0; i < 8; i++) {
+        let x = hashN(i + 70) * VW, y = baseY + 4 + hashN(i + 71) * (VH - baseY) * 0.8;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let s = 0; s < 4; s++) { x += 14 + hashN(i * 4 + s) * 24; y += (hashN(i * 5 + s) - 0.5) * 18; ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    } else if (T.floorStyle === 'cracks') {
+      ctx.strokeStyle = 'rgba(69, 26, 3, 0.35)'; ctx.lineWidth = 1.2;
+      for (let i = 0; i < 12; i++) {
+        let x = hashN(i + 80) * VW, y = baseY + hashN(i + 81) * (VH - baseY);
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let s = 0; s < 3; s++) { x += (hashN(i * 3 + s) - 0.5) * 40; y += 6 + hashN(i * 7 + s) * 10; ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
     } else if (T.floorStyle === 'asphalt') {
       ctx.fillStyle = 'rgba(255,255,255,0.06)';
       for (let i = 0; i < 90; i++) ctx.fillRect(hashN(i) * VW, baseY + hashN(i + 5) * (VH - baseY), 2, 1.5);
@@ -1256,11 +1415,79 @@
     ctx.strokeRect(sq1.x, sq2.y, sq2.x - sq1.x, sq1.y - sq2.y);
     // bracket from the board to the rim
     const r = rimEllipse(), br = proj(fh.x, fh.y, F3.boardZ);
+    // the ring's soft shadow on the glass (light comes from above, so it falls a little lower)
+    const bs = proj(fh.x, fh.y - 0.16, F3.boardZ - 0.005);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(bl.x, tr.y, tr.x - bl.x, bl.y - tr.y); ctx.clip();
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.42)'; ctx.lineWidth = Math.max(4, F3.rimR * bs.k * 0.12);
+    ctx.beginPath(); ctx.ellipse(bs.x, bs.y, F3.rimR * bs.k * 0.95, F3.rimR * bs.k * 0.22, 0, 0, TAU); ctx.stroke();
+    ctx.restore();
     ctx.strokeStyle = T.pole; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(br.x, br.y); ctx.lineTo(r.c.x, r.c.y - r.ry); ctx.stroke();
-    // back half of the rim
+    // the opening: darker toward the middle so it reads as a hole the ball can drop into
+    ctx.save();
+    ctx.translate(r.c.x, r.c.y); ctx.scale(1, r.ry / r.rx);
+    const hole = ctx.createRadialGradient(0, 0, r.rx * 0.2, 0, 0, r.rx);
+    hole.addColorStop(0, 'rgba(0, 0, 0, 0.38)'); hole.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
+    ctx.fillStyle = hole;
+    ctx.beginPath(); ctx.arc(0, 0, r.rx, 0, TAU); ctx.fill();
+    ctx.restore();
+    // back half of the rim, with a dark underside so it has some thickness
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.ellipse(r.c.x, r.c.y + 2.5, r.rx, r.ry, 0, Math.PI, TAU); ctx.stroke();
     ctx.strokeStyle = T.rim; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.ellipse(r.c.x, r.c.y, r.rx, r.ry, 0, Math.PI, TAU); ctx.stroke();
+  }
+  // The ring's shadow on the floor, right under the hoop. When the ball's own floor
+  // shadow slides into it, the ball is lined up over (or under) the ring.
+  function drawRimFloorShadow() {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.beginPath();
+    for (let i = 0; i <= 32; i++) {
+      const a = (i / 32) * TAU, q = proj(fh.x + Math.cos(a) * F3.rimR, 0, F3.hoopZ + Math.sin(a) * F3.rimR);
+      i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
+    }
+    const c = proj(fh.x, 0, F3.hoopZ);
+    ctx.lineWidth = Math.max(3, 0.05 * c.k);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; ctx.fill();
+    ctx.restore();
+  }
+  // Ball above the ring: its shadow falls on the ring and the opening (only there),
+  // so you can see exactly where it's about to come down.
+  function drawBallOnRimShadow() {
+    if (fb.mode === 'ready') return;
+    const h = fb.y - fh.y;
+    if (h < F3.rb * 0.6 || h > 2.2) return;
+    const dx = fb.x - fh.x, dz = fb.z - F3.hoopZ;
+    if (Math.hypot(dx, dz) > F3.rimR + F3.rb * 2.5) return;
+    const r = rimEllipse();
+    const s = proj(fb.x, fh.y, fb.z);
+    const spread = 1 + h * 0.4, a = 0.75 * (1 - h / 2.2);
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(r.c.x, r.c.y, r.rx + 6, r.ry + 6, 0, 0, TAU); ctx.clip();
+    ctx.translate(s.x, s.y); ctx.scale(1, Math.max(0.4, r.ry / r.rx));
+    const rr = F3.rb * s.k * spread;
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rr);
+    g.addColorStop(0, 'rgba(0, 0, 0, ' + a + ')'); g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  // Ball dropping through: the ring shades the top of the ball, so it's clearly underneath
+  function drawRimShadowOnBall() {
+    const r = rimEllipse();
+    const p = proj(fb.x, fb.y, fb.z), rr = F3.rb * p.k;
+    if (p.y - rr > r.c.y + r.ry + rr * 0.5) return;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(p.x, p.y, rr, 0, TAU); ctx.clip();
+    const top = r.c.y + r.ry * 0.6;
+    const g = ctx.createLinearGradient(0, top - rr * 0.3, 0, top + rr * 0.9);
+    g.addColorStop(0, 'rgba(0, 0, 0, 0.55)'); g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(p.x - rr, top - rr * 0.3, rr * 2, rr * 1.2);
+    ctx.restore();
   }
   function drawFrontHoopFront() {
     const T = arena();
@@ -1282,6 +1509,9 @@
     }
     ctx.setLineDash([]);
     const flash = net > 0.55;
+    // dark underside of the front rim (a little drop shadow on the net)
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; ctx.lineWidth = Math.max(5, r.rx * 0.07);
+    ctx.beginPath(); ctx.ellipse(r.c.x, r.c.y + Math.max(3, r.rx * 0.05), r.rx, r.ry, 0, 0, Math.PI); ctx.stroke();
     ctx.strokeStyle = flash ? '#ffffff' : T.rim; ctx.lineWidth = Math.max(5, r.rx * 0.07);
     ctx.shadowColor = flash ? '#ffffff' : T.rim; ctx.shadowBlur = flash ? 22 : (T.glow ? 14 : 4);
     ctx.beginPath(); ctx.ellipse(r.c.x, r.c.y, r.rx, r.ry, 0, 0, Math.PI); ctx.stroke();
@@ -1350,6 +1580,7 @@
     //   behind the board  ->  board & back of the rim  ->  inside the hoop  ->  net & front of the rim  ->  in front
     const behindBoard = live && fb.z > F3.boardZ;
     const insideHoop = live && !behindBoard && fb.z > F3.hoopZ - F3.rimR && fb.y < fh.y + F3.rb * 1.5;
+    drawRimFloorShadow();
     if (behindBoard) drawFrontBall(alpha);
     drawFrontHoopBack();
     drawBoardShadow();
@@ -1361,9 +1592,9 @@
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r * u, 0, TAU); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    if (insideHoop) drawFrontBall(alpha);
+    if (insideHoop) { drawFrontBall(alpha); drawRimShadowOnBall(); }
     drawFrontHoopFront();
-    if (!behindBoard && !insideHoop) drawFrontBall(alpha);
+    if (!behindBoard && !insideHoop) { drawBallOnRimShadow(); drawFrontBall(alpha); }
     if (fb.mode === 'ready' && !drag && state === 'playing') {
       const p = proj(fb.x, fb.y, fb.z), rr = F3.rb * p.k;
       ctx.globalAlpha = 0.5 + 0.5 * Math.sin(time * 5);
