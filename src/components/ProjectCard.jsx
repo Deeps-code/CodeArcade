@@ -33,7 +33,7 @@ export default function ProjectCard({ project, index }) {
       onPointerLeave={onPointerLeave}
     >
       <div className="thumb-wrap">
-        <img src={project.thumbnail} alt="" className="thumb" loading="lazy" />
+        <img src={project.thumbnail} alt="" className="thumb" loading="lazy" decoding="async" width="320" height="200" />
         <span className="play-badge">
           <PlayIcon width={16} height={16} />
           <span className="play-text">Play</span>

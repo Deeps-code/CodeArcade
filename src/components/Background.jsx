@@ -15,6 +15,8 @@ export default function Background() {
     const ctx = canvas.getContext('2d')
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const PUSH_RADIUS = 160
+    const isTouch = window.matchMedia('(pointer: coarse)').matches
+    let lite = false
 
     let W = 0, H = 0, dpr = 1
     let pieces = []
@@ -153,9 +155,12 @@ export default function Background() {
     }
 
     function init() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2)
       W = window.innerWidth
       H = window.innerHeight
+      // Phones / small screens: a lighter background (1x resolution, 30 fps, fewer things).
+      // It sits behind the content, so the difference is hard to see but saves a lot of work.
+      lite = isTouch || W < 700
+      dpr = lite ? 1 : Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = W * dpr
       canvas.height = H * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -165,7 +170,7 @@ export default function Background() {
       galaxy = buildGalaxy(galaxyR)
 
       // Brighter stars that twinkle (drawn live each frame).
-      const tw = Math.round(Math.min(90, Math.max(30, (W * H) / 20000)))
+      const tw = Math.round(Math.min(90, Math.max(30, (W * H) / 20000)) * (lite ? 0.6 : 1))
       twinklers = Array.from({ length: tw }, () => ({
         x: Math.random() * W,
         y: Math.random() * H,
@@ -176,7 +181,7 @@ export default function Background() {
       }))
 
       // Fewer pieces on small screens.
-      const count = Math.round(Math.min(28, Math.max(12, (W * H) / 45000)))
+      const count = lite ? 12 : Math.round(Math.min(28, Math.max(12, (W * H) / 45000)))
       pieces = Array.from({ length: count }, () => makePiece())
     }
 
@@ -279,42 +284,44 @@ export default function Background() {
     }
 
     // ---------- Shapes (drawn around 0,0 with "radius" s) ----------
+    // `pc` is the canvas the shape helpers draw into (the screen, or a piece's sprite).
+    let pc = ctx
     function roundRectPath(x, y, w, h, r) {
-      ctx.moveTo(x + r, y)
-      ctx.arcTo(x + w, y, x + w, y + h, r)
-      ctx.arcTo(x + w, y + h, x, y + h, r)
-      ctx.arcTo(x, y + h, x, y, r)
-      ctx.arcTo(x, y, x + w, y, r)
-      ctx.closePath()
+      pc.moveTo(x + r, y)
+      pc.arcTo(x + w, y, x + w, y + h, r)
+      pc.arcTo(x + w, y + h, x, y + h, r)
+      pc.arcTo(x, y + h, x, y, r)
+      pc.arcTo(x, y, x + w, y, r)
+      pc.closePath()
     }
 
     function shapePath(type, s) {
-      ctx.beginPath()
+      pc.beginPath()
       switch (type) {
         case 'block':
           roundRectPath(-s, -s, s * 2, s * 2, s * 0.3)
           roundRectPath(-s * 0.45, -s * 0.45, s * 0.9, s * 0.9, s * 0.12)
           break
         case 'coin':
-          ctx.arc(0, 0, s, 0, Math.PI * 2)
-          ctx.moveTo(s * 0.62, 0)
-          ctx.arc(0, 0, s * 0.62, 0, Math.PI * 2)
-          ctx.moveTo(0, -s * 0.35)
-          ctx.lineTo(0, s * 0.35)
+          pc.arc(0, 0, s, 0, Math.PI * 2)
+          pc.moveTo(s * 0.62, 0)
+          pc.arc(0, 0, s * 0.62, 0, Math.PI * 2)
+          pc.moveTo(0, -s * 0.35)
+          pc.lineTo(0, s * 0.35)
           break
         case 'diamond':
-          ctx.moveTo(0, -s * 1.15)
-          ctx.lineTo(s * 0.85, 0)
-          ctx.lineTo(0, s * 1.15)
-          ctx.lineTo(-s * 0.85, 0)
-          ctx.closePath()
+          pc.moveTo(0, -s * 1.15)
+          pc.lineTo(s * 0.85, 0)
+          pc.lineTo(0, s * 1.15)
+          pc.lineTo(-s * 0.85, 0)
+          pc.closePath()
           break
         case 'plus': {
           const a = s * 0.34
-          ctx.moveTo(-a, -s); ctx.lineTo(a, -s); ctx.lineTo(a, -a); ctx.lineTo(s, -a)
-          ctx.lineTo(s, a); ctx.lineTo(a, a); ctx.lineTo(a, s); ctx.lineTo(-a, s)
-          ctx.lineTo(-a, a); ctx.lineTo(-s, a); ctx.lineTo(-s, -a); ctx.lineTo(-a, -a)
-          ctx.closePath()
+          pc.moveTo(-a, -s); pc.lineTo(a, -s); pc.lineTo(a, -a); pc.lineTo(s, -a)
+          pc.lineTo(s, a); pc.lineTo(a, a); pc.lineTo(a, s); pc.lineTo(-a, s)
+          pc.lineTo(-a, a); pc.lineTo(-s, a); pc.lineTo(-s, -a); pc.lineTo(-a, -a)
+          pc.closePath()
           break
         }
         case 'triangle':
@@ -322,9 +329,9 @@ export default function Background() {
             const ang = -Math.PI / 2 + (i * Math.PI * 2) / 3
             const px = Math.cos(ang) * s * 1.15
             const py = Math.sin(ang) * s * 1.15
-            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+            if (i === 0) pc.moveTo(px, py); else pc.lineTo(px, py)
           }
-          ctx.closePath()
+          pc.closePath()
           break
         case 'star':
           for (let i = 0; i < 10; i++) {
@@ -332,44 +339,70 @@ export default function Background() {
             const r = i % 2 === 0 ? s * 1.15 : s * 0.5
             const px = Math.cos(ang) * r
             const py = Math.sin(ang) * r
-            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+            if (i === 0) pc.moveTo(px, py); else pc.lineTo(px, py)
           }
-          ctx.closePath()
+          pc.closePath()
           break
         case 'controller': {
           const w = s * 1.4, h = s * 0.8
           roundRectPath(-w, -h, w * 2, h * 2, h * 0.9)
           // D-pad
           const dx = -w * 0.5, d = s * 0.28, t = s * 0.09
-          ctx.moveTo(dx - d, -t); ctx.lineTo(dx + d, -t); ctx.lineTo(dx + d, t); ctx.lineTo(dx - d, t); ctx.closePath()
-          ctx.moveTo(dx - t, -d); ctx.lineTo(dx + t, -d); ctx.lineTo(dx + t, d); ctx.lineTo(dx - t, d); ctx.closePath()
+          pc.moveTo(dx - d, -t); pc.lineTo(dx + d, -t); pc.lineTo(dx + d, t); pc.lineTo(dx - d, t); pc.closePath()
+          pc.moveTo(dx - t, -d); pc.lineTo(dx + t, -d); pc.lineTo(dx + t, d); pc.lineTo(dx - t, d); pc.closePath()
           // Buttons
-          ctx.moveTo(w * 0.42 + s * 0.13, -s * 0.15)
-          ctx.arc(w * 0.42, -s * 0.15, s * 0.13, 0, Math.PI * 2)
-          ctx.moveTo(w * 0.68 + s * 0.13, s * 0.12)
-          ctx.arc(w * 0.68, s * 0.12, s * 0.13, 0, Math.PI * 2)
+          pc.moveTo(w * 0.42 + s * 0.13, -s * 0.15)
+          pc.arc(w * 0.42, -s * 0.15, s * 0.13, 0, Math.PI * 2)
+          pc.moveTo(w * 0.68 + s * 0.13, s * 0.12)
+          pc.arc(w * 0.68, s * 0.12, s * 0.13, 0, Math.PI * 2)
           break
         }
       }
     }
 
+    // Each piece's glowing outline is drawn ONCE into a small sprite, then just stamped
+    // every frame. Canvas glow (shadowBlur) is very slow, especially on phones.
+    const GLOW = 12
+    function makeSprite(p) {
+      const half = p.size * 1.5 + GLOW * 1.6
+      const c = document.createElement('canvas')
+      c.width = c.height = Math.ceil(half * 2 * dpr)
+      const g = c.getContext('2d')
+      g.setTransform(dpr, 0, 0, dpr, half * dpr, half * dpr)
+      pc = g
+      shapePath(p.type, p.size)
+      pc = ctx
+      g.fillStyle = p.color + '14' // very faint fill (hex alpha)
+      g.fill('evenodd')
+      g.lineWidth = 2
+      g.lineJoin = 'round'
+      g.strokeStyle = p.color
+      g.shadowColor = p.color
+      g.shadowBlur = GLOW
+      g.stroke()
+      g.shadowBlur = 0
+      g.stroke() // crisp line on top of its glow
+      p.sprite = c
+      p.spriteHalf = half
+    }
+
     function drawPiece(p) {
+      if (!p.sprite) makeSprite(p)
       const glow = p.glow
       const scale = 1 + glow * 0.18
+      const h = p.spriteHalf
       ctx.save()
       ctx.translate(p.x, p.y)
       ctx.rotate(p.rot)
       ctx.scale(scale, scale)
       ctx.globalAlpha = p.fade * (0.55 + glow * 0.45)
-      shapePath(p.type, p.size)
-      ctx.fillStyle = p.color + '14' // very faint fill (hex alpha)
-      ctx.fill('evenodd')
-      ctx.lineWidth = 2
-      ctx.lineJoin = 'round'
-      ctx.strokeStyle = p.color
-      ctx.shadowColor = p.color
-      ctx.shadowBlur = 10 + glow * 18
-      ctx.stroke()
+      ctx.drawImage(p.sprite, -h, -h, h * 2, h * 2)
+      if (glow > 0.05) {
+        // Near the pointer: stamp it again additively so it lights up
+        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalAlpha = p.fade * glow * 0.6
+        ctx.drawImage(p.sprite, -h, -h, h * 2, h * 2)
+      }
       ctx.restore()
     }
 
@@ -505,12 +538,18 @@ export default function Background() {
       ctx.restore()
     }
 
+    // On lite devices only redraw ~30 times a second; that's plenty for slow drifting.
+    let frameAcc = 0
     function loop(now) {
-      const dt = Math.min((now - last) / 1000, 0.05)
+      frameAcc += (now - last) / 1000
       last = now
-      stepSpace(dt)
-      step(dt)
-      draw()
+      if (frameAcc >= (lite ? 1 / 31 : 0)) {
+        const dt = Math.min(frameAcc, 0.05)
+        frameAcc = 0
+        stepSpace(dt)
+        step(dt)
+        draw()
+      }
       raf = requestAnimationFrame(loop)
     }
 
