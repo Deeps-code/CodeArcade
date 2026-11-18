@@ -105,10 +105,15 @@
   .legend { display: flex; gap: 10px 16px; flex-wrap: wrap; justify-content: center; margin-top: 24px; font-size: 13px; color: #e0f0ff; max-width: 420px; }
   .legend b { font-weight: 800; }
   .gone { display: none !important; }
+  /* Everything lives in #app so landscape mode can turn the whole game at once. */
+  #app { position: fixed; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; }
+  #rotate { top: calc(max(12px, env(safe-area-inset-top)) + 154px); font-size: 19px; line-height: 1; }
+  #rotate.on { border-color: rgba(251, 191, 36, 0.9); background: rgba(251, 191, 36, 0.35); }
   #noGL { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #0c4a6e; font-size: 16px; line-height: 1.5; }
 </style>
 </head>
 <body>
+<div id="app">
 <canvas id="c"></canvas>
 <div id="flash"></div>
 
@@ -121,6 +126,7 @@
 <button class="btn" id="sound" type="button" aria-label="Toggle sound">🔊</button>
 <button class="btn gone" id="gyro" type="button" aria-label="Toggle tilt steering" title="Tilt steering">📱</button>
 <div id="gyroLabel" class="gone">TILT</div>
+<button class="btn gone" id="rotate" type="button" aria-label="Toggle landscape mode" title="Landscape mode">⟳</button>
 <div id="banner"></div>
 
 <div class="overlay" id="menu">
@@ -146,6 +152,7 @@
   <p class="sub" id="overStats"></p>
   <div class="cta" id="retryCta">TAP TO RETRY</div>
 </div>
+</div>
 
 <script type="module">
   import * as THREE from './lib/three.module.min.js';
@@ -163,8 +170,11 @@
   $('retryCta').textContent = verb + ' TO RETRY';
   $('howto').textContent = isTouch
     ? 'Drag anywhere to fly your bird. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!'
-    : 'Steer your bird with the mouse, arrow keys or WASD. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!';
-  if (isTouch) { $('gyroTip').classList.remove('gone'); $('gyro').classList.remove('gone'); }
+    : 'Steer your bird with the arrow keys or WASD. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!';
+  if (isTouch) {
+    $('gyroTip').textContent = 'Tap 📱 to steer by tilting · ⟳ to play sideways';
+    $('gyroTip').classList.remove('gone'); $('gyro').classList.remove('gone'); $('rotate').classList.remove('gone');
+  }
 
   const el = {
     score: $('score'), best: $('best'), hearts: $('hearts'), biome: $('biome'), pills: $('pills'),
@@ -192,8 +202,25 @@
   sunLight.position.set(6, 14, 6);
   scene.add(sunLight);
 
+  // ---------- Landscape mode (phones) ----------
+  // When it's on and the phone is held upright, the whole game is drawn turned 90°,
+  // so you hold the phone sideways for a wide view. If the phone is already sideways
+  // (screen rotation unlocked), nothing needs turning. Works on iPhone too.
+  const app = $('app');
+  const rotateBtn = $('rotate');
+  let landscape = false;
+  try { landscape = isTouch && localStorage.getItem('wingsLandscape') === '1'; } catch (e) {}
+  let rotated = false;          // is the game currently drawn turned 90°?
+  let viewW = 0, viewH = 0;     // size of the game view (after turning)
+
   function resize() {
-    const W = window.innerWidth, H = window.innerHeight;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    rotated = landscape && vh > vw;
+    const W = rotated ? vh : vw, H = rotated ? vw : vh;
+    viewW = W; viewH = H;
+    app.style.width = W + 'px'; app.style.height = H + 'px';
+    app.style.transform = rotated ? `translateX(${vw}px) rotate(90deg)` : '';
+    rotateBtn.classList.toggle('on', landscape);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setSize(W, H);
     camera.aspect = W / H;
@@ -1078,21 +1105,25 @@
     if (state === 'menu') start();
     else if (state === 'over' && performance.now() > overReadyAt) start();
   }
-  function mouseTarget(e) {
-    bird.tx = ((e.clientX / window.innerWidth) * 2 - 1) * XMAX;
-    bird.ty = lerp(YMAX, YMIN, e.clientY / window.innerHeight);
+  // Screen coordinates -> game-view coordinates (they differ when the game is turned 90°).
+  function toView(e) {
+    return rotated ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY };
   }
+  // The mouse never steers: on a computer you fly with the keyboard, and a click only starts the game.
   window.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse') mouseTarget(e);
-    else drag = { sx: e.clientX, sy: e.clientY, tx: bird.tx, ty: bird.ty, id: e.pointerId };
+    if (e.pointerType !== 'mouse') {
+      const p = toView(e);
+      drag = { sx: p.x, sy: p.y, tx: bird.tx, ty: bird.ty, id: e.pointerId };
+    }
     tryStart();
   });
   window.addEventListener('pointermove', (e) => {
-    if (e.pointerType === 'mouse') { if (!gyroOn) mouseTarget(e); return; }
+    if (e.pointerType === 'mouse') return;
     if (!drag || drag.id !== e.pointerId || gyroOn) return;
     // Relative drag: the bird moves with your finger but never sits under it.
-    bird.tx = drag.tx + ((e.clientX - drag.sx) / window.innerWidth) * XMAX * 2.6;
-    bird.ty = drag.ty - ((e.clientY - drag.sy) / window.innerHeight) * (YMAX - YMIN) * 1.7;
+    const p = toView(e);
+    bird.tx = drag.tx + ((p.x - drag.sx) / viewW) * XMAX * 2.6;
+    bird.ty = drag.ty - ((p.y - drag.sy) / viewH) * (YMAX - YMIN) * 1.7;
   });
   const endDrag = (e) => { if (drag && drag.id === e.pointerId) drag = null; };
   window.addEventListener('pointerup', endDrag);
@@ -1111,9 +1142,12 @@
   let gyroOn = false, gyroRaw = null, gyroNeutral = null, gyroSeen = false;
   const GYRO_RANGE = 22; // degrees of tilt to reach the edge of the corridor
   function readTilt(e) {
-    const ang = (screen.orientation && typeof screen.orientation.angle === 'number')
+    let ang = (screen.orientation && typeof screen.orientation.angle === 'number')
       ? screen.orientation.angle
       : (typeof window.orientation === 'number' ? window.orientation : 0);
+    // In landscape mode the screen still says "portrait", but you're holding the phone
+    // turned left (its right edge on top), exactly like a normal landscape-left phone.
+    if (rotated) ang = 90;
     if (ang === 90) return { up: -e.gamma, right: e.beta };
     if (ang === -90 || ang === 270) return { up: e.gamma, right: -e.beta };
     if (ang === 180) return { up: -e.beta, right: -e.gamma };
@@ -1377,6 +1411,24 @@
     if (!muted) { initAudio(); sfx.seed(); }
   });
   refreshSoundBtn();
+
+  // ---------- Landscape button ----------
+  function recalibrateAfterTurn() {
+    // How you hold the phone just changed, so re-zero the tilt on the next reading.
+    gyroRaw = null;
+    gyroNeutral = null;
+  }
+  rotateBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  rotateBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    rotateBtn.blur();
+    landscape = !landscape;
+    try { localStorage.setItem('wingsLandscape', landscape ? '1' : '0'); } catch (err) {}
+    resize();
+    recalibrateAfterTurn();
+    if (landscape && rotated) banner('TURN YOUR PHONE ⟲');
+  });
+  window.addEventListener('orientationchange', () => setTimeout(() => { resize(); recalibrateAfterTurn(); }, 150));
   window.focus();
 
   // Hooks for automated testing (harmless in normal play)
@@ -1387,6 +1439,7 @@
     bird, timers,
     jump(d) { dist = d; biomeIdx = Math.floor(d / BIOME_LEN); },
     give(k) { timers[k] = POWERS[k].time; },
+    get gyro() { return { on: gyroOn, raw: gyroRaw, neutral: gyroNeutral, rotated }; },
     spawn: { airplane, raptor, gullFlock, swordfish, wreckingBall, snowball, spawnBubble },
   };
 
