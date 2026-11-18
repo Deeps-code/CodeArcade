@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#e0f2fe"/></linearGradient>
+    <linearGradient id="forest" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#fef9c3"/></linearGradient>
+    <linearGradient id="city" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e1b4b"/><stop offset="0.5" stop-color="#6d28d9"/><stop offset="0.8" stop-color="#f472b6"/><stop offset="1" stop-color="#fdba74"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0284c7"/><stop offset="1" stop-color="#0c4a6e"/></linearGradient>
+    <radialGradient id="body" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#0284c7"/></radialGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- three biomes side by side -->
+  <rect x="0" y="0" width="110" height="200" fill="url(#ocean)"/>
+  <rect x="106" y="0" width="110" height="200" fill="url(#forest)"/>
+  <rect x="212" y="0" width="108" height="200" fill="url(#city)"/>
+  <rect x="0" y="172" width="110" height="28" fill="url(#sea)"/>
+  <path d="M0 178 q8 -3 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0" stroke="#fff" stroke-opacity="0.5" fill="none" stroke-width="1.5"/>
+  <path d="M44 172 L52 100 Q64 88 76 100 L84 172Z" fill="#a8a29e"/>
+  <rect x="106" y="172" width="110" height="28" fill="#365314"/>
+  <path d="M120 172 L140 110 L160 172Z M150 172 L176 96 L202 172Z" fill="#166534"/>
+  <rect x="160" y="0" width="8" height="58" fill="#3f6212"/>
+  <circle cx="164" cy="60" r="12" fill="#4d7c0f"/>
+  <rect x="212" y="172" width="108" height="28" fill="#18181b"/>
+  <rect x="222" y="104" width="34" height="70" fill="#334155"/>
+  <rect x="270" y="80" width="40" height="94" fill="#2e1065"/>
+  <g fill="#fde68a">
+    <rect x="228" y="112" width="6" height="8"/><rect x="242" y="112" width="6" height="8"/><rect x="228" y="130" width="6" height="8"/><rect x="242" y="148" width="6" height="8"/>
+    <rect x="276" y="90" width="6" height="8"/><rect x="292" y="104" width="6" height="8"/><rect x="276" y="122" width="6" height="8"/><rect x="292" y="140" width="6" height="8"/>
+  </g>
+  <rect x="234" y="0" width="3" height="40" fill="#334155"/>
+  <circle cx="236" cy="48" r="11" fill="#1e293b"/>
+  <!-- seeds -->
+  <g fill="#facc15"><ellipse cx="190" cy="92" rx="4" ry="5.5"/><ellipse cx="206" cy="88" rx="4" ry="5.5"/><ellipse cx="222" cy="86" rx="4" ry="5.5"/></g>
+  <!-- power-up bubble -->
+  <circle cx="262" cy="56" r="13" fill="#fff" fill-opacity="0.25" stroke="#5eead4" stroke-width="2.5"/>
+  <text x="262" y="61" font-family="system-ui, sans-serif" font-size="13" text-anchor="middle">🛡️</text>
+  <!-- bird -->
+  <circle cx="142" cy="90" r="40" fill="url(#glow)"/>
+  <g transform="translate(142 90) scale(2)">
+    <path d="M-12 -2 L-28 -10 L-26 0 L-28 8Z" fill="#0369a1"/>
+    <ellipse cx="0" cy="0" rx="17" ry="13" fill="url(#body)"/>
+    <ellipse cx="4" cy="5" rx="10" ry="6.5" fill="#fde68a"/>
+    <path d="M2 -12 Q-2 -22 -8 -18 Q-4 -16 -4 -11Z" fill="#0369a1"/>
+    <ellipse cx="-12" cy="-8" rx="14" ry="6.5" transform="rotate(-25 -2 -2)" fill="#0284c7"/>
+    <circle cx="8" cy="-4" r="4.4" fill="#fff"/><circle cx="9.2" cy="-4" r="2.3" fill="#0f172a"/>
+    <path d="M14 -2 L24 1 L14 5Z" fill="#fb923c"/>
+  </g>
+</svg>

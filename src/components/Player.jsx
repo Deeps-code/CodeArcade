@@ -66,7 +66,7 @@ export default function Player({ project }) {
           src={project.path}
           title={project.title}
           className="player-frame"
-          allow="fullscreen; autoplay; gamepad"
+          allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope"
           onLoad={(e) => {
             setLoading(false)
             // Give the project keyboard focus right away so keys like Enter/Space work.
