@@ -86,6 +86,9 @@
   .pill:nth-child(even) { transform: rotate(1deg); }
   .pill.on { display: inline-block; animation: pop 0.35s cubic-bezier(.2,1.6,.4,1); }
   .pill .bar { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--c, var(--teal)); }
+  /* the drawn power-up symbols used in the timers and the menu */
+  .ico { width: 18px; height: 18px; vertical-align: -4px; margin-right: 3px; }
+  .legend .ico { width: 20px; height: 20px; vertical-align: -5px; margin-right: 4px; }
 
   /* ----- Round paper buttons ----- */
   .btn {
@@ -243,12 +246,12 @@
     <div><div class="cta" id="startCta">TAP TO START</div></div>
     <div class="legend">
       <span>🌻 Seed +5</span>
-      <span>🛡️ Shield</span>
-      <span>🧲 Magnet</span>
-      <span>🐣 Tiny</span>
-      <span>👻 Ghost</span>
-      <span>⏱️ Slow-mo</span>
-      <span>✖️2 Double</span>
+      <span data-power="shield">Shield</span>
+      <span data-power="magnet">Magnet</span>
+      <span data-power="tiny">Tiny</span>
+      <span data-power="ghost">Ghost</span>
+      <span data-power="slow">Slow-mo</span>
+      <span data-power="double">Double</span>
     </div>
   </div>
 </div>
@@ -387,13 +390,14 @@
   // Ink outlines: a back-face copy of each mesh pushed outward in screen space,
   // so the line keeps the same thickness however a shape is scaled.
   const INK = 0x23243a;
-  const outlineMat = new THREE.MeshBasicMaterial({ color: INK, side: THREE.BackSide });
+  // (a softer ink than the UI, and thin, so the world reads as paper without heavy lines)
+  const outlineMat = new THREE.MeshBasicMaterial({ color: 0x3a3d5c, side: THREE.BackSide });
   outlineMat.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader.replace(
       '#include <project_vertex>',
       `vec4 mvPosition = modelViewMatrix * vec4( transformed, 1.0 );
        vec3 nView = normalize( normalMatrix * normal );
-       mvPosition.xyz += nView * ( -mvPosition.z ) * 0.0036;
+       mvPosition.xyz += nView * ( -mvPosition.z ) * 0.0022;
        gl_Position = projectionMatrix * mvPosition;`
     );
   };
@@ -548,28 +552,109 @@
     slow:   { icon: '⏱️', label: 'SLOW-MO', color: '#93c5fd', time: 6 },
     double: { icon: '×2', label: 'DOUBLE', color: '#fbbf24', time: 10 },
   };
+  // ---------- Power-up symbols ----------
+  // Hand-drawn on a canvas (no emoji, so they look the same on every phone):
+  // a round paper token with a colored ring, an ink outline and a clear symbol.
+  const INK_CSS = '#23243a', PAPER_CSS = '#fffaf0';
+  function drawSymbol(g, kind, s) {
+    const c = s / 2, u = s / 256;          // draw on a 256-unit grid, scaled to the canvas
+    const col = POWERS[kind].color;
+    g.save();
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    // token
+    g.fillStyle = PAPER_CSS;
+    g.beginPath(); g.arc(c, c, 112 * u, 0, TAU); g.fill();
+    g.lineWidth = 18 * u; g.strokeStyle = col;
+    g.beginPath(); g.arc(c, c, 98 * u, 0, TAU); g.stroke();
+    g.lineWidth = 7 * u; g.strokeStyle = INK_CSS;
+    g.beginPath(); g.arc(c, c, 112 * u, 0, TAU); g.stroke();
+    g.translate(c, c); g.scale(u, u);      // symbol space: center 0,0, about ±60 units
+    const inkFill = (fill) => { g.fillStyle = fill; g.fill(); g.lineWidth = 8; g.strokeStyle = INK_CSS; g.stroke(); };
+    if (kind === 'shield') {
+      g.beginPath(); g.moveTo(0, -62); g.lineTo(54, -40); g.quadraticCurveTo(54, 30, 0, 64); g.quadraticCurveTo(-54, 30, -54, -40); g.closePath();
+      inkFill(col);
+      g.beginPath(); g.moveTo(-22, 2); g.lineTo(-4, 20); g.lineTo(26, -18); g.lineWidth = 12; g.strokeStyle = INK_CSS; g.stroke();
+    } else if (kind === 'magnet') {
+      const u2 = () => { g.beginPath(); g.moveTo(-36, -50); g.lineTo(-36, 0); g.arc(0, 0, 36, Math.PI, 0, true); g.lineTo(36, -50); };
+      u2(); g.lineWidth = 46; g.strokeStyle = INK_CSS; g.lineCap = 'butt'; g.stroke();
+      u2(); g.lineWidth = 32; g.strokeStyle = '#ef476f'; g.stroke();
+      g.fillStyle = '#d9dce6'; g.lineWidth = 7; g.strokeStyle = INK_CSS;
+      for (const x of [-36, 36]) { g.beginPath(); g.rect(x - 22, -62, 44, 22); g.fill(); g.stroke(); }
+      g.lineCap = 'round';
+    } else if (kind === 'tiny') {
+      // four arrows pointing in at a small bird dot = "shrink"
+      g.lineWidth = 11; g.strokeStyle = INK_CSS;
+      for (let i = 0; i < 4; i++) {
+        g.save(); g.rotate(i * Math.PI / 2 + Math.PI / 4);
+        g.beginPath(); g.moveTo(0, -62); g.lineTo(0, -30); g.moveTo(-14, -44); g.lineTo(0, -30); g.lineTo(14, -44); g.stroke();
+        g.restore();
+      }
+      g.beginPath(); g.arc(0, 0, 18, 0, TAU); inkFill(col);
+    } else if (kind === 'ghost') {
+      g.beginPath(); g.moveTo(-44, 54); g.lineTo(-44, -10); g.arc(0, -10, 44, Math.PI, 0); g.lineTo(44, 54);
+      g.quadraticCurveTo(30, 36, 22, 54); g.quadraticCurveTo(11, 36, 0, 54); g.quadraticCurveTo(-11, 36, -22, 54); g.quadraticCurveTo(-30, 36, -44, 54); g.closePath();
+      inkFill('#f3f0ff');
+      g.fillStyle = INK_CSS;
+      g.beginPath(); g.ellipse(-16, -12, 8, 12, 0, 0, TAU); g.ellipse(16, -12, 8, 12, 0, 0, TAU); g.fill();
+    } else if (kind === 'slow') {
+      g.beginPath(); g.rect(-12, -68, 24, 14); inkFill(col);
+      g.beginPath(); g.arc(0, 8, 54, 0, TAU); inkFill(PAPER_CSS);
+      g.beginPath(); g.arc(0, 8, 40, -Math.PI / 2, 0.9); g.lineTo(0, 8); g.closePath(); g.fillStyle = col; g.fill();
+      g.lineWidth = 9; g.strokeStyle = INK_CSS;
+      g.beginPath(); g.moveTo(0, 8); g.lineTo(0, -26); g.moveTo(0, 8); g.lineTo(24, 22); g.stroke();
+    } else if (kind === 'double') {
+      g.font = '900 104px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 14; g.strokeStyle = INK_CSS; g.strokeText('×2', 0, 6);
+      g.fillStyle = col; g.fillText('×2', 0, 6);
+    }
+    g.restore();
+  }
+  function symbolCanvas(kind, size) {
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = size;
+    drawSymbol(cv.getContext('2d'), kind, size);
+    return cv;
+  }
+  // A small paper name tag that floats under each power-up in the world
+  function labelTexture(text, color) {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 72;
+    const g = cv.getContext('2d');
+    g.fillStyle = PAPER_CSS; g.strokeStyle = INK_CSS; g.lineWidth = 6;
+    g.beginPath(); g.roundRect ? g.roundRect(6, 8, 244, 56, 14) : g.rect(6, 8, 244, 56); g.fill(); g.stroke();
+    g.fillStyle = color; g.fillRect(14, 16, 10, 40);
+    g.fillStyle = INK_CSS; g.font = '900 34px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(text, 136, 38);
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
   const timers = {};
   const pillEls = {};
   const powerSprite = {};
-  const powerShell = {};
+  const powerLabel = {};
+  const powerIconURL = {};
   for (const k in POWERS) {
     timers[k] = 0;
+    powerIconURL[k] = symbolCanvas(k, 64).toDataURL();
     const p = document.createElement('div');
     p.className = 'pill';
     p.style.setProperty('--c', POWERS[k].color);
-    p.innerHTML = `${POWERS[k].icon} ${POWERS[k].label} <span class="t"></span>s<span class="bar"></span>`;
+    p.innerHTML = `<img class="ico" src="${powerIconURL[k]}" alt=""> ${POWERS[k].label} <span class="t"></span>s<span class="bar"></span>`;
     el.pills.appendChild(p);
     pillEls[k] = { root: p, t: p.querySelector('.t'), bar: p.querySelector('.bar') };
-    powerSprite[k] = new THREE.SpriteMaterial({
-      map: spriteTexture((g, s) => {
-        g.textAlign = 'center'; g.textBaseline = 'middle';
-        if (k === 'double') { g.fillStyle = POWERS[k].color; g.font = `900 ${s * 0.5}px system-ui, sans-serif`; g.fillText('×2', s / 2, s / 2 + 4); }
-        else { g.font = `${s * 0.62}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`; g.fillText(POWERS[k].icon, s / 2, s / 2 + 6); }
-      }),
-      transparent: true,
-    });
-    powerShell[k] = new THREE.MeshLambertMaterial({ color: POWERS[k].color, emissive: POWERS[k].color, emissiveIntensity: 0.35, transparent: true, opacity: 0.35 });
+    const tex = new THREE.CanvasTexture(symbolCanvas(k, 256));
+    tex.colorSpace = THREE.SRGBColorSpace;
+    // drawn on top of everything near it so the symbol is never hidden
+    powerSprite[k] = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+    powerLabel[k] = new THREE.SpriteMaterial({ map: labelTexture(POWERS[k].label, POWERS[k].color), transparent: true, depthWrite: false });
   }
+  // Menu legend: swap the emoji for the same drawn symbols
+  document.querySelectorAll('.legend [data-power]').forEach((span) => {
+    const k = span.dataset.power;
+    span.insertAdjacentHTML('afterbegin', `<img class="ico" src="${powerIconURL[k]}" alt="">`);
+  });
 
   // ---------- World constants ----------
   const XMAX = 7, YMIN = 0.9, YMAX = 10;   // the corridor the bird can fly in
@@ -1193,12 +1278,18 @@
     const kind = pick(Object.keys(POWERS));
     const root = new THREE.Group();
     root.position.set(rand(-XMAX + 1.5, XMAX - 1.5), rand(YMIN + 1, YMAX - 1.5), SPAWN_Z);
-    root.add(mk(GEO.blob, powerShell[kind], 0, 0, 0, 0.9));
-    const sp = new THREE.Sprite(powerSprite[kind]);
-    sp.scale.set(1.3, 1.3, 1);
-    root.add(sp);
+    // A paper token with its symbol, and a name tag underneath
+    const token = new THREE.Sprite(powerSprite[kind]);
+    token.scale.set(1.9, 1.9, 1);
+    token.renderOrder = 5;
+    root.add(token);
+    const tag = new THREE.Sprite(powerLabel[kind]);
+    tag.scale.set(1.9, 0.53, 1);
+    tag.position.y = -1.35;
+    tag.renderOrder = 5;
+    root.add(tag);
     scene.add(root);
-    bubbles.push({ root, kind, t: 0, baseY: root.position.y });
+    bubbles.push({ root, kind, t: 0, baseY: root.position.y, token });
   }
 
   // ---------- Scenery (no collisions; just there to make the world feel alive) ----------
@@ -1567,7 +1658,7 @@
     }
     for (const d of decos) d.root.position.z += spd * dt;
     for (const s of seeds) { s.root.position.z += spd * dt; s.spin += dt * 3; s.root.rotation.set(s.spin, s.spin * 1.3, 0); }
-    for (const p of bubbles) { p.root.position.z += spd * dt; p.t += dt; p.root.position.y = p.baseY + Math.sin(p.t * 3) * 0.3; p.root.children[0].rotation.y += dt; }
+    for (const p of bubbles) { p.root.position.z += spd * dt; p.t += dt; p.root.position.y = p.baseY + Math.sin(p.t * 3) * 0.3; const pulse = 1.9 + Math.sin(p.t * 5) * 0.08; p.token.scale.set(pulse, pulse, 1); }
 
     // ----- Collisions -----
     if (playing && bird.alive) {
@@ -1719,6 +1810,7 @@
     jump(d) { dist = d; biomeIdx = Math.floor(d / BIOME_LEN); },
     give(k) { timers[k] = POWERS[k].time; },
     get gyro() { return { on: gyroOn, raw: gyroRaw, neutral: gyroNeutral, rotated }; },
+    get bubbles() { return bubbles; },
     spawn: { airplane, raptor, gullFlock, swordfish, wreckingBall, snowball, spawnBubble },
   };
 
