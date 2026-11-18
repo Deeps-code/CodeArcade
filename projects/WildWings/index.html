@@ -6,7 +6,7 @@
 <title>Wild Wings</title>
 <style>
   html, body {
-    margin: 0; height: 100%; overflow: hidden; background: #0c4a6e; color: #fff;
+    margin: 0; height: 100%; overflow: hidden; background: #7dd3fc; color: #fff;
     font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
     touch-action: none; overscroll-behavior: none;
     user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
@@ -20,12 +20,12 @@
     pointer-events: none;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.25);
   }
-  .label { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; color: rgba(255, 255, 255, 0.85); }
+  .label { font-size: 11px; font-weight: 800; letter-spacing: 0.18em; color: rgba(255, 255, 255, 0.9); }
   .value { font-size: 28px; font-weight: 900; font-variant-numeric: tabular-nums; }
   .right { text-align: right; }
   .mid { text-align: center; padding-top: 2px; }
   #hearts { font-size: 18px; letter-spacing: 3px; color: #ff5a7a; }
-  #biome { margin-top: 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.9); }
+  #biome { margin-top: 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.95); }
 
   #pills {
     position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 58px); left: 18px;
@@ -35,8 +35,8 @@
   .pill {
     display: none; position: relative; overflow: hidden;
     font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
-    padding: 4px 10px; border-radius: 999px; color: #fff;
-    background: rgba(10, 20, 40, 0.55); border: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(10, 20, 40, 0.55); border: 1px solid currentColor;
     font-variant-numeric: tabular-nums;
     backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
   }
@@ -45,21 +45,21 @@
 
   .btn {
     position: fixed; right: 14px; width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(10, 20, 40, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(10, 20, 40, 0.45);
     color: #fff; font-size: 17px; z-index: 5; padding: 0;
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
   #sound { top: calc(max(12px, env(safe-area-inset-top)) + 58px); }
   #gyro { top: calc(max(12px, env(safe-area-inset-top)) + 106px); }
-  #gyro.on { border-color: rgba(94, 234, 212, 0.9); background: rgba(20, 184, 166, 0.35); }
+  #gyro.on { border-color: rgba(94, 234, 212, 0.9); background: rgba(20, 184, 166, 0.45); }
   #gyroLabel {
     position: fixed; right: 60px; top: calc(max(12px, env(safe-area-inset-top)) + 117px);
     font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: #5eead4;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); pointer-events: none;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); pointer-events: none;
   }
 
   #banner {
-    position: fixed; left: 0; right: 0; top: 30%;
+    position: fixed; left: 0; right: 0; top: 26%;
     text-align: center; font-size: clamp(28px, 8.5vw, 56px); font-weight: 900; letter-spacing: 0.12em;
     color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.8);
     opacity: 0; pointer-events: none;
@@ -71,13 +71,14 @@
     70% { opacity: 1; transform: scale(1); }
     100% { opacity: 0; transform: scale(1.12); }
   }
+  #flash { position: fixed; inset: 0; background: #ff3355; opacity: 0; pointer-events: none; transition: opacity 0.35s; }
 
   .overlay {
     position: fixed; inset: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; padding: 24px;
     pointer-events: none;
-    background: radial-gradient(ellipse at center, rgba(8, 30, 60, 0.35), rgba(8, 30, 60, 0.85));
+    background: radial-gradient(ellipse at center, rgba(8, 30, 60, 0.3), rgba(8, 30, 60, 0.82));
     transition: opacity 0.35s;
   }
   .overlay.hidden { opacity: 0; }
@@ -88,7 +89,7 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
     filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.5));
   }
-  .sub { margin: 18px 0 0; color: #cfe8ff; font-size: 15px; max-width: 360px; line-height: 1.5; }
+  .sub { margin: 18px 0 0; color: #e0f0ff; font-size: 15px; max-width: 360px; line-height: 1.5; }
   .tip { margin: 10px 0 0; color: #5eead4; font-size: 13px; font-weight: 700; }
   .kicker { letter-spacing: 0.24em; font-weight: 800; font-size: 14px; color: #fbbf24; text-shadow: 0 0 12px rgba(251, 191, 36, 0.6); }
   .big { font-size: clamp(56px, 16vw, 96px); font-weight: 900; margin: 6px 0 0; text-shadow: 0 0 22px rgba(56, 189, 248, 0.7); font-variant-numeric: tabular-nums; }
@@ -101,13 +102,15 @@
     animation: pulse 1.6s ease-in-out infinite;
   }
   @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(14, 165, 233, 0.75); } }
-  .legend { display: flex; gap: 10px 16px; flex-wrap: wrap; justify-content: center; margin-top: 24px; font-size: 13px; color: #cfe8ff; max-width: 420px; }
+  .legend { display: flex; gap: 10px 16px; flex-wrap: wrap; justify-content: center; margin-top: 24px; font-size: 13px; color: #e0f0ff; max-width: 420px; }
   .legend b { font-weight: 800; }
   .gone { display: none !important; }
+  #noGL { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #0c4a6e; font-size: 16px; line-height: 1.5; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="flash"></div>
 
 <div class="hud">
   <div><div class="label">SCORE</div><div class="value" id="score">0</div></div>
@@ -127,11 +130,11 @@
   <div class="cta" id="startCta">TAP TO START</div>
   <div class="legend">
     <span><b style="color:#fde047">●</b> Seed +5</span>
-    <span><b style="color:#5eead4">🛡️</b> Shield</span>
-    <span><b style="color:#f472b6">🧲</b> Magnet</span>
-    <span><b style="color:#a3e635">🐣</b> Tiny</span>
-    <span><b style="color:#c4b5fd">👻</b> Ghost</span>
-    <span><b style="color:#93c5fd">⏱️</b> Slow-mo</span>
+    <span>🛡️ Shield</span>
+    <span>🧲 Magnet</span>
+    <span>🐣 Tiny</span>
+    <span>👻 Ghost</span>
+    <span>⏱️ Slow-mo</span>
     <span><b style="color:#fbbf24">×2</b> Double</span>
   </div>
 </div>
@@ -144,17 +147,18 @@
   <div class="cta" id="retryCta">TAP TO RETRY</div>
 </div>
 
-<script>
+<script type="module">
+  import * as THREE from './lib/three.module.min.js';
+
   const TAU = Math.PI * 2;
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
-  const hash = (i) => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const $ = (id) => document.getElementById(id);
 
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
   const verb = isTouch ? 'TAP' : 'CLICK';
-  const $ = (id) => document.getElementById(id);
   $('startCta').textContent = verb + ' TO START';
   $('retryCta').textContent = verb + ' TO RETRY';
   $('howto').textContent = isTouch
@@ -162,27 +166,123 @@
     : 'Steer your bird with the mouse, arrow keys or WASD. Soar over the ocean, forest, city and snowy peaks, dodge whatever gets in your way and grab power-ups!';
   if (isTouch) { $('gyroTip').classList.remove('gone'); $('gyro').classList.remove('gone'); }
 
-  const canvas = $('c');
-  const ctx = canvas.getContext('2d');
   const el = {
     score: $('score'), best: $('best'), hearts: $('hearts'), biome: $('biome'), pills: $('pills'),
-    banner: $('banner'), menu: $('menu'), over: $('over'),
+    banner: $('banner'), menu: $('menu'), over: $('over'), flash: $('flash'),
     finalScore: $('finalScore'), newBest: $('newBest'), overStats: $('overStats'),
     gyro: $('gyro'), gyroLabel: $('gyroLabel'),
   };
 
-  // ---------- Layout (world units, scaled to fit any screen) ----------
-  let W = 0, H = 0, dpr = 1, scale = 1, VW = 0, VH = 0, groundY = 0;
+  // ---------- Renderer / scene ----------
+  const canvas = $('c');
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: (window.devicePixelRatio || 1) < 2, powerPreference: 'high-performance' });
+  } catch (e) {
+    document.body.insertAdjacentHTML('beforeend', '<div id="noGL">Wild Wings needs WebGL (3D graphics), which this browser or device has turned off.</div>');
+    throw e;
+  }
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 400);
+  scene.fog = new THREE.Fog(0x7dd3fc, 45, 155);
+  scene.background = new THREE.Color(0x7dd3fc);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x3b6e8f, 1.6);
+  scene.add(hemi);
+  const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
+  sunLight.position.set(6, 14, 6);
+  scene.add(sunLight);
+
   function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth; H = window.innerHeight;
-    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    scale = clamp(Math.min(H / 640, W / 480), 0.5, 1.8);
-    VW = W / scale; VH = H / scale;
-    groundY = VH * 0.88;
+    const W = window.innerWidth, H = window.innerHeight;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setSize(W, H);
+    camera.aspect = W / H;
+    // Keep a wide enough view sideways, even on a tall phone screen.
+    const minHorizontal = 78 * Math.PI / 180;
+    const vfov = 2 * Math.atan(Math.tan(minHorizontal / 2) / camera.aspect) * 180 / Math.PI;
+    camera.fov = clamp(vfov, 62, 100);
+    camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize);
+
+  // ---------- Shared geometry & materials ----------
+  const GEO = {
+    box: new THREE.BoxGeometry(1, 1, 1),
+    sphere: new THREE.SphereGeometry(1, 12, 9),
+    ico: new THREE.IcosahedronGeometry(1, 0),
+    ico1: new THREE.IcosahedronGeometry(1, 1),
+    cyl: new THREE.CylinderGeometry(1, 1, 1, 8),
+    cyl6: new THREE.CylinderGeometry(1, 1.15, 1, 7),
+    cone: new THREE.ConeGeometry(1, 1, 7),
+    circle: new THREE.CircleGeometry(1, 24),
+  };
+  const lam = (color, extra = {}) => new THREE.MeshLambertMaterial({ color, flatShading: true, ...extra });
+  const MAT = {
+    rock: lam(0x8b8580), rockDark: lam(0x57534e), moss: lam(0x4d7c0f), foam: lam(0xf8fafc),
+    storm: lam(0x52606f), stormLit: lam(0xcbd5e1, { emissive: 0x555500 }),
+    fish: lam(0x2563eb), fishBelly: lam(0xbfdbfe), sword: lam(0xcbd5e1),
+    gull: lam(0xf8fafc), gullWing: lam(0xe2e8f0), orange: lam(0xf59e0b),
+    trunk: lam(0x7c4a1e), leaf1: lam(0x166534), leaf2: lam(0x15803d), leaf3: lam(0x14532d), vine: lam(0x3f6212),
+    flower: lam(0xa855f7), apple: lam(0xdc2626), log: lam(0x92400e), logEnd: lam(0xd6a16b),
+    hawk: lam(0x78350f), hawkWing: lam(0x92400e), hawkHead: lam(0xfef3c7), beakY: lam(0xfacc15),
+    eagle: lam(0xf1f5f9), eagleWing: lam(0xcbd5e1),
+    black: lam(0x0f172a), white: lam(0xffffff), bee: lam(0xfacc15),
+    girder: lam(0xf59e0b), girderDark: lam(0x292524), ball: lam(0x334155), cable: lam(0x1e293b),
+    drone: lam(0xe2e8f0), droneDark: lam(0x1e293b), redLight: new THREE.MeshBasicMaterial({ color: 0xff3344 }),
+    plane: lam(0xf8fafc), planeWing: lam(0xcbd5e1), planeTail: lam(0xef4444),
+    spire: lam(0x64748b), spireDark: lam(0x475569), snow: lam(0xf8fafc),
+    ice: lam(0xbae6fd, { transparent: true, opacity: 0.88 }), snowball: lam(0xf1f5ff),
+    seed: new THREE.MeshBasicMaterial({ color: 0xfacc15 }),
+    sand: lam(0xfde68a), palm: lam(0x16a34a), pine: lam(0x166534), pineDark: lam(0x14532d),
+    mountain: lam(0x94a3b8), mountainDark: lam(0x64748b), streetlamp: lam(0x334155), lampGlow: new THREE.MeshBasicMaterial({ color: 0xfde68a }),
+    whitecap: lam(0xe0f2fe), grass: lam(0x4d7c0f), dash: new THREE.MeshBasicMaterial({ color: 0xfacc15 }), snowMound: lam(0xffffff),
+    cloud: lam(0xffffff, { transparent: true, opacity: 0.92 }),
+  };
+
+  // Building facades: a canvas of lit/unlit windows used as a texture.
+  function windowTexture(base, lit) {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = base; g.fillRect(0, 0, 64, 128);
+    for (let y = 6; y < 124; y += 14) for (let x = 5; x < 60; x += 12) {
+      g.fillStyle = Math.random() < lit ? '#fde68a' : 'rgba(15, 23, 42, 0.85)';
+      g.fillRect(x, y, 7, 9);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(1, 2);
+    return t;
+  }
+  const BUILDING_MATS = [['#475569', 0.5], ['#334155', 0.45], ['#4c1d95', 0.55], ['#3f3f46', 0.4]]
+    .map(([c, l]) => new THREE.MeshLambertMaterial({ map: windowTexture(c, l), emissive: 0x111111 }));
+  const BUILDING_SIDE_MATS = [['#2e1065', 0.4], ['#1e1b4b', 0.35], ['#312e81', 0.45]]
+    .map(([c, l]) => new THREE.MeshLambertMaterial({ map: windowTexture(c, l) }));
+
+  function spriteTexture(draw, size = 128) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    draw(c.getContext('2d'), size);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+  const WARN_MAT = new THREE.SpriteMaterial({
+    map: spriteTexture((g, s) => {
+      g.fillStyle = '#ef4444'; g.beginPath(); g.arc(s / 2, s / 2, s * 0.44, 0, TAU); g.fill();
+      g.fillStyle = '#fff'; g.font = `900 ${s * 0.7}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('!', s / 2, s / 2 + s * 0.04);
+    }),
+    fog: false, depthTest: false, transparent: true,
+  });
+
+  function mk(geo, mat, x = 0, y = 0, z = 0, sx = 1, sy = sx, sz = sx) {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.scale.set(sx, sy, sz);
+    return m;
+  }
 
   // ---------- Sound ----------
   let actx = null, master = null, noiseBuf = null;
@@ -239,9 +339,10 @@
     power: () => { tone(500, 1200, 0.2, 'triangle', 0.08); tone(750, 1800, 0.25, 'sine', 0.06, 0.08); },
     hit: () => { noise(0.35, 0.35, 3000, 200); tone(400, 90, 0.35, 'square', 0.06); },
     smash: () => { noise(0.3, 0.3, 6000, 400); tone(900, 200, 0.25, 'triangle', 0.06); },
-    warn: () => once('warn', 300) && (tone(880, 880, 0.08, 'square', 0.04), tone(880, 880, 0.08, 'square', 0.04, 0.14)),
+    warn: () => once('warn', 400) && (tone(880, 880, 0.08, 'square', 0.04), tone(880, 880, 0.08, 'square', 0.04, 0.14)),
+    whoosh: () => once('whoosh', 250) && noise(0.35, 0.12, 1200, 5000),
     biome: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.16, 'triangle', 0.08, i * 0.1)),
-    splash: () => once('splash', 200) && noise(0.4, 0.12, 2500, 300),
+    splash: () => once('splash', 250) && noise(0.4, 0.12, 2500, 300),
     die: () => { noise(0.8, 0.4, 2000, 80); tone(600, 80, 0.8, 'sawtooth', 0.06); },
     gameOver: () => [392, 330, 262].forEach((f, i) => tone(f, f * 0.98, 0.22, 'triangle', 0.08, 0.6 + i * 0.18)),
     end: () => tone(700, 250, 0.3, 'triangle', 0.05),
@@ -258,6 +359,8 @@
   };
   const timers = {};
   const pillEls = {};
+  const powerSprite = {};
+  const powerShell = {};
   for (const k in POWERS) {
     timers[k] = 0;
     const p = document.createElement('div');
@@ -266,38 +369,116 @@
     p.innerHTML = `${POWERS[k].icon} ${POWERS[k].label} <span class="t"></span>s<span class="bar"></span>`;
     el.pills.appendChild(p);
     pillEls[k] = { root: p, t: p.querySelector('.t'), bar: p.querySelector('.bar') };
+    powerSprite[k] = new THREE.SpriteMaterial({
+      map: spriteTexture((g, s) => {
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        if (k === 'double') { g.fillStyle = POWERS[k].color; g.font = `900 ${s * 0.5}px system-ui, sans-serif`; g.fillText('×2', s / 2, s / 2 + 4); }
+        else { g.font = `${s * 0.62}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`; g.fillText(POWERS[k].icon, s / 2, s / 2 + 6); }
+      }),
+      transparent: true,
+    });
+    powerShell[k] = new THREE.MeshLambertMaterial({ color: POWERS[k].color, emissive: POWERS[k].color, emissiveIntensity: 0.35, transparent: true, opacity: 0.35 });
   }
 
-  // ---------- Biomes ----------
-  const BIOME_LEN = 7000; // world units of flight per biome
+  // ---------- World constants ----------
+  const XMAX = 7, YMIN = 0.9, YMAX = 10;   // the corridor the bird can fly in
+  const SPAWN_Z = -165, KILL_Z = 16;
+  const BIOME_LEN = 1100;
   const BIOMES = ['ocean', 'forest', 'city', 'peaks'];
   const BIOME_NAMES = { ocean: 'THE OCEAN', forest: 'THE FOREST', city: 'THE CITY', peaks: 'SNOWY PEAKS' };
+  const PALETTE = {
+    ocean:  { sky: 0x7dd3fc, ground: 0x0e8fd0, hemiSky: 0xffffff, hemiGround: 0x2b6c8f, sun: 0xfff3d6, sunI: 2.3 },
+    forest: { sky: 0xb5ebc8, ground: 0x4d7c0f, hemiSky: 0xf7fee7, hemiGround: 0x3f6212, sun: 0xfff7d6, sunI: 2.1 },
+    city:   { sky: 0xf9a8b8, ground: 0x2a2a33, hemiSky: 0xfbcfe8, hemiGround: 0x3b0764, sun: 0xffc28a, sunI: 1.8 },
+    peaks:  { sky: 0xd8ecfb, ground: 0xf1f5f9, hemiSky: 0xffffff, hemiGround: 0x94a3b8, sun: 0xffffff, sunI: 2.0 },
+  };
+
+  // Ground: one big plane that recolors per biome (and ripples like water over the ocean).
+  const groundGeo = new THREE.PlaneGeometry(240, 250, 48, 50);
+  const groundMat = lam(PALETTE.ocean.ground);
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.z = -105;
+  scene.add(ground);
+  const groundPos = groundGeo.attributes.position;
+  let waveAmp = 0.28;
+
+  // Sun disc far away
+  const sun = mk(GEO.sphere, new THREE.MeshBasicMaterial({ color: 0xfff7d6, fog: false }), 60, 70, -330, 14);
+  scene.add(sun);
+
+  // ---------- Bird ----------
+  const birdMats = {
+    body: lam(0x0ea5e9), head: lam(0x38bdf8), belly: lam(0xfde68a), wing: lam(0x0284c7), wingTip: lam(0x075985),
+    beak: lam(0xfb923c), eye: lam(0x0f172a), eyeW: lam(0xffffff), cheek: lam(0xf472b6),
+  };
+  const birdRoot = new THREE.Group();
+  const birdModel = new THREE.Group();
+  birdRoot.add(birdModel);
+  birdModel.add(mk(GEO.sphere, birdMats.body, 0, 0, 0, 0.5, 0.45, 0.72));
+  birdModel.add(mk(GEO.sphere, birdMats.belly, 0, -0.15, -0.08, 0.36, 0.28, 0.52));
+  birdModel.add(mk(GEO.sphere, birdMats.head, 0, 0.28, -0.52, 0.34));
+  const beak = mk(GEO.cone, birdMats.beak, 0, 0.22, -0.95, 0.11, 0.32, 0.11);
+  beak.rotation.x = -Math.PI / 2;
+  birdModel.add(beak);
+  for (const s of [-1, 1]) {
+    birdModel.add(mk(GEO.sphere, birdMats.eyeW, s * 0.2, 0.36, -0.74, 0.09));
+    birdModel.add(mk(GEO.sphere, birdMats.eye, s * 0.23, 0.37, -0.8, 0.055));
+  }
+  const crest = mk(GEO.cone, birdMats.wing, 0, 0.66, -0.45, 0.08, 0.28, 0.08);
+  crest.rotation.x = 0.5;
+  birdModel.add(crest);
+  const tail = mk(GEO.box, birdMats.wingTip, 0, 0.08, 0.78, 0.42, 0.05, 0.5);
+  tail.rotation.x = -0.25;
+  birdModel.add(tail);
+  const wings = [];
+  for (const s of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(s * 0.32, 0.12, -0.02);
+    pivot.add(mk(GEO.box, birdMats.wing, s * 0.55, 0, 0, 1.05, 0.06, 0.55));
+    pivot.add(mk(GEO.box, birdMats.wingTip, s * 1.15, 0, 0.08, 0.35, 0.05, 0.42));
+    birdModel.add(pivot);
+    wings.push({ pivot, s });
+  }
+  const shieldBubble = mk(GEO.ico1, new THREE.MeshLambertMaterial({ color: 0x5eead4, emissive: 0x0d9488, transparent: true, opacity: 0.28, depthWrite: false }), 0, 0, 0, 1.25);
+  shieldBubble.visible = false;
+  birdRoot.add(shieldBubble);
+  const magnetRing = mk(new THREE.TorusGeometry(1, 0.03, 6, 40), new THREE.MeshBasicMaterial({ color: 0xf472b6, transparent: true, opacity: 0.6 }), 0, 0, 0, 1.6);
+  magnetRing.visible = false;
+  birdRoot.add(magnetRing);
+  scene.add(birdRoot);
+  const shadow = mk(GEO.circle, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }), 0, 0.35, 0, 0.7);
+  shadow.rotation.x = -Math.PI / 2;
+  scene.add(shadow);
 
   // ---------- State ----------
   let state = 'menu', overReadyAt = 0;
-  let dist = 0, bonus = 0, seedsGot = 0, powersGot = 0, score = 0, time = 0, shake = 0;
-  let biomeIdx = 0, prevBiome = 'ocean', biomeBlend = 1, loops = 0;
-  let nextSpawn = 0, powerCd = 6;
-  let obstacles = [], seeds = [], bubbles = [], particles = [], floaters = [];
+  let dist = 0, scroll = 0, bonus = 0, seedsGot = 0, powersGot = 0, score = 0, time = 0, shake = 0;
+  let biomeIdx = 0, nextSpawn = 0, powerCd = 6, decoNext = 0, cloudNext = 0, seedNext = 0;
+  let obstacles = [], seeds = [], bubbles = [], decos = [], particles = [];
   let best = 0;
   try { best = Number(localStorage.getItem('wingsBest')) || 0; } catch (e) {}
   el.best.textContent = best;
 
-  const bird = { x: 0, y: 0, tx: 0, ty: 0, vy: 0, tilt: 0, flap: 0, size: 1, hearts: 3, inv: 0, alive: true, spin: 0, fallV: 0 };
+  const bird = { x: 0, y: 4, tx: 0, ty: 4, vx: 0, vy: 0, size: 1, hearts: 3, inv: 0, alive: true, fallV: 0, flap: 0, spin: 0 };
   const keys = {};
 
-  function curBiome() { return BIOMES[biomeIdx % BIOMES.length]; }
-  function difficulty() { return clamp(dist / 40000, 0, 1); }
-  function worldSpeed() { return lerp(260, 470, difficulty()) * (timers.slow > 0 ? 0.55 : 1); }
-  function gapSize() { return lerp(270, 175, difficulty()); }
+  const curBiome = () => BIOMES[biomeIdx % BIOMES.length];
+  const difficulty = () => clamp(dist / 5200, 0, 1);
+  const worldSpeed = () => lerp(24, 44, difficulty()) * (timers.slow > 0 ? 0.55 : 1);
+  const birdRadius = () => 0.48 * bird.size;
+  const meters = () => Math.floor(dist / 3);
+
+  // ---------- Object lifecycle ----------
+  function clearList(list) { for (const o of list) scene.remove(o.root); list.length = 0; }
 
   function reset() {
-    obstacles = []; seeds = []; bubbles = []; particles = []; floaters = [];
+    clearList(obstacles); clearList(seeds); clearList(bubbles); clearList(particles);
     dist = 0; bonus = 0; seedsGot = 0; powersGot = 0; score = 0;
-    biomeIdx = 0; prevBiome = 'ocean'; biomeBlend = 1; loops = 0;
-    nextSpawn = VW * 0.55; powerCd = rand(5, 7);
+    biomeIdx = 0; nextSpawn = 60; powerCd = rand(6, 8); seedNext = 30;
     for (const k in timers) timers[k] = 0;
-    Object.assign(bird, { x: VW * 0.28, y: VH * 0.45, tx: VW * 0.28, ty: VH * 0.45, vy: 0, tilt: 0, size: 1, hearts: 3, inv: 0, alive: true, spin: 0, fallV: 0 });
+    Object.assign(bird, { x: 0, y: 4, tx: 0, ty: 4, vx: 0, vy: 0, size: 1, hearts: 3, inv: 0, alive: true, fallV: 0, spin: 0 });
+    birdModel.rotation.set(0, 0, 0);
     calibrateGyro();
     updateHud();
   }
@@ -314,9 +495,9 @@
   function gameOver() {
     state = 'over';
     bird.alive = false;
-    bird.fallV = -200;
+    bird.fallV = 2;
     sfx.die(); sfx.gameOver();
-    shake = 14;
+    shake = 0.6;
     const isBest = score > best;
     if (isBest) {
       best = score;
@@ -326,11 +507,11 @@
     el.finalScore.textContent = score;
     el.newBest.classList.toggle('gone', !isBest);
     el.overStats.textContent = `${meters()} m flown · ${seedsGot} seeds · ${powersGot} power-ups · reached ${BIOME_NAMES[curBiome()].toLowerCase()}`;
-    overReadyAt = performance.now() + 800;
-    setTimeout(() => { if (state === 'over') el.over.classList.remove('hidden'); }, 900);
+    for (const k in timers) timers[k] = 0;
+    updateHud();
+    overReadyAt = performance.now() + 900;
+    setTimeout(() => { if (state === 'over') el.over.classList.remove('hidden'); }, 1000);
   }
-
-  function meters() { return Math.floor(dist / 30); }
 
   function updateHud() {
     score = meters() + bonus;
@@ -351,505 +532,567 @@
     el.banner.classList.add('show');
   }
 
-  function burst(x, y, color, n, speed = 220, g = 300) {
+  // Little cube particles
+  const particleMats = {};
+  function burst(x, y, z, color, n, speed = 8) {
+    if (!particleMats[color]) particleMats[color] = new THREE.MeshBasicMaterial({ color });
     for (let i = 0; i < n; i++) {
-      const a = rand(0, TAU), s = rand(speed * 0.3, speed);
-      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.35, 0.8), max: 0.8, c: color, r: rand(1.5, 3.5), g });
-    }
-  }
-  function feathers(x, y, n) {
-    for (let i = 0; i < n; i++) {
-      particles.push({ x, y, vx: rand(-160, 160), vy: rand(-220, 40), life: rand(0.8, 1.4), max: 1.4, c: Math.random() < 0.6 ? '#38bdf8' : '#e0f2fe', r: rand(2.5, 4.5), g: 160, feather: true, rot: rand(0, TAU), vr: rand(-6, 6) });
+      const m = mk(GEO.box, particleMats[color], x, y, z, rand(0.08, 0.18));
+      scene.add(m);
+      const a = rand(0, TAU), b = rand(-1, 1);
+      const s = rand(speed * 0.3, speed);
+      particles.push({ root: m, vx: Math.cos(a) * s * Math.sqrt(1 - b * b), vy: b * s + 2, vz: Math.sin(a) * s * Math.sqrt(1 - b * b), life: rand(0.4, 0.9), g: 12 });
     }
   }
 
   // ---------- Obstacles ----------
-  // Each kind knows how to move, which shapes hurt (rects, circles, triangles), and how to draw itself.
-  // o.extra = extra leftward speed on top of the world scroll (for things flying at you).
-  function gapCenter(g) { return rand(VH * 0.16 + g / 2, groundY - g / 2 - 24); }
-
-  function addSeedRow(x, y, n, spacing = 38) {
-    for (let i = 0; i < n; i++) seeds.push({ x: x + (i - (n - 1) / 2) * spacing, y, got: false, bob: rand(0, TAU) });
-  }
-
-  const KINDS = {
-    // ---- Ocean ----
-    stack: {
-      shapes: (o) => [{ t: 'r', x: o.x - o.w / 2, y: o.topY + 10, w: o.w, h: groundY + 60 - o.topY }, { t: 'c', x: o.x, y: o.topY + o.w / 2, r: o.w / 2 }],
-      draw(o) {
-        const g = ctx.createLinearGradient(o.x - o.w / 2, 0, o.x + o.w / 2, 0);
-        g.addColorStop(0, '#57534e'); g.addColorStop(0.5, '#a8a29e'); g.addColorStop(1, '#44403c');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.moveTo(o.x - o.w / 2 - 8, groundY + 40);
-        ctx.lineTo(o.x - o.w / 2, o.topY + o.w / 2);
-        ctx.arc(o.x, o.topY + o.w / 2, o.w / 2, Math.PI, 0);
-        ctx.lineTo(o.x + o.w / 2 + 8, groundY + 40);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#4d7c0f';
-        ctx.beginPath(); ctx.ellipse(o.x, o.topY + 8, o.w * 0.42, 9, 0, Math.PI, 0); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 2;
-        for (let i = 1; i < 5; i++) { const yy = o.topY + o.w / 2 + i * (groundY - o.topY) / 5; ctx.beginPath(); ctx.moveTo(o.x - o.w / 2 + 6, yy); ctx.lineTo(o.x - 4, yy + 6); ctx.stroke(); }
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.beginPath(); ctx.ellipse(o.x, groundY + 4, o.w * 0.75, 6, 0, 0, TAU); ctx.fill();
-      },
-    },
-    cloud: {
-      update(o) { o.flash = Math.max(0, (o.flash || 0) - 0.05); if (Math.random() < 0.012) o.flash = 1; },
-      shapes: (o) => o.puffs.map((p) => ({ t: 'c', x: o.x + p.x, y: o.y + p.y, r: p.r * 0.9 })),
-      draw(o) {
-        if (o.flash > 0.5) {
-          ctx.strokeStyle = '#fef08a'; ctx.lineWidth = 3;
-          ctx.beginPath(); ctx.moveTo(o.x, o.y + 30);
-          let yy = o.y + 30, xx = o.x;
-          while (yy < o.y + 120) { xx += rand(-14, 14); yy += rand(12, 22); ctx.lineTo(xx, yy); }
-          ctx.stroke();
-        }
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.15)';
-        ctx.fillRect(o.x - 70, -20, 140, o.y + 10);
-        for (const p of o.puffs) {
-          ctx.fillStyle = o.flash > 0.5 ? '#94a3b8' : '#475569';
-          ctx.beginPath(); ctx.arc(o.x + p.x, o.y + p.y, p.r, 0, TAU); ctx.fill();
-        }
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';
-        for (const p of o.puffs) { ctx.beginPath(); ctx.arc(o.x + p.x - p.r * 0.25, o.y + p.y - p.r * 0.3, p.r * 0.5, 0, TAU); ctx.fill(); }
-      },
-    },
-    fish: {
-      update(o, dt) {
-        if (o.delay > 0) { o.delay -= dt; return; }
-        if (!o.jumped) { o.jumped = true; sfx.splash(); splash(o.x); }
-        o.vy += 900 * dt; o.y += o.vy * dt;
-        if (o.vy > 0 && o.y > groundY && !o.landed) { o.landed = true; splash(o.x); }
-      },
-      shapes: (o) => (o.delay > 0 ? [] : [{ t: 'c', x: o.x, y: o.y, r: 17 }, { t: 'c', x: o.x + Math.cos(o.ang()) * 22, y: o.y + Math.sin(o.ang()) * 22, r: 7 }]),
-      draw(o) {
-        if (o.delay > 0) {
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
-          ctx.beginPath(); ctx.ellipse(o.x, groundY + 12, 26, 6, 0, 0, TAU); ctx.fill();
-          return;
-        }
-        ctx.save();
-        ctx.translate(o.x, o.y);
-        ctx.rotate(o.ang());
-        ctx.fillStyle = '#1e40af';
-        ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-32, -12); ctx.lineTo(-30, 12); ctx.closePath(); ctx.fill();
-        const g = ctx.createLinearGradient(0, -12, 0, 12);
-        g.addColorStop(0, '#2563eb'); g.addColorStop(1, '#bfdbfe');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.ellipse(0, 0, 22, 11, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#1e3a8a';
-        ctx.beginPath(); ctx.moveTo(-4, -10); ctx.lineTo(6, -22); ctx.lineTo(10, -9); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(20, -1); ctx.lineTo(42, -3); ctx.stroke();
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(12, -3, 3, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(13, -3, 1.5, 0, TAU); ctx.fill();
-        ctx.restore();
-      },
-    },
-    gull: {
-      update(o, dt) { o.t += dt; o.y = o.by + Math.sin(o.t * 3 + o.ph) * 18; },
-      shapes: (o) => [{ t: 'c', x: o.x, y: o.y, r: 15 }],
-      draw(o) {
-        const f = Math.sin(o.t * 12 + o.ph) * 8;
-        ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 4; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(o.x - 20, o.y - 6 - f); ctx.quadraticCurveTo(o.x - 9, o.y - 10, o.x, o.y); ctx.quadraticCurveTo(o.x + 9, o.y - 10, o.x + 20, o.y - 6 - f); ctx.stroke();
-        ctx.fillStyle = '#e2e8f0'; ctx.beginPath(); ctx.ellipse(o.x, o.y + 2, 9, 5, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#f59e0b'; ctx.beginPath(); ctx.moveTo(o.x - 9, o.y + 1); ctx.lineTo(o.x - 15, o.y + 3); ctx.lineTo(o.x - 9, o.y + 4); ctx.fill();
-        ctx.lineCap = 'butt';
-      },
-    },
-    // ---- Forest ----
-    tree: {
-      shapes: (o) => [
-        { t: 'r', x: o.x - 16, y: o.topY + 40, w: 32, h: groundY + 40 - o.topY },
-        { t: 'c', x: o.x, y: o.topY + 46, r: 46 },
-        { t: 'c', x: o.x - 40, y: o.topY + 74, r: 34 },
-        { t: 'c', x: o.x + 40, y: o.topY + 74, r: 34 },
-      ],
-      draw(o) {
-        const g = ctx.createLinearGradient(o.x - 18, 0, o.x + 18, 0);
-        g.addColorStop(0, '#451a03'); g.addColorStop(0.5, '#92400e'); g.addColorStop(1, '#451a03');
-        ctx.fillStyle = g;
-        ctx.fillRect(o.x - 16, o.topY + 50, 32, groundY + 30 - o.topY);
-        ctx.fillRect(o.x - 24, groundY - 10, 48, 20);
-        const leaf = ['#14532d', '#166534', '#15803d'];
-        const blobs = [[-40, 74, 34], [40, 74, 34], [0, 46, 46], [-18, 30, 26], [20, 34, 24]];
-        blobs.forEach(([bx, by, br], i) => {
-          ctx.fillStyle = leaf[i % 3];
-          ctx.beginPath(); ctx.arc(o.x + bx, o.topY + by, br, 0, TAU); ctx.fill();
-        });
-        ctx.fillStyle = 'rgba(190, 242, 100, 0.25)';
-        ctx.beginPath(); ctx.arc(o.x - 12, o.topY + 28, 18, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#dc2626';
-        for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(o.x + Math.cos(i * 1.7 + o.seed) * 34, o.topY + 56 + Math.sin(i * 2.3 + o.seed) * 22, 4, 0, TAU); ctx.fill(); }
-      },
-    },
-    vine: {
-      update(o, dt) { o.t += dt; },
-      sway: (o) => Math.sin(o.t * 1.6 + o.ph) * 14,
-      shapes(o) {
-        const sw = this.sway(o);
-        return [{ t: 'r', x: o.x - 5 + sw * 0.5, y: -20, w: 10, h: o.endY + 20 }, { t: 'c', x: o.x + sw, y: o.endY, r: 20 }];
-      },
-      draw(o) {
-        const sw = this.sway(o);
-        ctx.strokeStyle = '#3f6212'; ctx.lineWidth = 8;
-        ctx.beginPath(); ctx.moveTo(o.x, -20); ctx.quadraticCurveTo(o.x + sw * 0.2, o.endY / 2, o.x + sw, o.endY); ctx.stroke();
-        ctx.fillStyle = '#65a30d';
-        for (let yy = 30; yy < o.endY - 20; yy += 34) {
-          const f = yy / o.endY, xx = o.x + sw * f * f;
-          ctx.beginPath(); ctx.ellipse(xx + 9, yy, 10, 5, 0.5, 0, TAU); ctx.fill();
-          ctx.beginPath(); ctx.ellipse(xx - 9, yy + 14, 10, 5, -0.5, 0, TAU); ctx.fill();
-        }
-        ctx.fillStyle = '#4d7c0f';
-        ctx.beginPath(); ctx.arc(o.x + sw, o.endY, 20, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#a855f7';
-        ctx.beginPath(); ctx.arc(o.x + sw - 6, o.endY + 6, 6, 0, TAU); ctx.arc(o.x + sw + 7, o.endY + 3, 5, 0, TAU); ctx.fill();
-      },
-    },
-    hawk: {
-      update(o, dt) {
-        o.t += dt;
-        // Once on screen, it steers a little toward you.
-        if (o.x < VW - 20 && o.x > bird.x) o.y += clamp(bird.y - o.y, -1, 1) * 70 * dt;
-      },
-      warn: true,
-      shapes: (o) => [{ t: 'c', x: o.x, y: o.y, r: 17 }, { t: 'c', x: o.x - 18, y: o.y, r: 9 }],
-      draw(o) {
-        const f = Math.sin(o.t * 14) * 10;
-        const body = o.snow ? '#f1f5f9' : '#78350f', wing = o.snow ? '#cbd5e1' : '#92400e';
-        ctx.fillStyle = wing;
-        ctx.beginPath(); ctx.moveTo(o.x - 4, o.y - 4); ctx.lineTo(o.x + 12, o.y - 30 - f); ctx.lineTo(o.x + 22, o.y - 4); ctx.fill();
-        ctx.fillStyle = body;
-        ctx.beginPath(); ctx.ellipse(o.x, o.y, 22, 11, 0, 0, TAU); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(o.x + 18, o.y - 3); ctx.lineTo(o.x + 34, o.y - 10); ctx.lineTo(o.x + 32, o.y + 8); ctx.fill();
-        ctx.fillStyle = o.snow ? '#e2e8f0' : '#fef3c7';
-        ctx.beginPath(); ctx.arc(o.x - 16, o.y - 2, 9, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#facc15';
-        ctx.beginPath(); ctx.moveTo(o.x - 23, o.y - 3); ctx.lineTo(o.x - 32, o.y + 2); ctx.lineTo(o.x - 22, o.y + 3); ctx.fill();
-        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(o.x - 18, o.y - 4, 2, 0, TAU); ctx.fill();
-        ctx.fillStyle = wing;
-        ctx.beginPath(); ctx.moveTo(o.x - 2, o.y + 2); ctx.lineTo(o.x + 14, o.y + 18 + f * 0.5); ctx.lineTo(o.x + 20, o.y + 2); ctx.fill();
-      },
-    },
-    bees: {
-      update(o, dt) { o.t += dt; o.y = o.by + Math.sin(o.t * 1.8) * o.amp; },
-      shapes: (o) => [{ t: 'c', x: o.x, y: o.y, r: 30 }],
-      draw(o) {
-        ctx.fillStyle = 'rgba(250, 204, 21, 0.12)';
-        ctx.beginPath(); ctx.arc(o.x, o.y, 34, 0, TAU); ctx.fill();
-        for (let i = 0; i < 9; i++) {
-          const a = o.t * (2 + i * 0.3) + i * 2.1;
-          const bx = o.x + Math.cos(a) * (10 + (i % 3) * 8), by = o.y + Math.sin(a * 1.3) * (8 + (i % 4) * 5);
-          ctx.fillStyle = 'rgba(255,255,255,0.7)';
-          ctx.beginPath(); ctx.ellipse(bx, by - 4, 4, 2.5, Math.sin(o.t * 40 + i), 0, TAU); ctx.fill();
-          ctx.fillStyle = '#facc15';
-          ctx.beginPath(); ctx.ellipse(bx, by, 5, 3.5, 0, 0, TAU); ctx.fill();
-          ctx.fillStyle = '#1c1917';
-          ctx.fillRect(bx - 1, by - 3.5, 2, 7);
-        }
-      },
-    },
-    // ---- City ----
-    tower: {
-      shapes: (o) => [{ t: 'r', x: o.x - o.w / 2, y: o.topY, w: o.w, h: groundY + 40 - o.topY }],
-      draw(o) {
-        const x0 = o.x - o.w / 2;
-        ctx.fillStyle = o.col;
-        ctx.fillRect(x0, o.topY, o.w, groundY + 40 - o.topY);
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.fillRect(x0 + o.w * 0.7, o.topY, o.w * 0.3, groundY + 40 - o.topY);
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(x0 - 4, o.topY - 6, o.w + 8, 8);
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(o.x - 2, o.topY - 26, 4, 20);
-        ctx.globalAlpha = 0.5 + 0.5 * Math.sin(time * 4);
-        ctx.beginPath(); ctx.arc(o.x, o.topY - 28, 4, 0, TAU); ctx.fill();
-        ctx.globalAlpha = 1;
-        for (let yy = o.topY + 14; yy < groundY - 10; yy += 26) {
-          for (let xx = x0 + 10; xx < x0 + o.w - 14; xx += 20) {
-            ctx.fillStyle = hash(xx * 0.37 + yy * 1.3 + o.seed) > 0.4 ? '#fde68a' : '#1e293b';
-            ctx.fillRect(xx, yy, 10, 14);
-          }
-        }
-      },
-    },
-    beam: {
-      shapes: (o) => [{ t: 'r', x: o.x - 3, y: -20, w: 6, h: o.endY - 4 }, { t: 'r', x: o.x - o.w / 2, y: o.endY - 20, w: o.w, h: 20 }],
-      draw(o) {
-        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(o.x, -20); ctx.lineTo(o.x, o.endY - 24); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(o.x, o.endY - 24); ctx.lineTo(o.x - o.w / 2 + 8, o.endY - 20); ctx.moveTo(o.x, o.endY - 24); ctx.lineTo(o.x + o.w / 2 - 8, o.endY - 20); ctx.stroke();
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(o.x - o.w / 2, o.endY - 20, o.w, 20);
-        ctx.fillStyle = '#1c1917';
-        for (let xx = o.x - o.w / 2; xx < o.x + o.w / 2 - 8; xx += 20) {
-          ctx.beginPath(); ctx.moveTo(xx, o.endY); ctx.lineTo(xx + 10, o.endY - 20); ctx.lineTo(xx + 18, o.endY - 20); ctx.lineTo(xx + 8, o.endY); ctx.fill();
-        }
-      },
-    },
-    wreck: {
-      update(o, dt) { o.t += dt; },
-      ball(o) { const a = Math.sin(o.t * o.w0 + o.ph) * 0.8; return { x: o.x + Math.sin(a) * o.len, y: Math.cos(a) * o.len }; },
-      shapes(o) { const b = this.ball(o); return [{ t: 'c', x: b.x, y: b.y, r: 28 }]; },
-      draw(o) {
-        const b = this.ball(o);
-        ctx.fillStyle = '#facc15';
-        ctx.fillRect(o.x - 60, -10, 120, 14);
-        ctx.strokeStyle = '#334155'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(b.x, b.y); ctx.stroke();
-        const g = ctx.createRadialGradient(b.x - 9, b.y - 9, 3, b.x, b.y, 28);
-        g.addColorStop(0, '#94a3b8'); g.addColorStop(1, '#0f172a');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(b.x, b.y, 28, 0, TAU); ctx.fill();
-      },
-    },
-    drone: {
-      update(o, dt) { o.t += dt; o.y = o.by + Math.sin(o.t * 2.4 + o.ph) * 55; },
-      shapes: (o) => [{ t: 'c', x: o.x, y: o.y, r: 20 }],
-      draw(o) {
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(o.x - 26, o.y - 3, 52, 5);
-        ctx.fillStyle = 'rgba(203, 213, 225, 0.7)';
-        const sp = Math.abs(Math.sin(o.t * 40)) * 14 + 4;
-        ctx.fillRect(o.x - 26 - sp / 2, o.y - 7, sp, 2); ctx.fillRect(o.x + 26 - sp / 2, o.y - 7, sp, 2);
-        ctx.fillStyle = '#e2e8f0';
-        ctx.beginPath(); ctx.ellipse(o.x, o.y + 4, 14, 9, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle = Math.sin(o.t * 8) > 0 ? '#ef4444' : '#7f1d1d';
-        ctx.beginPath(); ctx.arc(o.x - 8, o.y + 6, 3, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#0ea5e9';
-        ctx.beginPath(); ctx.arc(o.x + 4, o.y + 6, 4, 0, TAU); ctx.fill();
-      },
-    },
-    plane: {
-      update(o, dt) { o.t += dt; },
-      warn: true,
-      shapes: (o) => [{ t: 'r', x: o.x - 48, y: o.y - 9, w: 100, h: 18 }, { t: 'r', x: o.x - 6, y: o.y - 30, w: 22, h: 60 }],
-      draw(o) {
-        ctx.fillStyle = '#cbd5e1';
-        ctx.beginPath(); ctx.moveTo(o.x - 4, o.y); ctx.lineTo(o.x + 18, o.y - 32); ctx.lineTo(o.x + 26, o.y - 32); ctx.lineTo(o.x + 16, o.y); ctx.fill();
-        ctx.fillStyle = '#f8fafc';
-        ctx.beginPath(); ctx.ellipse(o.x, o.y, 52, 10, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath(); ctx.moveTo(o.x + 36, o.y - 4); ctx.lineTo(o.x + 52, o.y - 26); ctx.lineTo(o.x + 58, o.y - 26); ctx.lineTo(o.x + 52, o.y); ctx.fill();
-        ctx.fillRect(o.x - 40, o.y - 1, 80, 3);
-        ctx.fillStyle = '#38bdf8';
-        for (let i = 0; i < 6; i++) ctx.fillRect(o.x - 34 + i * 11, o.y - 6, 5, 4);
-        ctx.fillStyle = '#94a3b8';
-        ctx.beginPath(); ctx.moveTo(o.x - 4, o.y + 2); ctx.lineTo(o.x + 18, o.y + 30); ctx.lineTo(o.x + 26, o.y + 30); ctx.lineTo(o.x + 16, o.y + 2); ctx.fill();
-      },
-    },
-    // ---- Snowy peaks ----
-    peak: {
-      shapes: (o) => [{ t: 'tri', ax: o.x, ay: o.topY, bx: o.x - o.w / 2, by: groundY + 40, cx: o.x + o.w / 2, cy: groundY + 40 }],
-      draw(o) {
-        const g = ctx.createLinearGradient(o.x - o.w / 2, 0, o.x + o.w / 2, 0);
-        g.addColorStop(0, '#64748b'); g.addColorStop(0.5, '#94a3b8'); g.addColorStop(1, '#475569');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.moveTo(o.x, o.topY); ctx.lineTo(o.x + o.w / 2, groundY + 40); ctx.lineTo(o.x - o.w / 2, groundY + 40); ctx.closePath(); ctx.fill();
-        const cap = 0.28, cy = o.topY + (groundY - o.topY) * cap, cw = (o.w / 2) * cap;
-        ctx.fillStyle = '#f8fafc';
-        ctx.beginPath(); ctx.moveTo(o.x, o.topY); ctx.lineTo(o.x + cw, cy);
-        ctx.lineTo(o.x + cw * 0.4, cy - 10); ctx.lineTo(o.x, cy + 4); ctx.lineTo(o.x - cw * 0.5, cy - 8); ctx.lineTo(o.x - cw, cy); ctx.closePath(); ctx.fill();
-      },
-    },
-    icicles: {
-      shapes: (o) => o.spikes.map((s) => ({ t: 'tri', ax: o.x + s.dx - s.w / 2, ay: -10, bx: o.x + s.dx + s.w / 2, by: -10, cx: o.x + s.dx, cy: s.len })),
-      draw(o) {
-        ctx.fillStyle = '#e0f2fe';
-        ctx.fillRect(o.x - 70, -20, 140, 30);
-        for (const s of o.spikes) {
-          const g = ctx.createLinearGradient(0, 0, 0, s.len);
-          g.addColorStop(0, '#e0f2fe'); g.addColorStop(1, '#7dd3fc');
-          ctx.fillStyle = g;
-          ctx.beginPath(); ctx.moveTo(o.x + s.dx - s.w / 2, -10); ctx.lineTo(o.x + s.dx + s.w / 2, -10); ctx.lineTo(o.x + s.dx, s.len); ctx.closePath(); ctx.fill();
-          ctx.fillStyle = 'rgba(255,255,255,0.6)';
-          ctx.beginPath(); ctx.moveTo(o.x + s.dx - s.w / 4, -10); ctx.lineTo(o.x + s.dx - 2, -10); ctx.lineTo(o.x + s.dx - 1, s.len * 0.7); ctx.closePath(); ctx.fill();
-        }
-      },
-    },
-    snowball: {
-      update(o, dt) {
-        if (o.delay > 0) { o.delay -= dt; return; }
-        o.vy += 520 * dt; o.y += o.vy * dt; o.rot += dt * 4;
-        if (o.y > groundY - o.r && !o.landed) { o.landed = true; o.y = groundY - o.r; o.vy = -o.vy * 0.35; burst(o.x, groundY, '#f8fafc', 10, 160); }
-        if (o.landed) o.y = Math.min(o.y, groundY - o.r);
-      },
-      shapes: (o) => (o.delay > 0 ? [] : [{ t: 'c', x: o.x, y: o.y, r: o.r * 0.9 }]),
-      draw(o) {
-        if (o.delay > 0) {
-          ctx.fillStyle = 'rgba(30, 41, 59, 0.25)';
-          ctx.beginPath(); ctx.ellipse(o.x, groundY + 4, o.r, 5, 0, 0, TAU); ctx.fill();
-          return;
-        }
-        const g = ctx.createRadialGradient(o.x - o.r * 0.3, o.y - o.r * 0.3, 2, o.x, o.y, o.r);
-        g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#bae6fd');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, TAU); ctx.fill();
-        ctx.strokeStyle = 'rgba(125, 211, 252, 0.6)'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(o.x, o.y, o.r * 0.6, o.rot, o.rot + 1.6); ctx.stroke();
-      },
-    },
-  };
-
-  function splash(x) {
-    for (let i = 0; i < 12; i++) particles.push({ x: x + rand(-12, 12), y: groundY, vx: rand(-90, 90), vy: rand(-320, -120), life: rand(0.4, 0.8), max: 0.8, c: '#e0f2fe', r: rand(2, 4), g: 900 });
-  }
-
-  function add(kind, props) {
-    const o = Object.assign({ kind, x: VW + 80, w: 80, t: 0, ph: rand(0, TAU), extra: 0, seed: rand(0, 100) }, props);
+  // Each obstacle: a root group that scrolls toward the camera, plus colliders
+  // (boxes 'b' and spheres 's') in the root's local space.
+  function addObs(kind, x, y, z, build, extra = 0) {
+    const root = new THREE.Group();
+    root.position.set(x, y, z);
+    scene.add(root);
+    const o = { kind, root, cols: [], extra, t: 0, ph: rand(0, TAU) };
+    build(o, root);
     obstacles.push(o);
-    if (KINDS[kind].warn) sfx.warn();
     return o;
   }
+  const box = (x, y, z, hx, hy, hz) => ({ t: 'b', x, y, z, hx, hy, hz });
+  const ball = (x, y, z, r) => ({ t: 's', x, y, z, r });
 
-  // One "pattern" per spawn, picked from the current biome.
-  function spawnPattern() {
-    const biome = curBiome();
-    const g = gapSize();
-    const gc = gapCenter(g);
-    const x = VW + 90;
-    const r = Math.random();
-    const d = difficulty();
+  function freeXs(n, minGap) {
+    // n distinct x positions across the corridor, at least minGap apart
+    const xs = [];
+    for (let tries = 0; xs.length < n && tries < 40; tries++) {
+      const x = rand(-XMAX + 1, XMAX - 1);
+      if (xs.every((q) => Math.abs(q - x) >= minGap)) xs.push(x);
+    }
+    return xs;
+  }
 
-    if (biome === 'ocean') {
-      if (r < 0.5) {
-        add('stack', { x, w: rand(60, 80), topY: gc + g / 2 });
-        if (gc - g / 2 > 70) {
-          const cy = gc - g / 2 - 40;
-          add('cloud', { x, w: 140, y: cy, puffs: [{ x: -40, y: 0, r: 34 }, { x: 0, y: -10, r: 42 }, { x: 40, y: 2, r: 32 }, { x: 0, y: 14, r: 30 }] });
+  function addWarning(o, y) {
+    const s = new THREE.Sprite(WARN_MAT);
+    s.scale.set(1.6, 1.6, 1);
+    s.position.set(0, y, 0);
+    s.renderOrder = 10;
+    o.root.add(s);
+    o.warnSprite = s;
+    sfx.warn();
+  }
+
+  // ----- Ocean -----
+  function seaStack(x, z) {
+    const h = rand(4.5, 11.5), r = rand(1.1, 1.8);
+    return addObs('stack', x, 0, z, (o, g) => {
+      g.add(mk(GEO.cyl6, MAT.rock, 0, h / 2, 0, r, h, r));
+      const cap = mk(GEO.ico, MAT.rockDark, 0, h, 0, r * 1.05, r * 0.6, r * 1.05);
+      cap.rotation.y = rand(0, TAU);
+      g.add(cap);
+      g.add(mk(GEO.ico, MAT.moss, 0, h + r * 0.35, 0, r * 0.7, r * 0.3, r * 0.7));
+      g.add(mk(GEO.cyl, MAT.foam, 0, 0.3, 0, r * 1.5, 0.12, r * 1.5));
+      o.cols.push(box(0, (h + r * 0.4) / 2, 0, r * 0.95, (h + r * 0.4) / 2, r * 0.95));
+    });
+  }
+  function stormCloud(x, z) {
+    const y = rand(7.6, 9.6);
+    return addObs('cloud', x, y, z, (o, g) => {
+      o.puffs = [];
+      for (let i = 0; i < 5; i++) {
+        const px = (i - 2) * rand(0.9, 1.3), py = rand(-0.5, 0.6), pr = rand(1.1, 1.7);
+        const m = mk(GEO.ico, MAT.storm, px, py, rand(-0.6, 0.6), pr);
+        m.rotation.set(rand(0, 3), rand(0, 3), 0);
+        g.add(m);
+        o.puffs.push(m);
+        o.cols.push(ball(px, py, 0, pr * 0.85));
+      }
+      o.update = (o, dt) => {
+        o.flash = Math.max(0, (o.flash || 0) - dt * 4);
+        if (Math.random() < dt * 0.6) o.flash = 1;
+        for (const m of o.puffs) m.material = o.flash > 0.5 ? MAT.stormLit : MAT.storm;
+      };
+    });
+  }
+  function swordfish(x, z) {
+    const apex = rand(3.5, 8.5), zPeak = rand(-8, 2), half = rand(16, 22);
+    return addObs('fish', x, -2, z, (o, g) => {
+      const fish = new THREE.Group();
+      fish.add(mk(GEO.sphere, MAT.fish, 0, 0, 0, 0.38, 0.42, 0.95));
+      fish.add(mk(GEO.sphere, MAT.fishBelly, 0, -0.15, 0.05, 0.28, 0.25, 0.75));
+      const nose = mk(GEO.cyl, MAT.sword, 0, 0.02, 1.35, 0.04, 1.0, 0.04);
+      nose.rotation.x = Math.PI / 2;
+      fish.add(nose);
+      const tailFin = mk(GEO.cone, MAT.fish, 0, 0, -1.05, 0.45, 0.5, 0.1);
+      tailFin.rotation.x = Math.PI / 2;
+      fish.add(tailFin);
+      const fin = mk(GEO.cone, MAT.fish, 0, 0.5, -0.1, 0.08, 0.5, 0.35);
+      fish.add(fin);
+      for (const s of [-1, 1]) fish.add(mk(GEO.sphere, MAT.black, s * 0.3, 0.12, 0.6, 0.07));
+      g.add(fish);
+      o.fish = fish;
+      o.cols.push(ball(0, 0, 0, 0.6), ball(0, 0, 1.2, 0.3));
+      o.update = (o) => {
+        const z = o.root.position.z;
+        const u = (z - zPeak) / half;
+        const y = apex * (1 - u * u);
+        const wasUnder = o.root.position.y < 0.2;
+        o.root.position.y = Math.max(-2, y);
+        const nowUnder = o.root.position.y < 0.2;
+        if (wasUnder !== nowUnder && z > -90) { sfx.splash(); burst(o.root.position.x, 0.3, z, 0xe0f2fe, 10, 6); }
+        // nose follows the arc: going up while u<0, down after
+        fish.rotation.x = Math.atan2(2 * apex * u / half, 1);
+        o.cols[1].y = Math.sin(-fish.rotation.x) * 1.2;
+      };
+    });
+  }
+  function gullFlock(z) {
+    const cx = rand(-4, 4), cy = rand(3, 8);
+    const offs = [[0, 0, 0], [-1.6, 0.5, 1.4], [1.6, 0.5, 1.4]];
+    for (const [ox, oy, oz] of offs) {
+      addObs('gull', cx + ox, cy + oy, z + oz, (o, g) => {
+        g.add(mk(GEO.sphere, MAT.gull, 0, 0, 0, 0.32, 0.28, 0.6));
+        const bk = mk(GEO.cone, MAT.orange, 0, 0.02, 0.62, 0.07, 0.22, 0.07);
+        bk.rotation.x = Math.PI / 2;
+        g.add(bk);
+        o.wings = [];
+        for (const s of [-1, 1]) {
+          const p = new THREE.Group();
+          p.position.set(s * 0.22, 0.08, 0);
+          p.add(mk(GEO.box, MAT.gullWing, s * 0.55, 0, 0, 1.1, 0.05, 0.4));
+          g.add(p);
+          o.wings.push({ p, s });
         }
-        addSeedRow(x, gc, 4);
-      } else if (r < 0.78) {
-        const n = d > 0.3 && Math.random() < 0.5 ? 2 : 1;
-        for (let i = 0; i < n; i++) {
-          const apex = rand(VH * 0.25, groundY - 120);
-          const o = add('fish', { x: x + i * 150 + rand(40, 160), y: groundY + 30, vy: -Math.sqrt(2 * 900 * (groundY + 30 - apex)), delay: rand(0.3, 0.8) + i * 0.3, w: 60 });
-          o.ang = () => Math.atan2(o.vy, -worldSpeed() * 0.9);
+        o.cols.push(ball(0, 0, 0, 0.55));
+        o.bx = cx + ox;
+        o.update = (o, dt) => {
+          o.t += dt;
+          const f = Math.sin(o.t * 12 + o.ph) * 0.6;
+          for (const w of o.wings) w.p.rotation.z = w.s * f;
+          o.root.position.x = o.bx + Math.sin(o.t * 1.4) * 1.5;
+        };
+      });
+    }
+  }
+
+  // ----- Forest -----
+  function tree(x, z) {
+    const cy = rand(3.5, 8.2), tr = rand(0.35, 0.5);
+    return addObs('tree', x, 0, z, (o, g) => {
+      g.add(mk(GEO.cyl6, MAT.trunk, 0, cy / 2, 0, tr, cy + 0.5, tr));
+      const blobs = [[0, cy + 0.6, 0, rand(1.6, 2.1)], [-1.3, cy - 0.1, 0.3, rand(1.1, 1.5)], [1.3, cy, -0.3, rand(1.1, 1.5)]];
+      blobs.forEach(([bx, by, bz, br], i) => {
+        const m = mk(GEO.ico, [MAT.leaf1, MAT.leaf2, MAT.leaf3][i], bx, by, bz, br);
+        m.rotation.set(rand(0, 3), rand(0, 3), 0);
+        g.add(m);
+        o.cols.push(ball(bx, by, bz, br * 0.85));
+      });
+      for (let i = 0; i < 3; i++) g.add(mk(GEO.sphere, MAT.apple, rand(-1.4, 1.4), cy + rand(-0.6, 0.8), 1.3, 0.14));
+      o.cols.push(box(0, cy / 2, 0, tr + 0.05, cy / 2, tr + 0.05));
+    });
+  }
+  function fallenLog(z) {
+    const L = rand(6, 11), y = rand(1.8, 8), x = rand(-XMAX + L / 2 - 2, XMAX - L / 2 + 2);
+    return addObs('log', x, y, z, (o, g) => {
+      const m = mk(GEO.cyl, MAT.log, 0, 0, 0, 0.55, L, 0.55);
+      m.rotation.z = Math.PI / 2;
+      g.add(m);
+      for (const s of [-1, 1]) { const e = mk(GEO.cyl, MAT.logEnd, s * L / 2, 0, 0, 0.5, 0.06, 0.5); e.rotation.z = Math.PI / 2; g.add(e); }
+      // ropes it hangs from
+      for (const s of [-1, 1]) g.add(mk(GEO.box, MAT.vine, s * (L / 2 - 0.6), (14 - y) / 2, 0, 0.06, 14 - y, 0.06));
+      g.add(mk(GEO.ico, MAT.moss, rand(-L / 3, L / 3), 0.45, 0, 0.5, 0.25, 0.5));
+      o.cols.push(box(0, 0, 0, L / 2, 0.55, 0.55));
+    });
+  }
+  function vines(z) {
+    const n = 3 + Math.floor(Math.random() * 2);
+    const xs = freeXs(n, 2.4);
+    for (const x of xs) {
+      const endY = rand(3.5, 7.5);
+      addObs('vine', x, 0, z + rand(-1, 1), (o, g) => {
+        const len = 13 - endY;
+        g.add(mk(GEO.box, MAT.vine, 0, endY + len / 2, 0, 0.12, len, 0.12));
+        for (let yy = endY + 0.8; yy < 12; yy += 1.1) g.add(mk(GEO.ico, MAT.leaf2, (Math.random() < 0.5 ? -1 : 1) * 0.25, yy, 0, 0.28, 0.12, 0.2));
+        g.add(mk(GEO.ico, MAT.leaf1, 0, endY, 0, 0.6));
+        g.add(mk(GEO.sphere, MAT.flower, 0.25, endY - 0.3, 0.35, 0.18));
+        o.cols.push(box(0, endY + len / 2, 0, 0.22, len / 2, 0.22), ball(0, endY, 0, 0.6));
+      });
+    }
+  }
+  function raptor(z, snowy) {
+    const x = clamp(bird.x + rand(-2, 2), -XMAX + 1, XMAX - 1), y = clamp(bird.y + rand(-1.5, 1.5), YMIN + 0.5, YMAX - 0.5);
+    const o = addObs('hawk', x, y, z, (o, g) => {
+      const body = snowy ? MAT.eagle : MAT.hawk, wing = snowy ? MAT.eagleWing : MAT.hawkWing;
+      g.add(mk(GEO.sphere, body, 0, 0, 0, 0.42, 0.38, 0.9));
+      g.add(mk(GEO.sphere, snowy ? MAT.white : MAT.hawkHead, 0, 0.2, 0.75, 0.3));
+      const bk = mk(GEO.cone, MAT.beakY, 0, 0.12, 1.12, 0.08, 0.28, 0.08);
+      bk.rotation.x = Math.PI / 2;
+      g.add(bk);
+      for (const s of [-1, 1]) g.add(mk(GEO.sphere, MAT.black, s * 0.16, 0.3, 0.98, 0.05));
+      o.wings = [];
+      for (const s of [-1, 1]) {
+        const p = new THREE.Group();
+        p.position.set(s * 0.3, 0.1, 0);
+        p.add(mk(GEO.box, wing, s * 0.85, 0, 0, 1.7, 0.06, 0.6));
+        g.add(p);
+        o.wings.push({ p, s });
+      }
+      o.cols.push(ball(0, 0, 0, 0.75), ball(0, 0.2, 0.8, 0.35));
+      o.update = (o, dt) => {
+        o.t += dt;
+        const f = Math.sin(o.t * 14) * 0.7;
+        for (const w of o.wings) w.p.rotation.z = w.s * f;
+        const z = o.root.position.z;
+        // Swoops toward you while it's still out in front
+        if (z > -75 && z < -10) {
+          o.root.position.x += clamp(bird.x - o.root.position.x, -1, 1) * 2.6 * dt;
+          o.root.position.y += clamp(bird.y - o.root.position.y, -1, 1) * 2.2 * dt;
         }
-        addSeedRow(x + 260, rand(VH * 0.25, groundY - 80), 3);
-      } else {
-        const by = rand(VH * 0.2, groundY - 120);
-        for (let i = 0; i < 3; i++) add('gull', { x: x + i * 46, by: by + (i === 1 ? -36 : 0) + rand(-6, 6), y: by, extra: 110, w: 40 });
-        addSeedRow(x + 200, by > VH * 0.5 ? by - 150 : by + 150, 4);
+        if (o.warnSprite) o.warnSprite.visible = z < -28;
+        if (z > -20 && !o.whooshed) { o.whooshed = true; sfx.whoosh(); }
+      };
+    }, 22 + difficulty() * 10);
+    addWarning(o, 1.8);
+  }
+  function beeSwarm(z) {
+    const cx = rand(-3.5, 3.5), cy = rand(3, 7);
+    addObs('bees', cx, cy, z, (o, g) => {
+      o.bees = [];
+      for (let i = 0; i < 12; i++) {
+        const b = new THREE.Group();
+        b.add(mk(GEO.sphere, MAT.bee, 0, 0, 0, 0.14, 0.12, 0.2));
+        b.add(mk(GEO.box, MAT.black, 0, 0, 0, 0.29, 0.2, 0.05));
+        g.add(b);
+        o.bees.push({ m: b, a: rand(0, TAU), r: rand(0.3, 1.0), s: rand(3, 6), yo: rand(-0.6, 0.6) });
       }
-    } else if (biome === 'forest') {
-      if (r < 0.55) {
-        add('tree', { x, w: 150, topY: gc + g / 2 });
-        if (gc - g / 2 > 60) add('vine', { x: x + rand(-20, 20), endY: gc - g / 2 - 20, w: 50 });
-        addSeedRow(x, gc, 4);
-      } else if (r < 0.78) {
-        add('hawk', { x: VW + 420, y: clamp(bird.y + rand(-80, 80), VH * 0.15, groundY - 40), extra: 230 + d * 120, w: 70 });
-        addSeedRow(x, rand(VH * 0.2, groundY - 60), 3);
-      } else {
-        const by = rand(VH * 0.3, groundY - 160);
-        add('bees', { x, by, y: by, amp: rand(80, 140), w: 80, extra: 40 });
-        addSeedRow(x + 200, by, 3);
+      o.cols.push(ball(0, 0, 0, 1.15));
+      o.update = (o, dt) => {
+        o.t += dt;
+        o.root.position.x = cx + Math.sin(o.t * 1.3 + o.ph) * 3;
+        o.root.position.y = cy + Math.sin(o.t * 2.1) * 1.6;
+        for (const b of o.bees) {
+          b.a += b.s * dt;
+          b.m.position.set(Math.cos(b.a) * b.r, b.yo + Math.sin(b.a * 1.7) * 0.4, Math.sin(b.a) * b.r);
+        }
+      };
+    });
+  }
+
+  // ----- City -----
+  function building(x, z) {
+    const w = rand(2.6, 4), d = rand(2.6, 4), h = rand(5, 12.5);
+    return addObs('tower', x, 0, z, (o, g) => {
+      g.add(mk(GEO.box, pick(BUILDING_MATS), 0, h / 2, 0, w, h, d));
+      g.add(mk(GEO.box, MAT.cable, 0, h + 0.12, 0, w + 0.2, 0.24, d + 0.2));
+      g.add(mk(GEO.box, MAT.cable, 0, h + 0.8, 0, 0.08, 1.4, 0.08));
+      g.add(mk(GEO.sphere, MAT.redLight, 0, h + 1.55, 0, 0.13));
+      o.cols.push(box(0, h / 2, 0, w / 2, h / 2 + 0.2, d / 2));
+    });
+  }
+  function girder(z) {
+    const L = rand(8, 14), y = rand(2.4, 8), x = rand(-XMAX + L / 2 - 2.5, XMAX - L / 2 + 2.5);
+    return addObs('beam', x, y, z, (o, g) => {
+      g.add(mk(GEO.box, MAT.girder, 0, 0, 0, L, 0.62, 0.7));
+      g.add(mk(GEO.box, MAT.girderDark, 0, 0.36, 0, L, 0.1, 0.8));
+      g.add(mk(GEO.box, MAT.girderDark, 0, -0.36, 0, L, 0.1, 0.8));
+      for (const s of [-1, 1]) g.add(mk(GEO.box, MAT.cable, s * (L / 2 - 0.5), (15 - y) / 2, 0, 0.05, 15 - y, 0.05));
+      o.cols.push(box(0, 0, 0, L / 2, 0.42, 0.42));
+    });
+  }
+  function wreckingBall(z) {
+    const cx = rand(-2.5, 2.5), Lc = rand(9, 12.5), w0 = rand(1.4, 2.0);
+    addObs('wreck', cx, 15, z, (o, g) => {
+      const cable = mk(GEO.box, MAT.cable, 0, 0, 0, 0.07, 1, 0.07);
+      const ballM = mk(GEO.sphere, MAT.ball, 0, 0, 0, 1.15);
+      g.add(cable); g.add(ballM);
+      g.add(mk(GEO.box, MAT.girder, 0, 0.2, 0, 6, 0.5, 0.6));
+      o.cols.push(ball(0, -Lc, 0, 1.15));
+      o.update = (o, dt) => {
+        o.t += dt;
+        const a = Math.sin(o.t * w0 + o.ph) * 0.85;
+        const bx = Math.sin(a) * Lc, by = -Math.cos(a) * Lc;
+        ballM.position.set(bx, by, 0);
+        cable.position.set(bx / 2, by / 2, 0);
+        cable.scale.y = Lc;
+        cable.rotation.z = a;
+        o.cols[0].x = bx; o.cols[0].y = by;
+      };
+    });
+  }
+  function drone(x, z) {
+    const by = rand(2.5, 8);
+    addObs('drone', x, by, z, (o, g) => {
+      g.add(mk(GEO.box, MAT.drone, 0, 0, 0, 0.8, 0.25, 0.8));
+      g.add(mk(GEO.sphere, MAT.redLight, 0, -0.05, 0.42, 0.08));
+      o.rotors = [];
+      for (const [rx, rz] of [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55]]) {
+        g.add(mk(GEO.box, MAT.droneDark, rx * 0.6, 0.05, rz * 0.6, 0.6, 0.06, 0.08));
+        const r = mk(GEO.box, MAT.droneDark, rx, 0.2, rz, 0.55, 0.02, 0.08);
+        g.add(r);
+        o.rotors.push(r);
       }
-    } else if (biome === 'city') {
-      if (r < 0.48) {
-        const w = rand(90, 130);
-        add('tower', { x, w, topY: gc + g / 2, col: pick(['#475569', '#334155', '#3f3f46', '#4c1d95']) });
-        if (gc - g / 2 > 60) add('beam', { x, w: 120, endY: gc - g / 2 });
-        addSeedRow(x, gc, 4);
-      } else if (r < 0.64) {
-        add('wreck', { x, len: rand(VH * 0.35, groundY * 0.75), w0: rand(1.6, 2.3), w: 200 });
-        addSeedRow(x + 180, rand(VH * 0.2, groundY - 60), 3);
-      } else if (r < 0.84) {
-        const n = 1 + (d > 0.4 ? 1 : 0);
-        for (let i = 0; i < n; i++) add('drone', { x: x + i * 160, by: rand(VH * 0.22, groundY - 100), w: 60 }).y = 0;
-        addSeedRow(x + 80, rand(VH * 0.2, groundY - 60), 3);
-      } else {
-        add('plane', { x: VW + 500, y: clamp(bird.y + rand(-60, 60), VH * 0.15, groundY - 60), extra: 380 + d * 150, w: 120 });
+      o.cols.push(ball(0, 0, 0, 0.7));
+      o.update = (o, dt) => {
+        o.t += dt;
+        o.root.position.y = by + Math.sin(o.t * 2.3 + o.ph) * 1.6;
+        o.root.position.x = x + Math.sin(o.t * 1.1 + o.ph) * 1.2;
+        for (const r of o.rotors) r.rotation.y += dt * 40;
+      };
+    });
+  }
+  function airplane(z) {
+    const x = clamp(bird.x + rand(-1.5, 1.5), -XMAX + 2, XMAX - 2), y = clamp(bird.y + rand(-1, 1), YMIN + 1, YMAX - 1);
+    const o = addObs('plane', x, y, z, (o, g) => {
+      const fus = mk(GEO.cyl, MAT.plane, 0, 0, 0, 0.5, 4.4, 0.5);
+      fus.rotation.x = Math.PI / 2;
+      g.add(fus);
+      const nose = mk(GEO.sphere, MAT.plane, 0, 0, 2.2, 0.5, 0.5, 0.7);
+      g.add(nose);
+      g.add(mk(GEO.box, MAT.planeWing, 0, -0.1, 0.2, 5.6, 0.12, 1.1));
+      g.add(mk(GEO.box, MAT.planeTail, 0, 0.75, -1.9, 0.1, 1.2, 0.8));
+      g.add(mk(GEO.box, MAT.planeWing, 0, 0.1, -1.9, 2, 0.08, 0.6));
+      for (const s of [-1, 1]) {
+        const engine = mk(GEO.cyl, MAT.cable, s * 1.4, -0.4, 0.4, 0.22, 0.7, 0.22);
+        engine.rotation.x = Math.PI / 2;
+        g.add(engine);
       }
+      g.add(mk(GEO.box, MAT.black, 0, 0.25, 1.9, 0.6, 0.2, 0.4));
+      o.cols.push(box(0, 0, 0, 0.55, 0.55, 2.5), box(0, -0.1, 0.2, 2.8, 0.18, 0.6));
+      o.update = (o) => {
+        const z = o.root.position.z;
+        if (o.warnSprite) o.warnSprite.visible = z < -28;
+        if (z > -25 && !o.whooshed) { o.whooshed = true; sfx.whoosh(); }
+      };
+    }, 46 + difficulty() * 14);
+    addWarning(o, 1.8);
+  }
+
+  // ----- Snowy peaks -----
+  function spire(x, z) {
+    const h = rand(5, 12), r = rand(1.6, 2.5);
+    return addObs('spire', x, 0, z, (o, g) => {
+      const c = mk(GEO.cone, pick([MAT.spire, MAT.spireDark]), 0, h / 2, 0, r, h, r);
+      c.rotation.y = rand(0, TAU);
+      g.add(c);
+      g.add(mk(GEO.cone, MAT.snow, 0, h * 0.86, 0, r * 0.32, h * 0.29, r * 0.32));
+      for (let k = 0; k < 4; k++) {
+        const f = (k + 0.5) / 4.6;
+        o.cols.push(ball(0, h * f, 0, r * (1 - f) * 0.92));
+      }
+    });
+  }
+  function icicles(z) {
+    const cx = rand(-4, 4);
+    addObs('icicles', cx, 0, z, (o, g) => {
+      g.add(mk(GEO.box, MAT.ice, 0, 11.4, 0, 9, 0.5, 1.4));
+      for (let i = 0; i < 6; i++) {
+        const x = (i - 2.5) * rand(1.2, 1.6), L = rand(2.5, 6.2), r = rand(0.3, 0.5);
+        const c = mk(GEO.cone, MAT.ice, x, 11.2 - L / 2, 0, r, L, r);
+        c.rotation.x = Math.PI;
+        g.add(c);
+        o.cols.push(ball(x, 11.2 - L * 0.25, 0, r * 0.9), ball(x, 11.2 - L * 0.7, 0, r * 0.45));
+      }
+    });
+  }
+  function snowball(x, z) {
+    const r = rand(0.8, 1.3), zLand = rand(-12, -2);
+    addObs('snowball', x, 14, z, (o, g) => {
+      const m = mk(GEO.ico1, MAT.snowball, 0, 0, 0, r);
+      g.add(m);
+      o.cols.push(ball(0, 0, 0, r * 0.92));
+      o.update = (o, dt) => {
+        const z = o.root.position.z;
+        const s = clamp((z - (zLand - 50)) / 50, 0, 1);
+        const y = lerp(14, r, s * s);
+        if (s >= 1 && !o.landed) { o.landed = true; burst(o.root.position.x, 0.3, z, 0xffffff, 10, 5); }
+        o.root.position.y = y;
+        m.rotation.x -= dt * 3;
+      };
+    });
+  }
+
+  // Pick a pattern for the current biome. Everything spawns far away, in the fog.
+  function spawnRow() {
+    const b = curBiome(), d = difficulty(), z = SPAWN_Z, r = Math.random();
+    const two = d > 0.25 && Math.random() < 0.55;
+    if (b === 'ocean') {
+      if (r < 0.45) { freeXs(two ? 2 : 1, 5).forEach((x) => seaStack(x, z)); if (Math.random() < 0.5) stormCloud(rand(-4, 4), z - 4); }
+      else if (r < 0.65) { stormCloud(rand(-4, 4), z); if (Math.random() < 0.5) stormCloud(rand(-4, 4), z - 8); }
+      else if (r < 0.85) { swordfish(rand(-5, 5), z); if (two) swordfish(rand(-5, 5), z - 10); }
+      else gullFlock(z);
+    } else if (b === 'forest') {
+      if (r < 0.4) freeXs(two ? 2 : 1, 5).forEach((x) => tree(x, z));
+      else if (r < 0.58) fallenLog(z);
+      else if (r < 0.74) vines(z);
+      else if (r < 0.88) raptor(z, false);
+      else beeSwarm(z);
+    } else if (b === 'city') {
+      if (r < 0.38) freeXs(two ? 2 : 1, 5.5).forEach((x) => building(x, z));
+      else if (r < 0.56) girder(z);
+      else if (r < 0.7) wreckingBall(z);
+      else if (r < 0.86) freeXs(two ? 2 : 1, 4).forEach((x) => drone(x, z));
+      else airplane(z);
     } else {
-      if (r < 0.55) {
-        add('peak', { x, w: rand(200, 260), topY: gc + g / 2 });
-        if (gc - g / 2 > 50) {
-          const len = gc - g / 2;
-          add('icicles', { x, w: 140, spikes: [{ dx: -42, w: 34, len: len * 0.7 }, { dx: 0, w: 42, len }, { dx: 40, w: 30, len: len * 0.8 }] });
-        }
-        addSeedRow(x, gc, 4);
-      } else if (r < 0.8) {
-        const n = 2 + (d > 0.5 ? 1 : 0);
-        for (let i = 0; i < n; i++) add('snowball', { x: x + i * 120 + rand(0, 60), y: -40, vy: 0, r: rand(18, 28), rot: 0, delay: i * 0.35, w: 60 });
-        addSeedRow(x + 140, rand(VH * 0.3, groundY - 60), 3);
-      } else {
-        add('hawk', { x: VW + 420, y: clamp(bird.y + rand(-80, 80), VH * 0.15, groundY - 40), extra: 240 + d * 120, w: 70, snow: true });
-      }
+      if (r < 0.42) freeXs(two ? 2 : 1, 5.5).forEach((x) => spire(x, z));
+      else if (r < 0.6) icicles(z);
+      else if (r < 0.85) freeXs(two ? 3 : 2, 3.5).forEach((x, i) => snowball(x, z - i * 6));
+      else raptor(z, true);
+    }
+  }
+
+  function spawnSeeds() {
+    const x = rand(-XMAX + 1, XMAX - 1), y = rand(YMIN + 0.6, YMAX - 1), n = 5;
+    const dx = rand(-0.25, 0.25), dy = rand(-0.15, 0.15);
+    for (let i = 0; i < n; i++) {
+      const root = mk(GEO.ico, MAT.seed, x + dx * i * 2.2, clamp(y + dy * i * 2.2, YMIN, YMAX), SPAWN_Z - i * 2.2, 0.3);
+      scene.add(root);
+      seeds.push({ root, spin: rand(0, TAU) });
     }
   }
 
   function spawnBubble() {
-    const kinds = Object.keys(POWERS);
-    bubbles.push({ x: VW + 60, y: rand(VH * 0.2, groundY - 70), kind: pick(kinds), t: 0 });
+    const kind = pick(Object.keys(POWERS));
+    const root = new THREE.Group();
+    root.position.set(rand(-XMAX + 1.5, XMAX - 1.5), rand(YMIN + 1, YMAX - 1.5), SPAWN_Z);
+    root.add(mk(GEO.ico1, powerShell[kind], 0, 0, 0, 0.9));
+    const sp = new THREE.Sprite(powerSprite[kind]);
+    sp.scale.set(1.3, 1.3, 1);
+    root.add(sp);
+    scene.add(root);
+    bubbles.push({ root, kind, t: 0, baseY: root.position.y });
+  }
+
+  // ---------- Scenery (no collisions; just there to make the world feel alive) ----------
+  function addDeco(root) { scene.add(root); decos.push({ root }); }
+  function sideScenery(z) {
+    const b = curBiome();
+    for (const side of [-1, 1]) {
+      const x = side * rand(13, 48);
+      if (b === 'ocean') {
+        if (Math.random() < 0.3) {
+          const g = new THREE.Group();
+          g.position.set(x, 0, z);
+          g.add(mk(GEO.ico, MAT.sand, 0, -0.2, 0, rand(2.5, 4), 1, rand(2.5, 4)));
+          const trunk = mk(GEO.cyl, MAT.trunk, 0, 2.2, 0, 0.18, 4.4, 0.18);
+          trunk.rotation.z = side * 0.2;
+          g.add(trunk);
+          for (let k = 0; k < 5; k++) {
+            const leaf = mk(GEO.box, MAT.palm, Math.cos(k * 1.26) * 0.9 - side * 0.4, 4.3, Math.sin(k * 1.26) * 0.9, 2, 0.08, 0.45);
+            leaf.rotation.y = -k * 1.26; leaf.rotation.z = 0.35;
+            g.add(leaf);
+          }
+          addDeco(g);
+        } else if (Math.random() < 0.3) {
+          addDeco(mk(GEO.ico, MAT.rockDark, x, 0.3, z, rand(0.8, 2)));
+        }
+      } else if (b === 'forest') {
+        for (let k = 0; k < (Math.random() < 0.4 ? 2 : 1); k++) {
+          const g = new THREE.Group();
+          const h = rand(5, 11);
+          g.position.set(side * (h * 0.32 + rand(9.5, 42)), 0, z + rand(-2, 2));
+          g.add(mk(GEO.cyl, MAT.trunk, 0, 0.6, 0, 0.3, 1.2, 0.3));
+          g.add(mk(GEO.cone, Math.random() < 0.5 ? MAT.pine : MAT.pineDark, 0, 1 + h / 2, 0, h * 0.32, h, h * 0.32));
+          addDeco(g);
+        }
+      } else if (b === 'city') {
+        if (Math.random() < 0.8) {
+          const w = rand(4, 8), h = rand(8, 30), d = rand(4, 8);
+          addDeco(mk(GEO.box, pick(BUILDING_SIDE_MATS), side * (w / 2 + rand(10, 36)), h / 2, z, w, h, d));
+        }
+        if (Math.random() < 0.35) {
+          const g = new THREE.Group();
+          g.position.set(side * 9.5, 0, z);
+          g.add(mk(GEO.box, MAT.streetlamp, 0, 2, 0, 0.12, 4, 0.12));
+          g.add(mk(GEO.box, MAT.streetlamp, -side * 0.5, 4, 0, 1, 0.1, 0.12));
+          g.add(mk(GEO.sphere, MAT.lampGlow, -side * 0.95, 3.85, 0, 0.18));
+          addDeco(g);
+        }
+      } else {
+        if (Math.random() < 0.55) {
+          const g = new THREE.Group();
+          const h = rand(12, 34), r = h * rand(0.45, 0.65);
+          // Keep the whole mountain outside the flight corridor (it has no collision).
+          g.position.set(side * (r + rand(10, 36)), 0, z);
+          const m = mk(GEO.cone, Math.random() < 0.5 ? MAT.mountain : MAT.mountainDark, 0, h / 2, 0, r, h, r);
+          m.rotation.y = rand(0, TAU);
+          g.add(m);
+          g.add(mk(GEO.cone, MAT.snow, 0, h * 0.84, 0, r * 0.34, h * 0.33, r * 0.34));
+          addDeco(g);
+        } else if (Math.random() < 0.4) {
+          addDeco(mk(GEO.ico, MAT.snowMound, x, 0, z, rand(1, 2.2), rand(0.5, 1), rand(1, 2.2)));
+        }
+      }
+    }
+    // Little details on the ground under you so you can feel the speed
+    if (b === 'ocean') { for (let k = 0; k < 2; k++) addDeco(mk(GEO.box, MAT.whitecap, rand(-12, 12), 0.32, z + rand(-2, 2), rand(0.6, 1.4), 0.04, 0.15)); }
+    else if (b === 'forest') { for (let k = 0; k < 3; k++) addDeco(mk(GEO.cone, MAT.grass, rand(-10, 10), 0.25, z + rand(-2, 2), 0.25, 0.5, 0.25)); if (Math.random() < 0.3) addDeco(mk(GEO.sphere, MAT.flower, rand(-8, 8), 0.2, z, 0.18)); }
+    else if (b === 'city') { for (const lx of [-3.5, 3.5]) addDeco(mk(GEO.box, MAT.dash, lx, 0.03, z, 0.18, 0.02, 1.4)); }
+    else { if (Math.random() < 0.6) addDeco(mk(GEO.ico, MAT.snowMound, rand(-10, 10), 0, z, rand(0.5, 1.1), 0.35, rand(0.5, 1.1))); }
+  }
+  function skyCloud(z) {
+    const g = new THREE.Group();
+    g.position.set(rand(-60, 60), rand(17, 26), z);
+    for (let k = 0; k < 4; k++) g.add(mk(GEO.ico, MAT.cloud, (k - 1.5) * rand(2, 3), rand(-0.8, 0.8), rand(-1, 1), rand(2, 3.4)));
+    addDeco(g);
   }
 
   // ---------- Collision ----------
-  function circleHits(cx, cy, r, s) {
-    if (s.t === 'c') return Math.hypot(cx - s.x, cy - s.y) < r + s.r;
-    if (s.t === 'r') {
-      const px = clamp(cx, s.x, s.x + s.w), py = clamp(cy, s.y, s.y + s.h);
-      return Math.hypot(cx - px, cy - py) < r;
+  function hits(o, bx, by, bz, r) {
+    const p = o.root.position;
+    for (const c of o.cols) {
+      const cx = p.x + c.x, cy = p.y + c.y, cz = p.z + c.z;
+      if (c.t === 's') {
+        const dx = bx - cx, dy = by - cy, dz = bz - cz, rr = r + c.r;
+        if (dx * dx + dy * dy + dz * dz < rr * rr) return true;
+      } else {
+        const qx = clamp(bx, cx - c.hx, cx + c.hx), qy = clamp(by, cy - c.hy, cy + c.hy), qz = clamp(bz, cz - c.hz, cz + c.hz);
+        const dx = bx - qx, dy = by - qy, dz = bz - qz;
+        if (dx * dx + dy * dy + dz * dz < r * r) return true;
+      }
     }
-    // triangle
-    const { ax, ay, bx, by, cx: qx, cy: qy } = s;
-    const sign = (x1, y1, x2, y2, x3, y3) => (x1 - x3) * (y2 - y3) - (x2 - x3) * (y1 - y3);
-    const d1 = sign(cx, cy, ax, ay, bx, by), d2 = sign(cx, cy, bx, by, qx, qy), d3 = sign(cx, cy, qx, qy, ax, ay);
-    const neg = d1 < 0 || d2 < 0 || d3 < 0, pos = d1 > 0 || d2 > 0 || d3 > 0;
-    if (!(neg && pos)) return true;
-    const segD = (x1, y1, x2, y2) => {
-      const dx = x2 - x1, dy = y2 - y1;
-      const t = clamp(((cx - x1) * dx + (cy - y1) * dy) / (dx * dx + dy * dy || 1), 0, 1);
-      return Math.hypot(cx - (x1 + dx * t), cy - (y1 + dy * t));
-    };
-    return Math.min(segD(ax, ay, bx, by), segD(bx, by, qx, qy), segD(qx, qy, ax, ay)) < r;
+    return false;
   }
-
-  function birdRadius() { return 11 * bird.size; }
 
   function hitBy(o) {
     if (timers.shield > 0) {
       o.dead = true;
       bonus += 10 * (timers.double > 0 ? 2 : 1);
-      burst(o.x, bird.y, '#5eead4', 24, 320);
-      floaters.push({ x: bird.x, y: bird.y - 30, text: 'SMASH!', life: 0.8, c: '#5eead4' });
+      burst(bird.x, bird.y, -1, 0x5eead4, 22, 10);
       sfx.smash();
-      shake = 6;
+      shake = 0.25;
       return;
     }
     bird.hearts--;
     bird.inv = 1.6;
-    shake = 12;
-    feathers(bird.x, bird.y, 14);
+    shake = 0.5;
+    burst(bird.x, bird.y, 0, 0x38bdf8, 16, 7);
+    el.flash.style.transition = 'none';
+    el.flash.style.opacity = '0.35';
+    requestAnimationFrame(() => { el.flash.style.transition = 'opacity 0.45s'; el.flash.style.opacity = '0'; });
     sfx.hit();
     if (bird.hearts <= 0) gameOver();
   }
 
   // ---------- Input ----------
   let drag = null;
-  let mouseActive = false;
-  function toWorld(e) { return { x: e.clientX / scale, y: e.clientY / scale }; }
   function tryStart() {
     initAudio();
     if (state === 'menu') start();
     else if (state === 'over' && performance.now() > overReadyAt) start();
   }
+  function mouseTarget(e) {
+    bird.tx = ((e.clientX / window.innerWidth) * 2 - 1) * XMAX;
+    bird.ty = lerp(YMAX, YMIN, e.clientY / window.innerHeight);
+  }
   window.addEventListener('pointerdown', (e) => {
-    const p = toWorld(e);
-    if (e.pointerType === 'mouse') { mouseActive = true; bird.tx = p.x; bird.ty = p.y; }
-    else drag = { sx: p.x, sy: p.y, tx: bird.tx, ty: bird.ty, id: e.pointerId };
+    if (e.pointerType === 'mouse') mouseTarget(e);
+    else drag = { sx: e.clientX, sy: e.clientY, tx: bird.tx, ty: bird.ty, id: e.pointerId };
     tryStart();
   });
   window.addEventListener('pointermove', (e) => {
-    const p = toWorld(e);
-    if (e.pointerType === 'mouse') { mouseActive = true; bird.tx = p.x; bird.ty = p.y; return; }
-    if (!drag || drag.id !== e.pointerId) return;
-    // Relative drag: the bird moves with your finger but stays out from under it.
-    bird.tx = drag.tx + (p.x - drag.sx) * 1.25;
-    if (!gyroOn) bird.ty = drag.ty + (p.y - drag.sy) * 1.25;
+    if (e.pointerType === 'mouse') { if (!gyroOn) mouseTarget(e); return; }
+    if (!drag || drag.id !== e.pointerId || gyroOn) return;
+    // Relative drag: the bird moves with your finger but never sits under it.
+    bird.tx = drag.tx + ((e.clientX - drag.sx) / window.innerWidth) * XMAX * 2.6;
+    bird.ty = drag.ty - ((e.clientY - drag.sy) / window.innerHeight) * (YMAX - YMIN) * 1.7;
   });
   const endDrag = (e) => { if (drag && drag.id === e.pointerId) drag = null; };
   window.addEventListener('pointerup', endDrag);
@@ -858,34 +1101,31 @@
     keys[e.code] = true;
     if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
     if ((e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') && !e.repeat) tryStart();
-    if (e.code.startsWith('Arrow') || ['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) mouseActive = false;
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
   window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; drag = null; });
 
   // ---------- Gyro (tilt steering) ----------
-  // Tilt the top of the phone toward you to climb, away from you to dive.
-  // Whatever angle you're holding the phone at when the run starts counts as "level".
+  // Tilt the top of the phone toward you to climb, away to dive; tilt left/right to steer.
+  // However you're holding the phone when the run starts counts as "level".
   let gyroOn = false, gyroRaw = null, gyroNeutral = null, gyroSeen = false;
-  const GYRO_RANGE = 30; // degrees of tilt from level to reach the top/bottom of the sky
-
+  const GYRO_RANGE = 22; // degrees of tilt to reach the edge of the corridor
   function readTilt(e) {
     const ang = (screen.orientation && typeof screen.orientation.angle === 'number')
       ? screen.orientation.angle
       : (typeof window.orientation === 'number' ? window.orientation : 0);
-    if (ang === 90) return -e.gamma;
-    if (ang === -90 || ang === 270) return e.gamma;
-    if (ang === 180) return -e.beta;
-    return e.beta;
+    if (ang === 90) return { up: -e.gamma, right: e.beta };
+    if (ang === -90 || ang === 270) return { up: e.gamma, right: -e.beta };
+    if (ang === 180) return { up: -e.beta, right: -e.gamma };
+    return { up: e.beta, right: e.gamma };
   }
   window.addEventListener('deviceorientation', (e) => {
     if (e.beta == null || e.gamma == null) return;
     gyroSeen = true;
     gyroRaw = readTilt(e);
-    if (gyroOn && gyroNeutral == null) gyroNeutral = gyroRaw;
+    if (gyroOn && gyroNeutral == null) gyroNeutral = { ...gyroRaw };
   });
-  function calibrateGyro() { gyroNeutral = gyroRaw; }
-
+  function calibrateGyro() { gyroNeutral = gyroRaw ? { ...gyroRaw } : null; }
   function refreshGyroBtn() {
     el.gyro.classList.toggle('on', gyroOn);
     el.gyroLabel.classList.toggle('gone', !gyroOn);
@@ -908,486 +1148,220 @@
     el.gyro.blur();
     initAudio();
     if (gyroOn) { setGyro(false); return; }
-    // iPhone/iPad need permission, and it must be asked right inside the tap.
+    // iPhone/iPad need permission, and it has to be asked right inside the tap.
     const DOE = window.DeviceOrientationEvent;
     if (DOE && typeof DOE.requestPermission === 'function') {
       DOE.requestPermission()
         .then((res) => { if (res === 'granted') setGyro(true); else banner('GYRO BLOCKED'); })
         .catch(() => banner('GYRO BLOCKED'));
-    } else if (DOE) {
-      setGyro(true);
-    } else {
-      banner('NO GYRO FOUND');
-    }
+    } else if (DOE) setGyro(true);
+    else banner('NO GYRO FOUND');
   });
-  // Android doesn't ask for permission, so we can bring back last time's choice.
   try {
     const DOE = window.DeviceOrientationEvent;
-    if (isTouch && localStorage.getItem('wingsGyro') === '1' && DOE && typeof DOE.requestPermission !== 'function') {
-      gyroOn = true; refreshGyroBtn();
-    }
+    if (isTouch && localStorage.getItem('wingsGyro') === '1' && DOE && typeof DOE.requestPermission !== 'function') { gyroOn = true; refreshGyroBtn(); }
   } catch (e) {}
+
+  // ---------- Biome colors ----------
+  const col = {
+    sky: new THREE.Color(PALETTE.ocean.sky), ground: new THREE.Color(PALETTE.ocean.ground),
+    hemiSky: new THREE.Color(PALETTE.ocean.hemiSky), hemiGround: new THREE.Color(PALETTE.ocean.hemiGround), sun: new THREE.Color(PALETTE.ocean.sun),
+  };
+  const tgt = { sky: new THREE.Color(), ground: new THREE.Color(), hemiSky: new THREE.Color(), hemiGround: new THREE.Color(), sun: new THREE.Color() };
+  function blendColors(dt) {
+    const p = PALETTE[curBiome()];
+    const k = Math.min(1, dt * 0.9);
+    for (const key of ['sky', 'ground', 'hemiSky', 'hemiGround', 'sun']) col[key].lerp(tgt[key].set(p[key]), k);
+    scene.background.copy(col.sky);
+    scene.fog.color.copy(col.sky);
+    groundMat.color.copy(col.ground);
+    hemi.color.copy(col.hemiSky);
+    hemi.groundColor.copy(col.hemiGround);
+    sunLight.color.copy(col.sun);
+    sunLight.intensity = lerp(sunLight.intensity, p.sunI, k);
+    sun.material.color.copy(col.sun);
+    waveAmp = lerp(waveAmp, curBiome() === 'ocean' ? 0.28 : 0, k);
+  }
+
+  let groundFlat = false;
+  function animateGround() {
+    if (waveAmp < 0.005) {
+      if (!groundFlat) { for (let i = 0; i < groundPos.count; i++) groundPos.setZ(i, 0); groundPos.needsUpdate = true; groundFlat = true; }
+      return;
+    }
+    groundFlat = false;
+    for (let i = 0; i < groundPos.count; i++) {
+      const lx = groundPos.getX(i), ly = groundPos.getY(i);
+      const wz = -ly + ground.position.z;
+      groundPos.setZ(i, waveAmp * (Math.sin(lx * 0.45 + time * 1.4) * 0.6 + Math.sin((wz - scroll) * 0.32) * 0.8));
+    }
+    groundPos.needsUpdate = true;
+  }
 
   // ---------- Update ----------
   function update(dt) {
     time += dt;
-    shake = Math.max(0, shake - 30 * dt);
-    biomeBlend = Math.min(1, biomeBlend + dt / 2.5);
-
+    shake = Math.max(0, shake - dt * 1.5);
     const playing = state === 'playing';
-    const spd = playing ? worldSpeed() : (state === 'menu' ? 140 : worldSpeed() * 0.3);
+    const spd = playing ? worldSpeed() : (state === 'menu' ? 14 : 10);
+    scroll += spd * dt;
 
     // ----- Bird -----
     if (bird.alive) {
-      const moveK = 720 * dt;
-      if (keys.ArrowUp || keys.KeyW) bird.ty -= moveK;
-      if (keys.ArrowDown || keys.KeyS) bird.ty += moveK;
-      if (keys.ArrowLeft || keys.KeyA) bird.tx -= moveK;
-      if (keys.ArrowRight || keys.KeyD) bird.tx += moveK;
-      if (gyroOn && gyroRaw != null && gyroNeutral != null) {
-        const tilt = clamp((gyroRaw - gyroNeutral) / GYRO_RANGE, -1, 1);
-        bird.ty = lerp(VH * 0.12, groundY - 20, 0.5 - tilt * 0.5);
+      const k = 12 * dt;
+      if (keys.ArrowUp || keys.KeyW) bird.ty += k;
+      if (keys.ArrowDown || keys.KeyS) bird.ty -= k;
+      if (keys.ArrowLeft || keys.KeyA) bird.tx -= k;
+      if (keys.ArrowRight || keys.KeyD) bird.tx += k;
+      if (gyroOn && gyroRaw && gyroNeutral) {
+        const up = clamp((gyroRaw.up - gyroNeutral.up) / GYRO_RANGE, -1, 1);
+        const right = clamp((gyroRaw.right - gyroNeutral.right) / GYRO_RANGE, -1, 1);
+        bird.ty = lerp(YMIN, YMAX, 0.5 + up * 0.5);
+        bird.tx = right * XMAX;
       }
-      if (state === 'menu') { bird.ty = VH * 0.45 + Math.sin(time * 1.5) * 40; bird.tx = VW * 0.28; }
-      bird.tx = clamp(bird.tx, VW * 0.1, VW * 0.62);
-      bird.ty = clamp(bird.ty, 24, groundY - 16);
-      const prevY = bird.y;
-      bird.x = lerp(bird.x, bird.tx, Math.min(1, dt * 9));
-      bird.y = lerp(bird.y, bird.ty, Math.min(1, dt * 9));
-      bird.vy = (bird.y - prevY) / Math.max(dt, 1e-4);
-      bird.tilt = lerp(bird.tilt, clamp(bird.vy / 900, -0.6, 0.6), Math.min(1, dt * 10));
-      bird.flap += dt * (bird.vy < -60 ? 22 : 14);
+      if (state === 'menu') { bird.tx = Math.sin(time * 0.6) * 2.5; bird.ty = 4.5 + Math.sin(time * 1.1) * 1.2; }
+      bird.tx = clamp(bird.tx, -XMAX, XMAX);
+      bird.ty = clamp(bird.ty, YMIN, YMAX);
+      const px = bird.x, py = bird.y;
+      bird.x = lerp(bird.x, bird.tx, Math.min(1, dt * 7));
+      bird.y = lerp(bird.y, bird.ty, Math.min(1, dt * 7));
+      bird.vx = (bird.x - px) / Math.max(dt, 1e-4);
+      bird.vy = (bird.y - py) / Math.max(dt, 1e-4);
+      bird.flap += dt * (bird.vy > 1 ? 22 : 13);
       bird.size = lerp(bird.size, timers.tiny > 0 ? 0.55 : 1, Math.min(1, dt * 8));
       bird.inv = Math.max(0, bird.inv - dt);
     } else {
-      bird.fallV += 1200 * dt;
-      bird.y = Math.min(groundY - 10, bird.y + bird.fallV * dt);
-      bird.spin += dt * 8;
-      bird.tilt = bird.spin;
+      bird.fallV += 22 * dt;
+      bird.y = Math.max(0.5, bird.y - bird.fallV * dt);
+      bird.spin += dt * 9;
     }
 
     if (playing) {
       dist += spd * dt;
-
-      // Biome changes
       const b = Math.floor(dist / BIOME_LEN);
-      if (b !== biomeIdx) {
-        prevBiome = curBiome();
-        biomeIdx = b;
-        biomeBlend = 0;
-        loops = Math.floor(b / BIOMES.length);
-        banner(BIOME_NAMES[curBiome()]);
-        sfx.biome();
-      }
+      if (b !== biomeIdx) { biomeIdx = b; banner(BIOME_NAMES[curBiome()]); sfx.biome(); }
 
-      // Spawning
       nextSpawn -= spd * dt;
-      if (nextSpawn <= 0) {
-        spawnPattern();
-        nextSpawn = lerp(430, 270, difficulty()) + rand(0, 140);
-      }
+      if (nextSpawn <= 0) { spawnRow(); nextSpawn = lerp(30, 17, difficulty()) + rand(0, 8); }
+      seedNext -= spd * dt;
+      if (seedNext <= 0) { spawnSeeds(); seedNext = rand(28, 44); }
       powerCd -= dt;
       if (powerCd <= 0) { spawnBubble(); powerCd = rand(8, 12); }
-
       for (const k in timers) {
-        if (timers[k] > 0) {
-          timers[k] = Math.max(0, timers[k] - dt);
-          if (timers[k] === 0) sfx.end();
-        }
+        if (timers[k] > 0) { timers[k] = Math.max(0, timers[k] - dt); if (timers[k] === 0) sfx.end(); }
       }
     }
 
-    // ----- World objects -----
+    // Scenery keeps flowing even on the menu
+    decoNext -= spd * dt;
+    while (decoNext <= 0) { sideScenery(SPAWN_Z + decoNext); decoNext += 4; }
+    cloudNext -= spd * dt;
+    if (cloudNext <= 0) { skyCloud(SPAWN_Z - 30); cloudNext = rand(18, 34); }
+
+    // ----- Move everything toward the camera -----
     for (const o of obstacles) {
-      o.x -= (spd + (playing || state === 'over' ? o.extra : 0)) * dt;
-      const K = KINDS[o.kind];
-      if (K.update) K.update.call(K, o, dt);
+      o.root.position.z += (spd + (state !== 'menu' ? o.extra : 0)) * dt;
+      if (o.update) o.update(o, dt);
     }
+    for (const d of decos) d.root.position.z += spd * dt;
+    for (const s of seeds) { s.root.position.z += spd * dt; s.spin += dt * 3; s.root.rotation.set(s.spin, s.spin * 1.3, 0); }
+    for (const p of bubbles) { p.root.position.z += spd * dt; p.t += dt; p.root.position.y = p.baseY + Math.sin(p.t * 3) * 0.3; p.root.children[0].rotation.y += dt; }
+
+    // ----- Collisions -----
     if (playing && bird.alive) {
       const r = birdRadius();
       for (const o of obstacles) {
-        if (o.dead) continue;
-        if (Math.abs(o.x - bird.x) > 400) continue;
-        const K = KINDS[o.kind];
-        const shapes = K.shapes.call(K, o);
-        if (shapes.some((s) => circleHits(bird.x, bird.y, r, s))) {
-          if (timers.ghost > 0 && timers.shield <= 0) continue; // ghosts pass through
-          if (bird.inv > 0 && timers.shield <= 0) continue;
-          hitBy(o);
-          if (state !== 'playing') break;
+        if (o.dead || Math.abs(o.root.position.z) > 7) continue;
+        if (!hits(o, bird.x, bird.y, 0, r)) continue;
+        if (timers.shield <= 0 && (timers.ghost > 0 || bird.inv > 0)) continue;
+        hitBy(o);
+        if (state !== 'playing') break;
+      }
+      for (const s of seeds) {
+        if (s.got) continue;
+        const p = s.root.position;
+        const dx = bird.x - p.x, dy = bird.y - p.y, dz = -p.z, d = Math.hypot(dx, dy, dz);
+        if (timers.magnet > 0 && d < 9 && p.z > -12) { const m = Math.min(1, dt * 7); p.x += dx * m; p.y += dy * m; p.z += dz * m * 0.5; }
+        if (d < r + 0.55) {
+          s.got = true;
+          seedsGot++;
+          bonus += 5 * (timers.double > 0 ? 2 : 1);
+          sfx.seed();
+          burst(p.x, p.y, p.z, 0xfde047, 5, 4);
+        }
+      }
+      for (const p of bubbles) {
+        const q = p.root.position;
+        if (!p.got && Math.hypot(bird.x - q.x, bird.y - q.y, q.z) < r + 1.0) {
+          p.got = true;
+          powersGot++;
+          const P = POWERS[p.kind];
+          timers[p.kind] = P.time;
+          banner(P.label + '!');
+          burst(q.x, q.y, q.z, new THREE.Color(P.color).getHex(), 18, 8);
+          sfx.power();
         }
       }
     }
-    obstacles = obstacles.filter((o) => !o.dead && o.x > -420 && !(o.y > VH + 300));
 
-    for (const s of seeds) {
-      s.x -= spd * dt;
-      s.bob += dt * 4;
-      if (!playing || s.got) continue;
-      const dx = bird.x - s.x, dy = bird.y - s.y, d = Math.hypot(dx, dy);
-      if (timers.magnet > 0 && d < 240) { s.x += (dx / d) * 600 * dt; s.y += (dy / d) * 600 * dt; }
-      if (d < birdRadius() + 14) {
-        s.got = true;
-        seedsGot++;
-        const pts = 5 * (timers.double > 0 ? 2 : 1);
-        bonus += pts;
-        floaters.push({ x: s.x, y: s.y - 12, text: '+' + pts, life: 0.6, c: '#fde047' });
-        burst(s.x, s.y, '#fde047', 6, 140, 0);
-        sfx.seed();
-      }
-    }
-    seeds = seeds.filter((s) => !s.got && s.x > -40);
-
-    for (const p of bubbles) {
-      p.x -= spd * dt; p.t += dt;
-      if (playing && !p.got && Math.hypot(bird.x - p.x, bird.y - (p.y + Math.sin(p.t * 3) * 10)) < birdRadius() + 24) {
-        p.got = true;
-        powersGot++;
-        const P = POWERS[p.kind];
-        timers[p.kind] = P.time;
-        banner(P.label + '!');
-        burst(p.x, p.y, P.color, 24, 260, 0);
-        sfx.power();
-      }
-    }
-    bubbles = bubbles.filter((p) => !p.got && p.x > -60);
-
+    // ----- Cleanup -----
+    const keep = (list, cond) => { let j = 0; for (const o of list) { if (cond(o)) list[j++] = o; else scene.remove(o.root); } list.length = j; };
+    keep(obstacles, (o) => !o.dead && o.root.position.z < KILL_Z);
+    keep(decos, (o) => o.root.position.z < KILL_Z + 10);
+    keep(seeds, (o) => !o.got && o.root.position.z < KILL_Z);
+    keep(bubbles, (o) => !o.got && o.root.position.z < KILL_Z);
     for (const q of particles) {
-      q.x += q.vx * dt; q.y += q.vy * dt; q.vy += q.g * dt; q.life -= dt;
-      if (q.feather) { q.vx *= 1 - 1.5 * dt; q.rot += q.vr * dt; }
+      q.root.position.x += q.vx * dt; q.root.position.y += q.vy * dt; q.root.position.z += (q.vz + spd * 0.6) * dt;
+      q.vy -= q.g * dt; q.life -= dt;
+      q.root.rotation.x += dt * 6; q.root.rotation.y += dt * 4;
+      q.root.scale.multiplyScalar(1 - dt * 1.2);
     }
-    particles = particles.filter((q) => q.life > 0);
-    for (const f of floaters) { f.life -= dt; f.y -= 40 * dt; }
-    floaters = floaters.filter((f) => f.life > 0);
+    keep(particles, (q) => q.life > 0);
 
+    blendColors(dt);
+    animateGround();
     if (playing) updateHud();
   }
 
-  // ---------- Backgrounds ----------
-  function columns(par, spacing, fn) {
-    const off = dist * par + time * 0; // parallax offset
-    const first = Math.floor(off / spacing) - 1;
-    const n = Math.ceil(VW / spacing) + 3;
-    for (let i = first; i < first + n; i++) fn(i * spacing - off, i);
-  }
-  function skyGrad(stops) {
-    const g = ctx.createLinearGradient(0, 0, 0, VH);
-    stops.forEach((c, i) => g.addColorStop(i / (stops.length - 1), c));
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, VW, VH);
-  }
-  function wavyBand(par, base, amp, freq, color) {
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(0, VH);
-    const off = dist * par;
-    for (let x = 0; x <= VW + 10; x += 10) {
-      const wx = (x + off) * freq;
-      ctx.lineTo(x, base + (Math.sin(wx) * 0.6 + Math.sin(wx * 2.7 + 1.3) * 0.3 + Math.sin(wx * 6.1) * 0.1) * amp);
-    }
-    ctx.lineTo(VW, VH);
-    ctx.closePath();
-    ctx.fill();
-  }
-  function cloudsLayer(par, y0, alpha, color = '#ffffff') {
-    ctx.fillStyle = color;
-    ctx.globalAlpha *= alpha;
-    columns(par, 260, (x, i) => {
-      if (hash(i) < 0.35) return;
-      const y = y0 + hash(i + 3) * VH * 0.18, s = 0.7 + hash(i + 7) * 0.6;
-      ctx.beginPath();
-      // One path for the whole cloud so overlapping puffs don't show darker seams.
-      ctx.arc(x, y, 26 * s, 0, TAU);
-      ctx.moveTo(x + 60 * s, y - 10 * s); ctx.arc(x + 28 * s, y - 10 * s, 32 * s, 0, TAU);
-      ctx.moveTo(x + 84 * s, y); ctx.arc(x + 60 * s, y, 24 * s, 0, TAU);
-      ctx.rect(x, y, 60 * s, 22 * s);
-      ctx.fill('nonzero');
-    });
-    ctx.globalAlpha /= alpha;
-  }
-
-  const BG = {
-    ocean() {
-      skyGrad(['#0ea5e9', '#7dd3fc', '#e0f2fe']);
-      const sx = VW * 0.78, sy = VH * 0.2;
-      const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 110);
-      sg.addColorStop(0, 'rgba(255,251,235,1)'); sg.addColorStop(0.3, 'rgba(254,240,138,0.8)'); sg.addColorStop(1, 'rgba(254,240,138,0)');
-      ctx.fillStyle = sg; ctx.fillRect(sx - 110, sy - 110, 220, 220);
-      cloudsLayer(0.06, VH * 0.08, 0.85);
-      wavyBand(0.12, groundY - 30, 22, 0.006, '#0e7490');
-      columns(0.12, 520, (x, i) => {
-        if (hash(i + 20) < 0.5) return;
-        ctx.fillStyle = '#15803d';
-        ctx.beginPath(); ctx.ellipse(x, groundY - 8, 70, 26, 0, Math.PI, 0); ctx.fill();
-        ctx.strokeStyle = '#78350f'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(x + 10, groundY - 30); ctx.quadraticCurveTo(x + 16, groundY - 70, x + 4, groundY - 90); ctx.stroke();
-        ctx.fillStyle = '#16a34a';
-        for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.ellipse(x + 4 + Math.cos(k * 1.6) * 16, groundY - 92 + Math.sin(k * 1.6) * 6, 18, 6, k * 1.6, 0, TAU); ctx.fill(); }
-      });
-      const g = ctx.createLinearGradient(0, groundY, 0, VH);
-      g.addColorStop(0, '#0284c7'); g.addColorStop(1, '#0c4a6e');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, groundY, VW, VH - groundY);
-      ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 2;
-      for (let row = 0; row < 3; row++) {
-        const yy = groundY + 6 + row * 16, off = dist * (0.9 + row * 0.2);
-        ctx.beginPath();
-        for (let x = 0; x <= VW + 10; x += 10) ctx.lineTo(x, yy + Math.sin((x + off) * 0.04 + time * 2 + row) * 3);
-        ctx.stroke();
-      }
-    },
-    forest() {
-      skyGrad(['#86efac', '#d9f99d', '#fef9c3']);
-      cloudsLayer(0.05, VH * 0.06, 0.6);
-      const pines = (par, spacing, hMin, hMax, color, baseY) => {
-        ctx.fillStyle = color;
-        columns(par, spacing, (x, i) => {
-          const h = hMin + hash(i * 1.7 + par * 10) * (hMax - hMin), w = h * 0.38;
-          ctx.beginPath();
-          ctx.moveTo(x, baseY - h);
-          ctx.lineTo(x + w, baseY); ctx.lineTo(x - w, baseY);
-          ctx.closePath(); ctx.fill();
-          ctx.fillRect(x - 4, baseY - 2, 8, 12);
-        });
-      };
-      pines(0.1, 46, VH * 0.22, VH * 0.4, '#4d7c0f', groundY - 10);
-      ctx.fillStyle = 'rgba(217, 249, 157, 0.25)'; ctx.fillRect(0, 0, VW, VH);
-      pines(0.25, 64, VH * 0.18, VH * 0.32, '#166534', groundY);
-      pines(0.5, 90, VH * 0.12, VH * 0.22, '#14532d', groundY + 6);
-      ctx.fillStyle = '#365314';
-      ctx.fillRect(0, groundY, VW, VH - groundY);
-      ctx.fillStyle = '#4d7c0f';
-      columns(1, 14, (x, i) => { const h = 6 + hash(i) * 10; ctx.beginPath(); ctx.moveTo(x, groundY + 2); ctx.lineTo(x + 3, groundY - h); ctx.lineTo(x + 6, groundY + 2); ctx.fill(); });
-      ctx.fillStyle = 'rgba(254, 249, 195, 0.5)';
-      for (let i = 0; i < 14; i++) {
-        const fx = (hash(i) * VW + Math.sin(time * 0.7 + i) * 30), fy = VH * 0.3 + hash(i + 5) * VH * 0.5 + Math.sin(time + i * 2) * 20;
-        ctx.globalAlpha = 0.4 + 0.4 * Math.sin(time * 3 + i);
-        ctx.beginPath(); ctx.arc(fx, fy, 2, 0, TAU); ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    },
-    city() {
-      skyGrad(['#1e1b4b', '#6d28d9', '#f472b6', '#fdba74']);
-      const sx = VW * 0.7, sy = groundY - VH * 0.12;
-      const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 140);
-      sg.addColorStop(0, 'rgba(254, 215, 170, 0.95)'); sg.addColorStop(0.35, 'rgba(251, 146, 60, 0.5)'); sg.addColorStop(1, 'rgba(251, 146, 60, 0)');
-      ctx.fillStyle = sg; ctx.fillRect(sx - 140, sy - 140, 280, 280);
-      cloudsLayer(0.05, VH * 0.1, 0.25, '#fbcfe8');
-      const buildings = (par, spacing, hMin, hMax, color, lit) => {
-        columns(par, spacing, (x, i) => {
-          const h = hMin + hash(i * 3.1 + par) * (hMax - hMin), w = spacing * (0.7 + hash(i + 2) * 0.3);
-          ctx.fillStyle = color;
-          ctx.fillRect(x, groundY - h, w, h + 2);
-          if (hash(i + 9) > 0.7) ctx.fillRect(x + w / 2 - 2, groundY - h - 18, 4, 18);
-          if (lit) {
-            for (let yy = groundY - h + 10; yy < groundY - 8; yy += 16) for (let xx = x + 6; xx < x + w - 8; xx += 12) {
-              if (hash(xx * 0.13 + yy * 0.7 + i) > 0.62) { ctx.fillStyle = 'rgba(253, 230, 138, 0.85)'; ctx.fillRect(xx, yy, 5, 7); }
-            }
-          }
-        });
-      };
-      buildings(0.08, 60, VH * 0.2, VH * 0.45, 'rgba(76, 29, 149, 0.7)', false);
-      buildings(0.2, 80, VH * 0.14, VH * 0.36, '#2e1065', true);
-      buildings(0.4, 110, VH * 0.08, VH * 0.22, '#1e1b4b', true);
-      ctx.fillStyle = '#18181b';
-      ctx.fillRect(0, groundY, VW, VH - groundY);
-      ctx.fillStyle = '#facc15';
-      columns(1, 60, (x) => ctx.fillRect(x, groundY + 18, 28, 3));
-    },
-    peaks() {
-      skyGrad(['#38bdf8', '#bae6fd', '#f0f9ff']);
-      cloudsLayer(0.05, VH * 0.06, 0.9);
-      const ridge = (par, base, amp, period, color, snow) => {
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.moveTo(0, VH);
-        const off = dist * par;
-        const pts = [];
-        for (let x = -period; x <= VW + period; x += period / 2) {
-          const k = Math.floor((x + off) / (period / 2));
-          const xx = k * (period / 2) - off;
-          const up = k % 2 === 0;
-          const yy = up ? base - amp * (0.6 + hash(k) * 0.4) : base - amp * 0.15 * hash(k + 1);
-          pts.push([xx, yy]);
-        }
-        for (const [x, y] of pts) ctx.lineTo(x, y);
-        ctx.lineTo(VW + period, VH); ctx.closePath(); ctx.fill();
-        if (snow) {
-          ctx.fillStyle = 'rgba(255,255,255,0.9)';
-          for (let i = 1; i < pts.length - 1; i++) {
-            const [x, y] = pts[i], [px, py] = pts[i - 1], [nx, ny] = pts[i + 1];
-            if (y < py && y < ny) {
-              ctx.beginPath(); ctx.moveTo(x, y);
-              ctx.lineTo(lerp(x, nx, 0.3), lerp(y, ny, 0.3)); ctx.lineTo(x, lerp(y, ny, 0.22)); ctx.lineTo(lerp(x, px, 0.3), lerp(y, py, 0.3));
-              ctx.closePath(); ctx.fill();
-            }
-          }
-        }
-      };
-      ridge(0.06, groundY - 40, VH * 0.45, 360, '#94a3b8', true);
-      ridge(0.15, groundY - 10, VH * 0.3, 240, '#64748b', true);
-      ridge(0.3, groundY + 4, VH * 0.14, 160, '#e2e8f0', false);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(0, groundY, VW, VH - groundY);
-      ctx.fillStyle = '#fff';
-      for (let i = 0; i < 50; i++) {
-        const sx = ((hash(i) * VW * 1.3 - dist * 0.4 - time * 20 * hash(i + 1)) % (VW + 20) + VW + 20) % (VW + 20);
-        const sy = ((hash(i + 7) * VH + time * (40 + hash(i + 3) * 50)) % VH);
-        ctx.globalAlpha = 0.5 + hash(i + 2) * 0.5;
-        ctx.beginPath(); ctx.arc(sx, sy, 1.2 + hash(i + 4) * 2, 0, TAU); ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    },
-  };
-
-  // ---------- Draw ----------
-  function drawBird() {
+  // ---------- Render ----------
+  const camTarget = new THREE.Vector3();
+  const camLook = new THREE.Vector3(0, 3, -12);
+  function render(dt) {
     const b = bird;
-    ctx.save();
-    ctx.translate(b.x, b.y);
-    ctx.rotate(b.tilt);
-    ctx.scale(b.size, b.size);
-    let alpha = 1;
-    if (timers.ghost > 0) alpha = 0.45 + 0.15 * Math.sin(time * 10);
-    if (b.inv > 0 && Math.floor(b.inv * 12) % 2 === 0) alpha *= 0.3;
-    ctx.globalAlpha = alpha;
-    // tail
-    ctx.fillStyle = '#0369a1';
-    ctx.beginPath(); ctx.moveTo(-12, -2); ctx.lineTo(-28, -10); ctx.lineTo(-26, 0); ctx.lineTo(-28, 8); ctx.closePath(); ctx.fill();
-    // far wing
-    const wa = Math.sin(b.flap) * 0.9;
-    ctx.save(); ctx.translate(-2, -4); ctx.rotate(-0.2 - wa * 0.8);
-    ctx.fillStyle = '#075985';
-    ctx.beginPath(); ctx.ellipse(-9, 0, 13, 5, 0, 0, TAU); ctx.fill();
-    ctx.restore();
-    // body
-    const g = ctx.createRadialGradient(-4, -6, 2, 0, 0, 19);
-    g.addColorStop(0, '#7dd3fc'); g.addColorStop(1, '#0284c7');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(0, 0, 17, 13, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#fde68a';
-    ctx.beginPath(); ctx.ellipse(4, 5, 10, 6.5, 0.15, 0, TAU); ctx.fill();
-    // crest
-    ctx.fillStyle = '#0369a1';
-    ctx.beginPath(); ctx.moveTo(2, -12); ctx.quadraticCurveTo(-2, -22, -8, -18); ctx.quadraticCurveTo(-4, -16, -4, -11); ctx.fill();
-    // near wing
-    ctx.save(); ctx.translate(-2, -2); ctx.rotate(-0.3 + wa);
-    ctx.fillStyle = '#0284c7';
-    ctx.beginPath(); ctx.ellipse(-10, 0, 14, 6.5, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#38bdf8';
-    ctx.beginPath(); ctx.ellipse(-8, -1.5, 8, 3, 0, 0, TAU); ctx.fill();
-    ctx.restore();
-    // eye + beak
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(8, -4, 4.4, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(9.2, -4, 2.3, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(10, -5, 0.9, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#fb923c';
-    ctx.beginPath(); ctx.moveTo(14, -2); ctx.lineTo(24, 1); ctx.lineTo(14, 5); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#f472b6'; ctx.globalAlpha = alpha * 0.5;
-    ctx.beginPath(); ctx.arc(6, 3, 3, 0, TAU); ctx.fill();
-    ctx.restore();
-    ctx.globalAlpha = 1;
-
-    if (timers.shield > 0) {
-      const r = birdRadius() + 16 + Math.sin(time * 6) * 2;
-      const blink = timers.shield < 2 && Math.floor(time * 8) % 2 === 0;
-      if (!blink) {
-        ctx.strokeStyle = '#5eead4'; ctx.lineWidth = 3;
-        ctx.fillStyle = 'rgba(94, 234, 212, 0.15)';
-        ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, TAU); ctx.fill(); ctx.stroke();
-      }
+    birdRoot.position.set(b.x, b.y, 0);
+    birdRoot.scale.setScalar(b.size);
+    // Bank into turns, pitch with climbs
+    if (b.alive) {
+      birdModel.rotation.z = lerp(birdModel.rotation.z, clamp(-b.vx * 0.07, -0.8, 0.8), Math.min(1, dt * 8));
+      birdModel.rotation.x = lerp(birdModel.rotation.x, clamp(b.vy * 0.05, -0.5, 0.5), Math.min(1, dt * 8));
+      const f = Math.sin(b.flap) * 0.65;
+      for (const w of wings) w.pivot.rotation.z = w.s * f;
+    } else {
+      birdModel.rotation.z = b.spin;
+      birdModel.rotation.x = 0.6;
     }
-    if (timers.magnet > 0) {
-      ctx.strokeStyle = 'rgba(244, 114, 182, 0.35)'; ctx.lineWidth = 2;
-      ctx.setLineDash([4, 8]); ctx.lineDashOffset = time * 30;
-      ctx.beginPath(); ctx.arc(b.x, b.y, 60 + Math.sin(time * 4) * 6, 0, TAU); ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
+    birdRoot.visible = !(b.inv > 0 && Math.floor(b.inv * 12) % 2 === 0);
+    const ghost = timers.ghost > 0;
+    for (const m of Object.values(birdMats)) { m.transparent = ghost; m.opacity = ghost ? 0.4 + 0.1 * Math.sin(time * 10) : 1; }
+    shieldBubble.visible = timers.shield > 0 && !(timers.shield < 2 && Math.floor(time * 8) % 2 === 0);
+    shieldBubble.scale.setScalar(1.25 + Math.sin(time * 6) * 0.05);
+    shieldBubble.rotation.y += dt;
+    magnetRing.visible = timers.magnet > 0;
+    magnetRing.rotation.x = time * 2; magnetRing.rotation.y = time * 1.3;
 
-  function draw() {
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
-    const cur = curBiome();
-    if (biomeBlend < 1) {
-      BG[prevBiome]();
-      ctx.globalAlpha = biomeBlend;
-      BG[cur]();
-      ctx.globalAlpha = 1;
-    } else BG[cur]();
+    shadow.position.set(b.x, 0.35, 0);
+    shadow.scale.setScalar(0.75 * b.size * (1 - b.y / 16));
+    shadow.material.opacity = 0.32 * (1 - b.y / 13);
 
-    if (timers.slow > 0) { ctx.fillStyle = 'rgba(147, 197, 253, 0.12)'; ctx.fillRect(0, 0, VW, VH); }
+    // Chase camera: behind and a bit above the bird, leaning into its moves
+    camTarget.set(b.x * 0.6, b.y * 0.7 + 2.7, 8.5);
+    camera.position.lerp(camTarget, Math.min(1, dt * 5));
+    camLook.set(b.x * 0.75, b.y * 0.85 + 0.6, -14);
+    if (shake > 0) camera.position.add(new THREE.Vector3(rand(-1, 1) * shake, rand(-1, 1) * shake, 0));
+    camera.lookAt(camLook);
+    camera.rotation.z += clamp(-b.vx * 0.006, -0.08, 0.08);
 
-    const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, sx * dpr * scale, sy * dpr * scale);
-
-    // Seeds
-    for (const s of seeds) {
-      const y = s.y + Math.sin(s.bob) * 4;
-      ctx.fillStyle = 'rgba(253, 224, 71, 0.3)';
-      ctx.beginPath(); ctx.arc(s.x, y, 12, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath(); ctx.ellipse(s.x, y, 6, 8, 0.4, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#fef9c3';
-      ctx.beginPath(); ctx.ellipse(s.x - 2, y - 2, 2, 3, 0.4, 0, TAU); ctx.fill();
-    }
-
-    // Obstacles
-    for (const o of obstacles) {
-      const K = KINDS[o.kind];
-      K.draw.call(K, o);
-      // Warning marker for things coming in fast from the right
-      if (K.warn && o.x - 40 > VW) {
-        const a = 0.6 + 0.4 * Math.sin(time * 14);
-        ctx.globalAlpha = a;
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath(); ctx.moveTo(VW - 10, o.y); ctx.lineTo(VW - 36, o.y - 16); ctx.lineTo(VW - 36, o.y + 16); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = '900 16px system-ui, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('!', VW - 26, o.y + 1);
-        ctx.globalAlpha = 1;
-      }
-    }
-
-    // Power-up bubbles
-    for (const p of bubbles) {
-      const P = POWERS[p.kind];
-      const y = p.y + Math.sin(p.t * 3) * 10;
-      ctx.fillStyle = 'rgba(255,255,255,0.25)';
-      ctx.strokeStyle = P.color; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(p.x, y, 22 + Math.sin(p.t * 6) * 1.5, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.beginPath(); ctx.arc(p.x - 8, y - 9, 5, 0, TAU); ctx.fill();
-      ctx.font = p.kind === 'double' ? '900 16px system-ui, sans-serif' : '20px system-ui, sans-serif';
-      ctx.fillStyle = P.color;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(P.icon, p.x, y + 1);
-    }
-
-    drawBird();
-
-    for (const q of particles) {
-      ctx.globalAlpha = Math.max(0, q.life / q.max);
-      ctx.fillStyle = q.c;
-      if (q.feather) {
-        ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot);
-        ctx.beginPath(); ctx.ellipse(0, 0, q.r * 2, q.r * 0.7, 0, 0, TAU); ctx.fill();
-        ctx.restore();
-      } else {
-        ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, TAU); ctx.fill();
-      }
-    }
-    ctx.globalAlpha = 1;
-
-    ctx.font = '900 15px system-ui, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (const f of floaters) {
-      ctx.globalAlpha = Math.min(1, f.life / 0.3);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.fillText(f.text, f.x + 1, f.y + 1);
-      ctx.fillStyle = f.c;
-      ctx.fillText(f.text, f.x, f.y);
-    }
-    ctx.globalAlpha = 1;
+    renderer.render(scene, camera);
   }
 
   // ---------- Sound button ----------
@@ -1405,15 +1379,30 @@
   refreshSoundBtn();
   window.focus();
 
+  // Hooks for automated testing (harmless in normal play)
+  window.__ww = {
+    get state() { return state; }, get score() { return score; }, get dist() { return dist; }, get biome() { return curBiome(); },
+    get counts() { return { obstacles: obstacles.length, decos: decos.length, seeds: seeds.length, bubbles: bubbles.length, particles: particles.length }; },
+    get kinds() { return [...new Set(obstacles.map((o) => o.kind))]; },
+    bird, timers,
+    jump(d) { dist = d; biomeIdx = Math.floor(d / BIOME_LEN); },
+    give(k) { timers[k] = POWERS[k].time; },
+    spawn: { airplane, raptor, gullFlock, swordfish, wreckingBall, snowball, spawnBubble },
+  };
+
   // ---------- Start ----------
   resize();
   reset();
+  camera.position.set(0, 5.5, 8.5);
+  // Pre-fill the scenery so the world isn't empty at the start
+  for (let z = SPAWN_Z; z < KILL_Z; z += 4) sideScenery(z);
+  for (let z = SPAWN_Z; z < 0; z += 26) skyCloud(z);
   let last = performance.now();
   function loop(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     update(dt);
-    draw();
+    render(dt);
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);

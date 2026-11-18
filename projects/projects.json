@@ -34,9 +34,9 @@
   {
     "id": "wild-wings",
     "title": "Wild Wings",
-    "description": "Fly a little bird over the ocean, forest, city and snowy peaks. Dodge swordfish, hawks, planes and icicles, grab power-ups, or steer by tilting your phone.",
+    "description": "Fly a little bird in 3D, right behind it, over the ocean, forest, city and snowy peaks. Dodge swordfish, hawks, planes and icicles, grab power-ups, or steer by tilting your phone.",
     "folder": "WildWings",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "flying", "canvas"]
+    "tags": ["game", "flying", "3d"]
   }
 ]
