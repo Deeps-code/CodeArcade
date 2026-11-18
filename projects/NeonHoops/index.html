@@ -43,6 +43,14 @@
     color: #fff; font-size: 20px; font-weight: 900; z-index: 5;
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
+  #mirrorBtn {
+    position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 58px); right: 158px;
+    width: 40px; height: 40px; border-radius: 12px; cursor: pointer; padding: 0; display: grid; place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(10, 8, 30, 0.5); color: #fff; z-index: 5;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  #mirrorBtn.on { border-color: rgba(79, 209, 255, 0.85); background: rgba(79, 209, 255, 0.22); }
+  #mirrorBtn.gone { display: none; }
   #viewBtn.front { border-color: rgba(255, 122, 26, 0.8); background: rgba(255, 122, 26, 0.25); }
   #banner {
     position: fixed; left: 0; right: 0; top: 30%;
@@ -137,6 +145,7 @@
 </div>
 <button id="sound" type="button" aria-label="Toggle sound">🔊</button>
 <button id="viewBtn" type="button" aria-label="Switch camera view" title="Switch view (V)">⇄</button>
+<button id="mirrorBtn" type="button" aria-label="Mirror the court" title="Mirror the court (B)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3v18" stroke-dasharray="2 2.5"/><path d="M9.5 6.5 3.5 17h6z" fill="currentColor" fill-opacity=".35"/><path d="m14.5 6.5 6 10.5h-6z"/></svg></button>
 <div id="banner"></div>
 
 <div class="overlay" id="menu">
@@ -292,6 +301,10 @@
   // Physics here are real 3D in meters, projected onto the screen.
   let view = 'side';
   try { if (localStorage.getItem('hoopsView') === 'front') view = 'front'; } catch (e) {}
+  // side view can be mirrored: hoop on the left, shooting from the right
+  let mirror = false;
+  try { mirror = localStorage.getItem('hoopsMirror') === '1'; } catch (e) {}
+  const sideMirror = () => view === 'side' && mirror;
   const fb = { x: 0, y: 1, z: 1.5, vx: 0, vy: 0, vz: 0, rot: 0, mode: 'ready', touched: false, scored: false, bounced: false, resolved: true, shotId: 0, spawnT: 0, floorT: 0, flightT: 0, homeX: 0, homeY: 1 };
   const B = () => (view === 'front' ? fb : ball);
   const F3 = { g: 9.8, rb: 0.12, rimH: 3.05, rimR: 0.32, hoopZ: 6.1, camY: 1.55, startZ: 2.4 };   // camera stands ~2.4 m behind the ball
@@ -932,6 +945,7 @@
     const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
     ctx.translate(sx, sy);
     if (view === 'front') { drawFront(); drawOverlays(); return; }
+    if (sideMirror()) { ctx.translate(VW, 0); ctx.scale(-1, 1); } // the whole court, flipped
     drawCourt();
     drawHoopBack();
     // your trail, then the on-fire flames, behind the ball
@@ -969,7 +983,8 @@
     for (const p of popups) {
       ctx.globalAlpha = Math.min(1, p.life / 0.4);
       ctx.fillStyle = p.c; ctx.shadowColor = p.c; ctx.shadowBlur = 12;
-      ctx.fillText(p.text, p.x, p.y);
+      if (sideMirror()) { ctx.save(); ctx.translate(p.x, p.y); ctx.scale(-1, 1); ctx.fillText(p.text, 0, 0); ctx.restore(); }
+      else ctx.fillText(p.text, p.x, p.y);
     }
     ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
@@ -1330,8 +1345,11 @@
 
   // ---------- Switching views ----------
   const viewBtn = document.getElementById('viewBtn');
+  const mirrorBtn = document.getElementById('mirrorBtn');
   function refreshViewBtn() {
     viewBtn.classList.toggle('front', view === 'front');
+    mirrorBtn.classList.toggle('gone', view === 'front');
+    mirrorBtn.classList.toggle('on', mirror);
     viewBtn.title = view === 'front' ? 'Side view (V)' : 'Front view (V)';
   }
   function setView(v) {
@@ -1346,13 +1364,26 @@
     refreshViewBtn();
     banner(v === 'front' ? 'FRONT VIEW' : 'SIDE VIEW');
   }
+  function setMirror(m) {
+    mirror = m;
+    try { localStorage.setItem('hoopsMirror', m ? '1' : '0'); } catch (e) {}
+    drag = null;
+    refreshViewBtn();
+    banner(m ? 'MIRRORED' : 'NORMAL COURT');
+  }
+  mirrorBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  mirrorBtn.addEventListener('click', (e) => { e.stopPropagation(); mirrorBtn.blur(); initAudio(); setMirror(!mirror); });
+  window.addEventListener('keydown', (e) => { if (e.code === 'KeyB' && !e.repeat && !customOpen && view === 'side') setMirror(!mirror); });
   viewBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
   viewBtn.addEventListener('click', (e) => { e.stopPropagation(); viewBtn.blur(); initAudio(); setView(view === 'front' ? 'side' : 'front'); });
   window.addEventListener('keydown', (e) => { if (e.code === 'KeyV' && !e.repeat && !customOpen) setView(view === 'front' ? 'side' : 'front'); });
   refreshViewBtn();
 
   // ---------- Input ----------
-  function toWorld(e) { return { x: e.clientX / scale, y: e.clientY / scale }; }
+  function toWorld(e) {
+    const x = e.clientX / scale;
+    return { x: sideMirror() ? VW - x : x, y: e.clientY / scale };
+  }
   function tryStart() {
     initAudio();
     if (state === 'menu') { start(); return true; }
