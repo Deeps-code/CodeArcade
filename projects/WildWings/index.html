@@ -235,13 +235,26 @@
   .mini img { width: 30px; height: 30px; }
   .mini:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--drop); }
   /* Short screens: drop the doodle and the legend so everything fits */
-  @media (max-height: 760px) {
-    .doodle { display: none; }
-    .legend { display: none; }
-    h1 { font-size: clamp(34px, 10vw, 54px); }
-    .sub { font-size: 13px; margin-top: 8px; }
-    .sheet { padding: 18px 20px 18px; }
-  }
+  /* (These follow the GAME VIEW's height, set from JS, so they also work when
+     landscape mode turns the game sideways on an upright phone.) */
+  #app.short .doodle { display: none; }
+  #app.short .legend { display: none; }
+  #app.short h1 { font-size: clamp(34px, 10vw, 54px); }
+  #app.short .sub { font-size: 13px; margin-top: 8px; }
+  #app.short .sheet { padding: 18px 20px 18px; }
+  /* Very short views (landscape phones): only the essentials, smaller cards */
+  #app.tiny .sub, #app.tiny .tip { display: none; }
+  #app.tiny h1 { font-size: 32px; line-height: 1; }
+  #app.tiny h1 br { display: none; }
+  #app.tiny .sheet { padding: 12px 18px 14px; width: min(520px, 100%); }
+  #app.tiny .picker { margin-top: 4px; }
+  #app.tiny .bcards { padding-top: 6px; padding-bottom: 8px; }
+  #app.tiny .bcard { flex-basis: 54px; height: 56px; }
+  #app.tiny .bcard img { width: 48px; height: 48px; }
+  #app.tiny .cta { margin-top: 8px; padding: 9px 24px; font-size: 14px; }
+  #app.tiny .stamp { font-size: 20px; }
+  #app.tiny .big { font-size: 48px; }
+  #app.tiny .mini { margin-top: 8px; }
 
   /* ----- Joystick: a paper dial ----- */
   #stick {
@@ -299,7 +312,7 @@
       </g>
       <circle cx="122" cy="10" r="2.5" fill="#23243a"/><circle cx="132" cy="18" r="1.8" fill="#23243a"/>
     </svg>
-    <h1>WILD<br /><span class="b">WINGS</span></h1>
+    <h1>WILD <br /><span class="b">WINGS</span></h1>
     <p class="sub" id="howto"></p>
     <p class="tip gone" id="gyroTip">Tap 📱 to steer by tilting your phone</p>
     <div class="picker" id="picker">
@@ -411,6 +424,9 @@
     rotated = landscape && vh > vw;
     const W = rotated ? vh : vw, H = rotated ? vw : vh;
     viewW = W; viewH = H;
+    // compact menu layouts for short game views (see #app.short / #app.tiny in the CSS)
+    app.classList.toggle('short', H < 760);
+    app.classList.toggle('tiny', H < 520);
     app.style.width = W + 'px'; app.style.height = H + 'px';
     app.style.transform = rotated ? `translateX(${vw}px) rotate(90deg)` : '';
     rotateBtn.classList.toggle('on', landscape);
