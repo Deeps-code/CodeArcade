@@ -1274,7 +1274,7 @@
       theme: 'neon',                      // 'neon' or 'paper'
       top: 'calc(max(12px, env(safe-area-inset-top)) + 58px)', right: '62px',      // where the button sits (next to sound)
       isPlaying: () => (state === 'play'),
-      restart: () => { start(); },
+      menu: () => { state = 'menu'; hazards = []; pickups = []; texts = []; bolts = []; zaps = []; rings = []; for (const k of ['blades', 'blaster', 'tesla', 'nova']) el[k].classList.remove('on'); el.shield.classList.remove('on'); el.over.classList.add('hidden'); el.menu.classList.remove('hidden'); },
       onChange: (p) => { for (const k in keys) keys[k] = false; },
     };
     const coarse = window.matchMedia('(pointer: coarse)').matches;
@@ -1316,8 +1316,8 @@
     const card = document.createElement('div');
     card.id = 'pausedCard';
     card.innerHTML = `<div class="pc-in"><div class="pc-t">PAUSED</div>`
-      + `<div class="pc-btns"><button type="button" class="pc-b" data-act="resume">▶ RESUME</button><button type="button" class="pc-b pc-r" data-act="retry">↻ RETRY</button></div>`
-      + `<div class="pc-k">${coarse ? 'or tap anywhere to resume' : 'P / Esc to resume · R to retry'}</div></div>`;
+      + `<div class="pc-btns"><button type="button" class="pc-b" data-act="resume">▶ RESUME</button><button type="button" class="pc-b pc-r" data-act="menu">☰ MENU</button></div>`
+      + `<div class="pc-k">${coarse ? 'or tap anywhere to resume' : 'P / Esc to resume · M for menu'}</div></div>`;
     host.appendChild(btn);
     host.appendChild(card);
     card.querySelectorAll('.pc-b').forEach((b) => {
@@ -1325,7 +1325,7 @@
       b.addEventListener('click', (e) => {
         e.stopPropagation(); b.blur();
         set(false);
-        if (b.dataset.act === 'retry') cfg.restart();
+        if (b.dataset.act === 'menu') cfg.menu();
       });
     });
 
@@ -1358,7 +1358,7 @@
         e.stopImmediatePropagation();
         e.preventDefault();
         if (!e.repeat && (toggleKey || k === 'Space' || k === 'Enter' || k === 'NumpadEnter')) set(false);
-        else if (!e.repeat && k === 'KeyR') { set(false); cfg.restart(); }
+        else if (!e.repeat && k === 'KeyM') { set(false); cfg.menu(); }
         return;
       }
       if (toggleKey && !e.repeat && cfg.isPlaying()) { e.preventDefault(); e.stopImmediatePropagation(); set(true); }
