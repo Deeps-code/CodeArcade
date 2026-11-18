@@ -142,6 +142,9 @@
   const R = 12;              // player radius
   const RANGE = 450;         // how far the rope reaches
   const PUMP = 120;          // a little push along the swing so swings don't die out
+  const REEL = 110;          // how fast the rope pulls you in toward the hook (units/s)
+  const REEL_ACCEL = 90;     // the pull speeds up the longer you hang on
+  const MIN_LEN = 55;        // the rope never gets shorter than this
   const MAX_SPEED = 1500;
   const PX_PER_M = 40;
   const START_X = 0;
@@ -369,7 +372,7 @@
 
   function attach(a) {
     const d = Math.hypot(player.x - a.x, player.y - a.y);
-    rope = { a, len: clamp(d, 70, RANGE), shoot: 0 };
+    rope = { a, len: clamp(d, 70, RANGE), shoot: 0, held: 0 };
     if (a.crumble && a.breakT < 0) { a.breakT = 0.85; sfx.crumbleWarn(); }
     sfx.grab();
     burst(a.x, a.y, a.crumble ? '#ff5e5e' : '#4fd1ff', 10, 160);
@@ -453,7 +456,29 @@
       target = rope ? null : findTarget();
       if (holding && !rope && target) attach(target);
       if (!holding && rope) detach();
-      if (rope) rope.shoot = Math.min(1, rope.shoot + dt * 12);
+      if (rope) {
+        rope.shoot = Math.min(1, rope.shoot + dt * 12);
+        // Reel in: the rope shortens the longer you hold, pulling you toward the hook.
+        // A shorter rope also makes you swing faster (like a skater pulling their arms in).
+        rope.held += dt;
+        const prevLen = rope.len;
+        rope.len = Math.max(MIN_LEN, rope.len - (REEL + REEL_ACCEL * rope.held) * dt);
+        const a = rope.a, p = player;
+        const dx = p.x - a.x, dy = p.y - a.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (rope.len < prevLen && d >= prevLen - 1) {
+          // Taut rope got shorter: keep angular momentum, so the sideways speed goes up.
+          const tx = -dy / d, ty = dx / d;
+          const vt = p.vx * tx + p.vy * ty;
+          const boost = vt * (prevLen / rope.len - 1);
+          p.vx += tx * boost; p.vy += ty * boost;
+          // And actually move inward along the rope, not just get snapped there.
+          const nx = dx / d, ny = dy / d;
+          const vr = p.vx * nx + p.vy * ny;
+          const pull = REEL + REEL_ACCEL * rope.held;
+          if (vr > -pull) { p.vx -= nx * (vr + pull) * 0.5; p.vy -= ny * (vr + pull) * 0.5; }
+        }
+      }
 
       const sub = 6;
       for (let i = 0; i < sub; i++) step(dt / sub);
