@@ -88,6 +88,22 @@
   @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(255, 159, 67, 0.7); } }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 13px; color: #cbbcef; }
   .legend b { font-weight: 800; }
+  .pdemo { pointer-events: auto; margin-top: 18px; width: min(360px, 92vw); padding: 8px 10px 10px; border-radius: 18px;
+    background: rgba(20, 10, 40, 0.62); border: 1px solid rgba(255, 255, 255, 0.14); }
+  .pdHead { font-size: 10px; font-weight: 800; letter-spacing: 0.18em; color: #b9a8e6; margin-bottom: 6px; }
+  .pdHead span { letter-spacing: 0.04em; font-weight: 600; opacity: 0.75; }
+  #pdCv { width: 100%; height: 112px; display: block; border-radius: 12px; }
+  .pdTxt { margin-top: 6px; min-height: 34px; font-size: 12.5px; line-height: 1.35; color: #cbbcef; }
+  .pdTxt b { display: block; font-size: 13px; letter-spacing: 0.14em; }
+  .pdIcons { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-top: 6px; }
+  .pdIcons button { width: 28px; height: 28px; padding: 0; border-radius: 50%; cursor: pointer; font: inherit; font-size: 14px; font-weight: 900;
+    border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: #ffd23f; }
+  .pdIcons button.on { border-color: currentColor; background: rgba(255, 255, 255, 0.16); box-shadow: 0 0 12px currentColor; }
+  #app.short .sub { display: none; }
+  #app.short .legend { margin-top: 14px; }
+  #app.short .cta { margin-top: 16px; }
+  #app.short #pdCv { height: 78px; }
+  #app.tiny .pdemo canvas, #app.tiny .legend { display: none; }
   #pills {
     position: fixed; top: calc(max(12px, env(safe-area-inset-top)) + 76px); left: 18px;
     display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
@@ -164,13 +180,11 @@
     <span><b style="color:#ffd23f">●</b> +5</span>
     <span><b style="color:#5dffb0">◯</b> Boost +10</span>
   </div>
-  <div class="legend" style="margin-top:12px">
-    <span>🔥 Lava Proof</span>
-    <span>🧲 Magnet</span>
-    <span>🪢 Long Rope</span>
-    <span>🚀 Rocket</span>
-    <span>⏱️ Slow-mo</span>
-    <span><b style="color:#ffd23f">×2</b> Double</span>
+  <div class="pdemo" id="pdemo">
+    <div class="pdHead">POWER-UPS <span>· tap one to see it</span></div>
+    <canvas id="pdCv"></canvas>
+    <div class="pdTxt"><b id="pdName"></b><span id="pdDesc"></span></div>
+    <div class="pdIcons" id="pdIcons"></div>
   </div>
 </div>
 
@@ -256,6 +270,8 @@
     app.style.width = W + 'px'; app.style.height = H + 'px';
     app.style.transform = rotated ? `translateX(${vw}px) rotate(90deg)` : '';
     rotateBtn.classList.toggle('on', landscape);
+    app.classList.toggle('short', H < 680);
+    app.classList.toggle('tiny', H < 470);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
     scale = clamp(Math.min(H / 700, W / 560), 0.55, 1.6);
@@ -348,12 +364,17 @@
 
   // ---------- Power-ups (all temporary) ----------
   const POWERS = {
-    lava:   { icon: '🔥', label: 'LAVA PROOF', color: '#ff9f43', time: 6 },
-    magnet: { icon: '🧲', label: 'MAGNET', color: '#f472b6', time: 8 },
-    rope:   { icon: '🪢', label: 'LONG ROPE', color: '#4fd1ff', time: 8 },
-    rocket: { icon: '🚀', label: 'ROCKET', color: '#ff5e5e', time: 2.5 },
-    slow:   { icon: '⏱️', label: 'SLOW-MO', color: '#a5b4fc', time: 5 },
-    double: { icon: '×2', label: 'DOUBLE', color: '#ffd23f', time: 10 },
+    lava:     { icon: '🔥', label: 'LAVA PROOF', color: '#ff9f43', time: 6, desc: 'Bounce off the lava instead of burning up.' },
+    magnet:   { icon: '🧲', label: 'MAGNET', color: '#f472b6', time: 8, desc: 'Pulls nearby coins straight to you.' },
+    rope:     { icon: '🪢', label: 'LONG ROPE', color: '#4fd1ff', time: 8, desc: 'Your rope reaches hooks much farther away.' },
+    rocket:   { icon: '🚀', label: 'ROCKET', color: '#ff5e5e', time: 2.5, desc: 'Blasts you forward at a safe height.' },
+    slow:     { icon: '⏱️', label: 'SLOW-MO', color: '#a5b4fc', time: 5, desc: 'The whole world slows down. Easy timing!' },
+    double:   { icon: '×2', label: 'DOUBLE', color: '#ffd23f', time: 10, desc: 'Coins and boosts are worth twice as much.' },
+    giant:    { icon: '🍄', label: 'GIANT', color: '#fb7185', time: 8, desc: 'You grow huge and grab coins from far away.' },
+    feather:  { icon: '🪶', label: 'FEATHER', color: '#e0e7ff', time: 6, desc: 'Low gravity: float gently between hooks.' },
+    coinrain: { icon: '💰', label: 'COIN RAIN', color: '#facc15', time: 6, desc: 'Coins pour down from the sky.' },
+    steel:    { icon: '🔩', label: 'STEEL HOOKS', color: '#cbd5e1', time: 10, desc: "Red crumbling hooks won't break." },
+    shield:   { icon: '🛡️', label: 'SHIELD', color: '#5eead4', time: 15, desc: 'Saves you from the lava once.' },
   };
   const timers = {};
   const pillEls = {};
@@ -369,6 +390,9 @@
   let powerups = [], powersGot = 0, nextPowerX = 0;
   const range = () => RANGE * (timers.rope > 0 ? 1.6 : 1);
   const mult = () => (timers.double > 0 ? 2 : 1);
+  const pickR = () => (timers.giant > 0 ? R * 2.6 : R);          // how close a coin has to be to grab it
+  const drawR = () => (timers.giant > 0 ? R * 1.9 : R);          // how big you look
+  let rainT = 0;
   let best = 0;
   try { best = Number(localStorage.getItem('ropeBest')) || 0; } catch (e) {}
   el.best.textContent = best;
@@ -516,7 +540,7 @@
   function attach(a) {
     const d = Math.hypot(player.x - a.x, player.y - a.y);
     rope = { a, len: clamp(d, 70, range()), shoot: 0, held: 0 };
-    if (a.crumble && a.breakT < 0) { a.breakT = 0.85; sfx.crumbleWarn(); }
+    if (a.crumble && a.breakT < 0 && !(timers.steel > 0)) { a.breakT = 0.85; sfx.crumbleWarn(); }
     sfx.grab();
     burst(a.x, a.y, a.crumble ? '#ff5e5e' : '#4fd1ff', 10, 160);
   }
@@ -533,7 +557,7 @@
   // ---------- Physics ----------
   function step(h) {
     const p = player;
-    p.vy += G * h;
+    p.vy += G * h * (timers.feather > 0 ? 0.42 : 1);
 
     if (rope) {
       const a = rope.a;
@@ -594,7 +618,7 @@
     for (const a of anchors) {
       if (a.bob) a.y = a.baseY + Math.sin(time * a.speed + a.phase) * a.bob;
       a.pulse = Math.max(0, a.pulse - dt * 3);
-      if (a.breakT > 0) {
+      if (a.breakT > 0 && !(timers.steel > 0)) {
         a.breakT -= dt;
         if (a.breakT <= 0 && !a.broken) {
           a.broken = true;
@@ -646,6 +670,16 @@
       for (let i = 0; i < sub; i++) step(dt / sub);
 
       const p = player;
+      if (timers.coinrain > 0) {
+        rainT -= dt;
+        while (rainT <= 0) {
+          rainT += 0.11;
+          coins.push({ x: p.x + rand(60, VW * 0.75), y: camY - 20, vy: rand(160, 260), vx: rand(-30, 30), got: false, spin: rand(0, TAU) });
+        }
+      }
+      if (timers.feather > 0 && Math.random() < dt * 6) {
+        particles.push({ x: p.x + rand(-20, 20), y: p.y + rand(-20, 10), vx: rand(-30, 30), vy: rand(10, 40), life: 1.2, max: 1.2, c: '#e0e7ff', r: 2.2, g: 0 });
+      }
       trail.push({ x: p.x, y: p.y });
       if (trail.length > 22) trail.shift();
       if (p.x > maxX) maxX = p.x;
@@ -656,13 +690,13 @@
           const dx = p.x - c.x, dy = p.y - c.y, d = Math.hypot(dx, dy) || 1;
           if (d < 260) { c.x += (dx / d) * 700 * dt; c.y += (dy / d) * 700 * dt; }
         }
-        if (Math.hypot(c.x - p.x, c.y - p.y) < R + 14) {
+        if (Math.hypot(c.x - p.x, c.y - p.y) < pickR() + 14) {
           c.got = true; c.fade = 0.4; coinsGot++; bonus += 5 * mult();
           sfx.coin(); burst(c.x, c.y, '#ffd23f', 8, 180);
         }
       }
       for (const r of rings) {
-        if (!r.got && Math.hypot(r.x - p.x, r.y - p.y) < 34) {
+        if (!r.got && Math.hypot(r.x - p.x, r.y - p.y) < 34 + pickR() - R) {
           r.got = true; ringsGot++; bonus += 10 * mult();
           const sp = Math.hypot(p.vx, p.vy) || 1;
           p.vx += 380; p.vy = Math.min(p.vy, -120);
@@ -673,7 +707,7 @@
       }
 
       for (const u of powerups) {
-        if (!u.got && Math.hypot(u.x - p.x, u.y + Math.sin(u.t * 3) * 8 - p.y) < R + 24) {
+        if (!u.got && Math.hypot(u.x - p.x, u.y + Math.sin(u.t * 3) * 8 - p.y) < pickR() + 24) {
           u.got = true;
           powersGot++;
           const P = POWERS[u.kind];
@@ -705,6 +739,16 @@
           burst(p.x, lavaY, hazardAt(meters()).top, 20, 300);
           sfx.lavaBounce();
           shake = 6;
+        } else if (timers.shield > 0) {
+          // Shield: pops, and throws you back up high
+          timers.shield = 0;
+          p.y = lavaY - R;
+          p.vy = -1350; p.vx = Math.max(p.vx, 380);
+          rope = null;
+          burst(p.x, lavaY - 10, '#5eead4', 34, 380);
+          banner('SAVED!');
+          sfx.lavaBounce(); sfx.ring();
+          shake = 9;
         } else die();
       }
     }
@@ -717,7 +761,10 @@
     camY = lerp(camY, ty, Math.min(1, dt * 4));
     generate();
 
-    for (const c of coins) { c.spin += dt * 4; if (c.got) c.fade -= dt; }
+    for (const c of coins) {
+      c.spin += dt * 4; if (c.got) c.fade -= dt;
+      if (c.vy && !c.got) { c.x += c.vx * dt; c.y += c.vy * dt; if (c.y > lavaY + 20) { c.got = true; c.fade = 0; } }
+    }
     for (const r of rings) r.t += dt;
     for (const u of powerups) u.t += dt;
     for (const q of particles) {
@@ -1033,7 +1080,7 @@
       ctx.restore();
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.beginPath(); ctx.arc(u.x - 7, y - 8, 4, 0, TAU); ctx.fill();
-      ctx.font = u.kind === 'double' ? '900 15px system-ui, sans-serif' : '18px system-ui, sans-serif';
+      ctx.font = u.kind === 'double' ? '900 15px system-ui, sans-serif' : '18px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
       ctx.fillStyle = P.color;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(P.icon, u.x, y + 1);
@@ -1083,6 +1130,10 @@
       ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.stroke();
       ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
+      if (a.crumble && timers.steel > 0) {
+        ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 3; ctx.shadowColor = '#e2e8f0'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.stroke(); ctx.shadowBlur = 0;
+      }
       if (a.crumble) {
         ctx.strokeStyle = 'rgba(255,255,255,0.7)';
         ctx.lineWidth = 1.5;
@@ -1119,7 +1170,7 @@
     if (player.alive) {
       const p = player;
       // your character (skin), looking where it's going
-      drawCharacter(ctx, p.x, p.y, R, look, p.vx, p.vy, time);
+      drawCharacter(ctx, p.x, p.y, drawR(), look, p.vx, p.vy, time);
 
       // Power-up effects around the player
       const blinking = (t) => t < 1.5 && Math.floor(time * 8) % 2 === 0;
@@ -1137,6 +1188,16 @@
         ctx.setLineDash([4, 8]); ctx.lineDashOffset = time * 30;
         ctx.beginPath(); ctx.arc(p.x, p.y, 55 + Math.sin(time * 4) * 5, 0, TAU); ctx.stroke();
         ctx.setLineDash([]);
+      }
+      if (timers.shield > 0 && !blinking(timers.shield)) {
+        const sr = drawR() + 10;
+        ctx.fillStyle = 'rgba(94, 234, 212, 0.12)'; ctx.strokeStyle = 'rgba(94, 234, 212, 0.85)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(p.x, p.y, sr + Math.sin(time * 5) * 1.5, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)'; ctx.beginPath(); ctx.ellipse(p.x - sr * 0.4, p.y - sr * 0.45, sr * 0.22, sr * 0.12, -0.6, 0, TAU); ctx.fill();
+      }
+      if (timers.giant > 0 && !blinking(timers.giant)) {
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.35)'; ctx.lineWidth = 2; ctx.setLineDash([3, 7]);
+        ctx.beginPath(); ctx.arc(p.x, p.y, pickR() + 14, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
       }
       if (timers.rocket > 0) {
         ctx.fillStyle = '#ff5e5e';
@@ -2052,6 +2113,213 @@
   scrollEl.addEventListener('click', (e) => { if (drag.suppress) { e.stopPropagation(); e.preventDefault(); } }, true);
   refreshCustom();
 
+  // ---------- Power-up demo (menu) ----------
+  // A tiny looping scene for each power-up, starring your own character and rope.
+  const pd = { kind: 'lava', T: 0, auto: true, idle: 0 };
+  const pdCv = document.getElementById('pdCv'), pdG = pdCv.getContext('2d');
+  const pdKinds = Object.keys(POWERS);
+  const pdButtons = {};
+  const PD_LEN = 3.6;
+  document.getElementById('pdemo').addEventListener('pointerdown', (e) => e.stopPropagation());
+  for (const k of pdKinds) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = POWERS[k].icon; b.style.color = POWERS[k].color; b.title = POWERS[k].label;
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); pdShow(k, true); initAudio(); tone(700, 1100, 0.06, 'triangle', 0.04); });
+    document.getElementById('pdIcons').appendChild(b);
+    pdButtons[k] = b;
+  }
+  function pdShow(k, byUser = false) {
+    pd.kind = k; pd.T = 0;
+    if (byUser) pd.idle = 6;      // after a tap, stay on it for a while before cycling again
+    const P = POWERS[k];
+    const nm = document.getElementById('pdName');
+    nm.textContent = P.icon + ' ' + P.label; nm.style.color = P.color;
+    document.getElementById('pdDesc').textContent = P.desc;
+    for (const kk of pdKinds) pdButtons[kk].classList.toggle('on', kk === k);
+  }
+  pdShow('lava');
+  function pdUpdate(dt) {
+    if (state !== 'menu' || pdCv.offsetParent === null) return;
+    pd.T += dt;
+    pd.idle = Math.max(0, pd.idle - dt);
+    if (pd.T > PD_LEN) {
+      if (pd.idle > 0) pd.T = 0;
+      else pdShow(pdKinds[(pdKinds.indexOf(pd.kind) + 1) % pdKinds.length]);
+    }
+    pdDraw();
+  }
+  function pdDraw() {
+    const d2 = Math.min(window.devicePixelRatio || 1, 2);
+    const w = pdCv.clientWidth, h = pdCv.clientHeight;
+    if (!w || !h) return;
+    if (pdCv.width !== Math.round(w * d2) || pdCv.height !== Math.round(h * d2)) { pdCv.width = Math.round(w * d2); pdCv.height = Math.round(h * d2); }
+    const g = pdG;
+    g.setTransform(d2, 0, 0, d2, 0, 0);
+    const P = POWERS[pd.kind], T = pd.T, u = T / PD_LEN;
+    const lavaTop = h - 13;
+    // backdrop
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#120a2e'); bg.addColorStop(1, '#3a1240');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const slowTint = pd.kind === 'slow' && u > 0.25;
+    // helpers
+    const hook = (x, y, col = '#4fd1ff', jx = 0) => {
+      g.strokeStyle = col; g.lineWidth = 2.5; g.beginPath(); g.arc(x + jx, y, 6, 0, TAU); g.stroke();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(x + jx, y, 2.2, 0, TAU); g.fill();
+    };
+    const coin = (x, y, sp = 0) => {
+      g.fillStyle = '#ffd23f'; g.beginPath(); g.ellipse(x, y, 5 * Math.abs(Math.cos(T * 4 + sp)) + 1.2, 5, 0, 0, TAU); g.fill();
+    };
+    const hero = (x, y, vx = 1, vy = 0, r = 9) => drawCharacter(g, x, y, r, look, vx, vy, T);
+    const rope = (x1, y1, x2, y2) => drawRopeLine(g, x1, y1, (x1 + x2) / 2, (y1 + y2) / 2 + 4, x2, y2, ropeLook, T);
+    const pop = (x, y, text, col, age) => { if (age < 0 || age > 0.7) return; g.globalAlpha = 1 - age / 0.7; g.fillStyle = col; g.font = '900 11px system-ui, sans-serif'; g.textAlign = 'center'; g.fillText(text, x, y - age * 20); g.globalAlpha = 1; };
+    const swing = (hx, hy, len, ang) => { const x = hx + Math.sin(ang) * len, y = hy + Math.cos(ang) * len; rope(hx, hy, x, y); return [x, y, Math.cos(ang), -Math.sin(ang)]; };
+    // lava
+    const lavaCol = pd.kind === 'lava' || pd.kind === 'shield' ? '#ff7a1a' : '#e2541a';
+    g.fillStyle = lavaCol;
+    g.beginPath(); g.moveTo(0, h);
+    for (let x = 0; x <= w; x += 8) g.lineTo(x, lavaTop + Math.sin(x * 0.08 + T * 3) * 2);
+    g.lineTo(w, h); g.fill();
+    g.fillStyle = 'rgba(255, 210, 63, 0.5)'; g.fillRect(0, lavaTop + 2, w, 2);
+
+    const cx = w / 2;
+    switch (pd.kind) {
+      case 'lava': {
+        // drop into the lava and bounce straight back out
+        const x = w * 0.12 + u * w * 0.76;
+        const bounce = Math.abs(Math.sin(u * Math.PI * 2.2));
+        const y = lavaTop - 9 - bounce * (h * 0.62);
+        if (bounce < 0.12) { for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#ffd23f' : '#ff9f43'; g.beginPath(); g.arc(x + (i - 3) * 5, lavaTop - 4 - (i % 3) * 3, 2, 0, TAU); g.fill(); } }
+        g.strokeStyle = '#ff9f43'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, 14 + Math.sin(T * 12) * 1.5, 0, TAU); g.stroke();
+        hero(x, y, 1, Math.cos(u * Math.PI * 2.2));
+        break;
+      }
+      case 'magnet': {
+        const [x, y, vx, vy] = swing(cx, 8, 50, Math.sin(T * 2.2) * 0.6);
+        g.strokeStyle = 'rgba(244, 114, 182, 0.55)'; g.lineWidth = 1.5; g.setLineDash([3, 5]); g.lineDashOffset = T * 20;
+        g.beginPath(); g.arc(x, y, 34 + Math.sin(T * 4) * 3, 0, TAU); g.stroke(); g.setLineDash([]);
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * TAU, sx = cx + Math.cos(a) * w * 0.38, sy = 50 + Math.sin(a) * 34;
+          const k = clamp(u * 1.8 - i * 0.1, 0, 1) ** 2;
+          if (k < 1) coin(lerp(sx, x, k), lerp(sy, y, k), i);
+          else pop(x, y - 12, '+5', '#ffd23f', u * 1.8 - i * 0.1 - 1);
+        }
+        hero(x, y, vx, vy);
+        break;
+      }
+      case 'rope': {
+        // the normal reach can't get the far hook; the long rope can
+        const px = w * 0.26, py = 60, far = [w * 0.26 + Math.min(150, w * 0.42), 14];
+        const grow = clamp(u / 0.3, 0, 1);
+        g.strokeStyle = 'rgba(255, 255, 255, 0.25)'; g.lineWidth = 1; g.setLineDash([3, 4]);
+        g.beginPath(); g.arc(px, py, 55, 0, TAU); g.stroke();
+        g.strokeStyle = 'rgba(79, 209, 255, 0.6)'; g.beginPath(); g.arc(px, py, 55 + grow * 100, 0, TAU); g.stroke(); g.setLineDash([]);
+        hook(far[0], far[1]);
+        const len = Math.hypot(far[0] - px, far[1] - py), a0 = Math.atan2(px - far[0], py - far[1]);
+        if (u < 0.35) hero(px, py, 1, 0);
+        else if (u < 0.45) { const k = (u - 0.35) / 0.1; rope(px, py, lerp(px, far[0], k), lerp(py, far[1], k)); hero(px, py, 1, 0); }
+        else { const k = (u - 0.45) / 0.55; const [x, y, vx, vy] = swing(far[0], far[1], lerp(len, 62, Math.min(1, k * 1.6)), lerp(a0, -a0 * 0.6, (1 - Math.cos(k * Math.PI)) / 2)); hero(x, y, vx, vy); }
+        break;
+      }
+      case 'rocket': {
+        // speed streaks rushing past
+        g.strokeStyle = 'rgba(255, 255, 255, 0.35)'; g.lineWidth = 1.5;
+        for (let i = 0; i < 12; i++) { const sx = ((i * 73 - T * 520) % (w + 60) + w + 60) % (w + 60) - 30, sy = 10 + (i * 37) % (h - 30); g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + 24, sy); g.stroke(); }
+        const x = w * 0.42, y = h * 0.45 + Math.sin(T * 6) * 3;
+        for (let i = 0; i < 8; i++) { const k = (T * 6 + i / 8) % 1; g.globalAlpha = 1 - k; g.fillStyle = i % 2 ? '#ffd23f' : '#ff5e5e'; g.beginPath(); g.arc(x - 14 - k * 50, y + Math.sin(i * 7 + T * 9) * 4, 4 * (1 - k) + 1, 0, TAU); g.fill(); }
+        g.globalAlpha = 1;
+        g.fillStyle = '#ff5e5e'; g.beginPath(); g.moveTo(x - 10, y - 5); g.lineTo(x - 22 - Math.random() * 6, y); g.lineTo(x - 10, y + 5); g.fill();
+        hero(x, y, 1, 0);
+        break;
+      }
+      case 'slow': {
+        // normal speed, then everything goes slow-mo
+        const speedK = u < 0.25 ? 1 : 0.32;
+        pd.slowPhase = (pd.slowPhase || 0) + (1 / 60) * 3.2 * speedK;
+        const [x, y, vx, vy] = swing(cx, 8, 55, Math.sin(pd.slowPhase) * 0.9);
+        hero(x, y, vx, vy);
+        if (slowTint) {
+          g.fillStyle = 'rgba(165, 180, 252, 0.14)'; g.fillRect(0, 0, w, h);
+          g.fillStyle = '#c7d2fe'; g.font = '900 12px system-ui, sans-serif'; g.textAlign = 'left'; g.fillText('⏱️ ×0.5', 8, 18);
+        }
+        break;
+      }
+      case 'double': {
+        const x = w * 0.08 + u * w * 0.84, y = 52 + Math.sin(u * Math.PI) * -10;
+        for (let i = 0; i < 6; i++) {
+          const c0 = w * (0.18 + i * 0.13), got = x > c0;
+          if (!got) coin(c0, 52 - Math.sin((i / 5) * Math.PI) * 10, i);
+          else pop(c0, 40, '+10', '#ffd23f', (x - c0) / (w * 0.84 / PD_LEN) );
+        }
+        hero(x, y, 1, 0);
+        g.fillStyle = '#ffd23f'; g.font = '900 13px system-ui, sans-serif'; g.textAlign = 'right'; g.fillText('×2', w - 8, 18);
+        break;
+      }
+      case 'giant': {
+        const grow = clamp(u / 0.2, 0, 1), r = 9 + grow * 9;
+        const x = w * 0.1 + clamp((u - 0.2) / 0.8, 0, 1) * w * 0.8, y = 52;
+        for (let i = 0; i < 9; i++) {
+          const c0 = w * (0.2 + (i % 5) * 0.16), cy = i < 5 ? 28 : 78;
+          const got = grow >= 1 && Math.hypot(c0 - x, cy - y) < r * 2.6 + 14 || (grow >= 1 && x > c0 + 30);
+          if (!got) coin(c0, cy, i);
+        }
+        if (grow >= 1) { g.strokeStyle = 'rgba(251, 113, 133, 0.45)'; g.setLineDash([3, 5]); g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, r * 2.6 + 4, 0, TAU); g.stroke(); g.setLineDash([]); }
+        hero(x, y, 1, 0, r);
+        break;
+      }
+      case 'feather': {
+        // a normal fall (faint) next to a slow, floaty one
+        const x0 = w * 0.15;
+        g.strokeStyle = 'rgba(255, 255, 255, 0.2)'; g.setLineDash([2, 4]); g.lineWidth = 1.5;
+        g.beginPath(); for (let k = 0; k <= 20; k++) { const q = k / 20; g.lineTo(x0 + q * w * 0.3, 14 + q * q * (lavaTop - 14)); } g.stroke(); g.setLineDash([]);
+        const q = u, x = x0 + q * w * 0.72, y = 16 + (q ** 1.4) * (lavaTop - 40) + Math.sin(T * 3) * 3;
+        for (let i = 0; i < 5; i++) {
+          const fx = (i * 67 + T * 12) % w, fy = (i * 29 + T * 18) % (lavaTop - 10);
+          g.save(); g.translate(fx, fy); g.rotate(Math.sin(T * 2 + i) * 0.6);
+          g.fillStyle = 'rgba(224, 231, 255, 0.75)'; g.beginPath(); g.ellipse(0, 0, 7, 2.5, 0, 0, TAU); g.fill(); g.restore();
+        }
+        hero(x, y, 1, 0.3);
+        break;
+      }
+      case 'coinrain': {
+        const [x, y, vx, vy] = swing(cx, 8, 52, Math.sin(T * 2.4) * 0.8);
+        for (let i = 0; i < 14; i++) {
+          const fx = ((i * 41) % w) + 6, fy = ((i * 53 + T * 90) % (lavaTop + 10)) - 10;
+          if (Math.hypot(fx - x, fy - y) > 16) coin(fx, fy, i);
+        }
+        hero(x, y, vx, vy);
+        break;
+      }
+      case 'steel': {
+        // a red hook that shakes... then gets a steel band and holds
+        const steelOn = u > 0.3;
+        const jx = steelOn ? 0 : Math.sin(T * 80) * 2;
+        const [x, y, vx, vy] = swing(cx + jx, 10, 55, Math.sin(T * 2.6) * 0.75);
+        hook(cx, 10, '#ff5e5e', jx);
+        g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 1; g.beginPath(); g.moveTo(cx + jx - 4, 7); g.lineTo(cx + jx, 11); g.lineTo(cx + jx - 2, 15); g.stroke();
+        if (steelOn) { g.strokeStyle = '#cbd5e1'; g.lineWidth = 2.5; g.shadowColor = '#fff'; g.shadowBlur = 8; g.beginPath(); g.arc(cx, 10, 9, 0, TAU); g.stroke(); g.shadowBlur = 0; }
+        hero(x, y, vx, vy);
+        break;
+      }
+      case 'shield': {
+        // fall in with a bubble: it pops and throws you back up
+        let x, y, on = true;
+        if (u < 0.42) { const q = u / 0.42; x = w * 0.15 + q * w * 0.3; y = 14 + q * q * (lavaTop - 23); }
+        else { const q = (u - 0.42) / 0.58; on = false; x = w * 0.45 + q * w * 0.45; y = lavaTop - 9 - Math.sin(q * Math.PI * 0.85) * (h * 0.7); }
+        if (on) { g.fillStyle = 'rgba(94, 234, 212, 0.15)'; g.strokeStyle = '#5eead4'; g.lineWidth = 1.8; g.beginPath(); g.arc(x, y, 16, 0, TAU); g.fill(); g.stroke(); }
+        else {
+          const k = (u - 0.42) / 0.2;
+          if (k < 1) { g.globalAlpha = 1 - k; g.strokeStyle = '#5eead4'; g.lineWidth = 2; g.beginPath(); g.arc(w * 0.45, lavaTop - 9, 16 + k * 30, 0, TAU); g.stroke(); g.globalAlpha = 1; }
+          pop(w * 0.45, lavaTop - 30, 'SAVED!', '#5eead4', (u - 0.42) * 2);
+        }
+        hero(x, y, 1, on ? 0.6 : -0.6);
+        break;
+      }
+    }
+    // a little progress bar for the loop
+    g.fillStyle = P.color; g.globalAlpha = 0.7; g.fillRect(0, h - 2, w * u, 2); g.globalAlpha = 1;
+  }
+
   // ---------- Input ----------
   function press() {
     if (customOpen) return;
@@ -2234,6 +2502,7 @@
     if (Pause.paused) { requestAnimationFrame(loop); return; } // frozen on the last frame
     update(dt);
     draw();
+    pdUpdate(dt);
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
