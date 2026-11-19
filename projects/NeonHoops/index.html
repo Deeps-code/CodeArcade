@@ -133,6 +133,8 @@
   .skin { padding: 4px 2px 6px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: #ede6ff; font: inherit; font-size: 9.5px; font-weight: 800; cursor: pointer; line-height: 1.1; }
   .skin img { width: 100%; max-width: 54px; display: block; margin: 0 auto 2px; pointer-events: none; }
   .skin.on { background: rgba(255, 122, 26, 0.22); border-color: #ff7a1a; }
+  button.cta { pointer-events: auto; cursor: pointer; border: 0; font-family: inherit; line-height: normal; }
+  button.cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -151,7 +153,7 @@
 <div class="overlay" id="menu">
   <h1><span class="a">NEON</span><br /><span class="b">HOOPS</span></h1>
   <p class="sub" id="howto"></p>
-  <div class="cta" id="startCta">TAP TO START</div>
+  <button type="button" class="cta" id="startCta">TAP TO START</button>
   <button class="customBtn" type="button"><img class="lookIcon" alt="">CUSTOMIZE</button>
   <div class="legend">
     <span><b style="color:#fff">Basket</b> +2</span>
@@ -166,7 +168,7 @@
   <div class="big" id="finalScore">0</div>
   <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
   <p class="sub" id="overStats"></p>
-  <div class="cta" id="retryCta">TAP TO RETRY</div>
+  <button type="button" class="cta" id="retryCta">TAP TO RETRY</button>
   <button class="customBtn" type="button"><img class="lookIcon" alt="">CUSTOMIZE</button>
 </div>
 
@@ -1653,7 +1655,8 @@
     return false;
   }
   window.addEventListener('pointerdown', (e) => {
-    if (tryStart()) return;
+    initAudio();
+    if (state === 'menu' || state === 'over') return;
     if (customOpen) return;
     if (state !== 'playing') return;
     // The last shot is just bouncing around? Finish it now and get the next ball ready
@@ -1824,6 +1827,16 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  // ---------- Start / Retry buttons ----------
+  // Only these buttons (or Space / Enter) start a game; tapping anywhere else doesn't.
+  for (const id of ['startCta', 'retryCta']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.textContent = id === 'startCta' ? '▶ START' : '↻ PLAY AGAIN';
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); tryStart(); });
+  }
 </script>
 </body>
 </html>

@@ -62,6 +62,8 @@
   .skLab { font-size: 10px; font-weight: 800; letter-spacing: 0.18em; color: #a99fd6; }
   .skName { font-size: 16px; font-weight: 900; }
   .skNum { font-size: 11px; color: #a99fd6; }
+  button.cta { pointer-events: auto; cursor: pointer; border: 0; font-family: inherit; line-height: normal; }
+  button.cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -71,7 +73,7 @@
 <div class="overlay" id="menu">
   <h1><span class="a">BOTTLE</span><br /><span class="b">FLIP</span></h1>
   <p class="sub" id="howto"></p>
-  <div class="cta" id="startCta">TAP TO START</div>
+  <button type="button" class="cta" id="startCta">TAP TO START</button>
   <div class="skinSel">
     <button class="skArrow" id="skPrev" type="button" aria-label="Previous skin">‹</button>
     <div class="skMid"><canvas id="skCv"></canvas><div class="skText"><div class="skLab">BOTTLE</div><div class="skName" id="skName"></div><div class="skNum" id="skNum"></div></div></div>
@@ -1130,7 +1132,7 @@
   setSkin(skinIndex);
   (function skLoop() { if (!started) drawSkinPreview(); requestAnimationFrame(skLoop); })();
 
-  canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); tap(); });
+  canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); if (started) tap(); else initAudio(); });
   window.addEventListener('keydown', (e) => {
     const isFlipKey = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space';
     if (!isFlipKey) return;
@@ -1298,6 +1300,16 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  // ---------- Start / Retry buttons ----------
+  // Only these buttons (or Space / Enter) start a game; tapping anywhere else doesn't.
+  for (const id of ['startCta', 'retryCta']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.textContent = id === 'startCta' ? '▶ START' : '↻ PLAY AGAIN';
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); if (!started) tap(); });
+  }
 </script>
 </body>
 </html>

@@ -285,6 +285,8 @@
   }
   #knob::after { content: ''; position: absolute; inset: 13px; border-radius: 50%; background: var(--coral); border: 2px solid var(--ink); }
   #noGL { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: var(--paper); color: var(--ink); font-size: 16px; line-height: 1.5; font-weight: 700; }
+  button.cta { pointer-events: auto; cursor: pointer; border: 0; font-family: inherit; line-height: normal; }
+  button.cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -337,7 +339,7 @@
       <div class="blurb" id="birdBlurb"></div>
       <button class="trailToggle" type="button" aria-label="Toggle bird trails" title="Trails (T)"><span class="sw"></span><span class="tl">TRAILS ON</span></button>
     </div>
-    <div><div class="cta" id="startCta">TAP TO START</div></div>
+    <div><button type="button" class="cta" id="startCta">TAP TO START</button></div>
     <div class="legend">
       <span>🌻 Seed +5</span>
       <span data-power="shield">Shield</span>
@@ -356,7 +358,7 @@
     <div class="big" id="finalScore">0</div>
     <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
     <p class="sub" id="overStats"></p>
-    <div><div class="cta" id="retryCta">TAP TO RETRY</div></div>
+    <div><button type="button" class="cta" id="retryCta">TAP TO RETRY</button></div>
     <button class="mini" id="changeBird" type="button"><img id="changeBirdImg" alt="">CHANGE BIRD</button>
     <button class="trailToggle" type="button" aria-label="Toggle bird trails" title="Trails (T)"><span class="sw"></span><span class="tl">TRAILS ON</span></button>
   </div>
@@ -1956,7 +1958,7 @@
   // The mouse never steers: on a computer you fly with the keyboard, and a click only starts the game.
   window.addEventListener('pointerdown', (e) => {
     const wasPlaying = state === 'playing';
-    tryStart();
+    initAudio();
     if (e.pointerType === 'mouse' || gyroOn || stick.id !== null) return;
     if (!wasPlaying && state !== 'playing') return;
     const p = toView(e);
@@ -2666,6 +2668,16 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  // ---------- Start / Retry buttons ----------
+  // Only these buttons (or Space / Enter) start a game; tapping anywhere else doesn't.
+  for (const id of ['startCta', 'retryCta']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.textContent = id === 'startCta' ? '▶ START' : '↻ PLAY AGAIN';
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); tryStart(); });
+  }
 </script>
 </body>
 </html>

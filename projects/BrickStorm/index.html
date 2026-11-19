@@ -101,6 +101,10 @@
   .legend { display: flex; gap: 14px 18px; flex-wrap: wrap; justify-content: center; margin-top: 26px; font-size: 13px; color: #a9a9d6; max-width: 420px; }
   .legend b { font-weight: 800; }
   .gone { display: none; }
+  button.cta { pointer-events: auto; cursor: pointer; border: 0; font-family: inherit; line-height: normal; }
+  button.cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .overlay.hidden { visibility: hidden; transition: opacity 0.35s, visibility 0s linear 0.35s; }
+  .overlay.hidden * { pointer-events: none !important; }
 </style>
 </head>
 <body>
@@ -123,7 +127,7 @@
 <div class="overlay" id="menu">
   <h1><span class="a">BRICK</span><br /><span class="b">STORM</span></h1>
   <p class="sub" id="howto"></p>
-  <div class="cta" id="startCta">TAP TO START</div>
+  <button type="button" class="cta" id="startCta">TAP TO START</button>
   <div class="legend">
     <span><b style="color:#5b8cff">➤</b> Blaster</span>
     <span><b style="color:#c6ff3d">⚡</b> Tesla</span>
@@ -140,7 +144,7 @@
   <div class="big" id="finalScore">0</div>
   <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
   <p class="sub" id="overStats"></p>
-  <div class="cta" id="retryCta">TAP TO RETRY</div>
+  <button type="button" class="cta" id="retryCta">TAP TO RETRY</button>
 </div>
 
 <script>
@@ -904,7 +908,7 @@
   if ('onpointerrawupdate' in window) window.addEventListener('pointermove', movePaddle);
   window.addEventListener('pointerdown', (e) => {
     paddle.tx = e.clientX;
-    tryStartOrLaunch();
+    if (state === 'playing') tryStartOrLaunch(); else initAudio();
   });
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
@@ -1059,6 +1063,16 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  // ---------- Start / Retry buttons ----------
+  // Only these buttons (or Space / Enter) start a game; tapping anywhere else doesn't.
+  for (const id of ['startCta', 'retryCta']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.textContent = id === 'startCta' ? '▶ START' : '↻ PLAY AGAIN';
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); if (state !== 'playing') tryStartOrLaunch(); });
+  }
 </script>
 </body>
 </html>

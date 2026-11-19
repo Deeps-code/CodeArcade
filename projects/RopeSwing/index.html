@@ -155,6 +155,8 @@
   .skin img { width: 100%; max-width: 56px; display: block; margin: 0 auto 1px; pointer-events: none; }
   .skin.on { background: rgba(255, 159, 67, 0.22); border-color: #ff9f43; }
   #app.short #cPreview { height: 96px; }
+  button.cta { pointer-events: auto; cursor: pointer; border: 0; font-family: inherit; line-height: normal; }
+  button.cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 </style>
 </head>
 <body>
@@ -172,7 +174,7 @@
 <div class="overlay" id="menu">
   <h1><span class="a">ROPE</span><br /><span class="b">SWING</span></h1>
   <p class="sub" id="howto"></p>
-  <div class="cta" id="startCta">TAP TO START</div>
+  <button type="button" class="cta" id="startCta">TAP TO START</button>
   <button class="customBtn" type="button"><img class="lookIcon" alt="">CUSTOMIZE</button>
   <div class="legend">
     <span><b style="color:#4fd1ff">◎</b> Hook</span>
@@ -193,7 +195,7 @@
   <div class="big" id="finalScore">0</div>
   <div class="newbest gone" id="newBest">★ NEW BEST ★</div>
   <p class="sub" id="overStats"></p>
-  <div class="cta" id="retryCta">TAP TO RETRY</div>
+  <button type="button" class="cta" id="retryCta">TAP TO RETRY</button>
   <button class="customBtn" type="button"><img class="lookIcon" alt="">CUSTOMIZE</button>
 </div>
 <div id="custom" class="gone">
@@ -2330,7 +2332,7 @@
   }
   function releaseInput() { holding = false; }
 
-  window.addEventListener('pointerdown', press);
+  window.addEventListener('pointerdown', () => { if (state === 'playing') press(); else initAudio(); });
   window.addEventListener('pointerup', releaseInput);
   window.addEventListener('pointercancel', releaseInput);
   window.addEventListener('keydown', (e) => {
@@ -2506,6 +2508,16 @@
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+
+  // ---------- Start / Retry buttons ----------
+  // Only these buttons (or Space / Enter) start a game; tapping anywhere else doesn't.
+  for (const id of ['startCta', 'retryCta']) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    b.textContent = id === 'startCta' ? '▶ START' : '↻ PLAY AGAIN';
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); if (state === 'menu' || (state === 'over' && performance.now() > overReadyAt)) { initAudio(); start(); } });
+  }
 </script>
 </body>
 </html>
