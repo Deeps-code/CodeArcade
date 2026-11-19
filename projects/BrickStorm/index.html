@@ -576,7 +576,8 @@
     const wantW = paddleBase * (wideT > 0 ? 1.6 : 1);
     paddle.w = lerp(paddle.w, wantW, Math.min(1, dt * 10));
     paddle.tx = clamp(paddle.tx, fx + paddle.w / 2, fx + FW - paddle.w / 2);
-    paddle.x = lerp(paddle.x, paddle.tx, Math.min(1, dt * 22));
+    // follow the mouse / finger exactly (no easing, so it never lags behind)
+    paddle.x = paddle.tx;
 
     for (const b of balls) if (b.stuck) { b.x = paddle.x + b.off; b.y = paddleY - BALL_R - 1; }
 
@@ -897,7 +898,10 @@
     if (state === 'over') { if (performance.now() > overReadyAt) start(); return; }
     for (const b of balls) if (b.stuck) launch(b);
   }
-  window.addEventListener('pointermove', (e) => { paddle.tx = e.clientX; });
+  // pointerrawupdate (where supported) arrives as soon as the mouse moves, before the next frame
+  const movePaddle = (e) => { paddle.tx = e.clientX; };
+  window.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', movePaddle);
+  if ('onpointerrawupdate' in window) window.addEventListener('pointermove', movePaddle);
   window.addEventListener('pointerdown', (e) => {
     paddle.tx = e.clientX;
     tryStartOrLaunch();
