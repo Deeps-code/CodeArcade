@@ -48,6 +48,20 @@
   @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 46px rgba(255, 154, 0, 0.7); } }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 13px; color: #d4cdf2; }
   .legend b { font-weight: 800; }
+  .overlay.hidden { visibility: hidden; transition: opacity 0.35s, visibility 0s linear 0.35s; }
+  .overlay.hidden * { pointer-events: none !important; }
+  /* Skin picker */
+  .skinSel { pointer-events: auto; margin-top: 22px; display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; border-radius: 20px; background: rgba(16, 10, 40, 0.55); border: 1px solid rgba(255, 255, 255, 0.16); }
+  .skArrow { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.08);
+    color: #fff; font-size: 22px; line-height: 1; cursor: pointer; padding: 0 0 3px; font-family: inherit; }
+  .skArrow:active { transform: scale(0.92); }
+  .skMid { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+  #skCv { width: 44px; height: 64px; }
+  .skText { text-align: left; }
+  .skLab { font-size: 10px; font-weight: 800; letter-spacing: 0.18em; color: #a99fd6; }
+  .skName { font-size: 16px; font-weight: 900; }
+  .skNum { font-size: 11px; color: #a99fd6; }
 </style>
 </head>
 <body>
@@ -58,6 +72,11 @@
   <h1><span class="a">BOTTLE</span><br /><span class="b">FLIP</span></h1>
   <p class="sub" id="howto"></p>
   <div class="cta" id="startCta">TAP TO START</div>
+  <div class="skinSel">
+    <button class="skArrow" id="skPrev" type="button" aria-label="Previous skin">‹</button>
+    <div class="skMid"><canvas id="skCv"></canvas><div class="skText"><div class="skLab">BOTTLE</div><div class="skName" id="skName"></div><div class="skNum" id="skNum"></div></div></div>
+    <button class="skArrow" id="skNext" type="button" aria-label="Next skin">›</button>
+  </div>
   <div class="legend">
     <span><b style="color:#e8321a">Perfect</b> +3</span>
     <span><b style="color:#ff9a00">Great</b> +2</span>
@@ -77,7 +96,8 @@
     + ' when the line is inside the zone to flip the bottle. Hit the red center to land a perfect flip!';
 
   const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d');
+  const mainCtx = canvas.getContext('2d');
+  let ctx = mainCtx;
   let W = 0, H = 0, dpr = 1;
   let bgNight = null, bgDay = null;
 
@@ -114,6 +134,24 @@
     { name: 'Grape juice', top: '#d9a6ff', bottom: '#7a2fd6' },
     { name: 'Cola', top: '#d08a55', bottom: '#4f230f' },
   ];
+
+  // ---------- Bottle skins ----------
+  // Only the looks change (glass, cap, label, outline); the bottle flips exactly the same.
+  const SKINS = [
+    { name: 'Classic', glass: 'rgba(180, 225, 255, 0.16)', cap: '#4fd1ff', label: '#ff4fa3', text: 'FLIP', textColor: 'rgba(255,255,255,0.9)' },
+    { name: 'Sunset', glass: 'rgba(255, 190, 140, 0.2)', cap: '#ffd400', label: '#ff7a1a', pattern: 'stripes', pat: '#ff4fa3', text: 'SUN', textColor: '#fff7d6' },
+    { name: 'Mint', glass: 'rgba(170, 255, 220, 0.2)', cap: '#f8fafc', label: '#2ec4b6', pattern: 'dots', pat: '#ccfbf1', text: 'MINT', textColor: '#ffffff' },
+    { name: 'Galaxy', glass: 'rgba(120, 90, 220, 0.24)', cap: '#a78bfa', label: '#140c33', pattern: 'stars', pat: '#ffd23f', text: 'COSMO', textColor: '#c4b5fd', outline: '#a78bfa', glow: '#a78bfa' },
+    { name: 'Gold Rush', glass: 'rgba(255, 215, 110, 0.22)', cap: '#ffd23f', label: '#1c1917', pattern: 'band', pat: '#ffd23f', text: 'GOLD', textColor: '#ffd23f', outline: '#fbbf24', shine: 0.4 },
+    { name: 'Candy', glass: 'rgba(255, 170, 210, 0.22)', cap: '#ff4fa3', label: '#fff1f7', pattern: 'swirl', pat: '#ff4fa3', text: 'SWEET', textColor: '#e11d74' },
+    { name: 'Neon', glass: 'rgba(20, 30, 40, 0.35)', cap: '#5dffb0', label: 'none', text: 'NEON', textColor: '#5dffb0', outline: '#5dffb0', glow: '#5dffb0', textGlow: true },
+    { name: 'Sport', glass: 'rgba(150, 200, 255, 0.2)', cap: '#e63946', capTall: true, label: '#f8fafc', pattern: 'band', pat: '#e63946', text: 'GO!', textColor: '#1d3557' },
+    { name: 'Camo', glass: 'rgba(160, 180, 110, 0.24)', cap: '#3f6212', label: '#65a30d', pattern: 'camo', pat: '#365314', text: 'WILD', textColor: '#ecfccb' },
+    { name: 'Rainbow', glass: 'rgba(255, 255, 255, 0.18)', cap: 'rainbow', label: 'rainbow', text: 'WOW', textColor: '#ffffff' },
+  ];
+  let skinIndex = 0;
+  try { const v = Number(localStorage.getItem('bottleSkin')); if (v >= 0 && v < SKINS.length) skinIndex = v; } catch (e) {}
+  const skin = () => SKINS[skinIndex];
 
   // ---------- Sound (tiny synth, no files needed) ----------
   let actx = null;
@@ -727,8 +765,9 @@
     const liquid = LIQUIDS[s.liquid];
     const baseAlpha = ctx.globalAlpha;
 
+    const sk = skin(), now = performance.now() / 1000;
     bottlePath(bh, bw);
-    ctx.fillStyle = 'rgba(180, 225, 255, 0.16)';
+    ctx.fillStyle = sk.glass;
     ctx.fill();
 
     ctx.save();
@@ -773,28 +812,59 @@
     }
 
     // Label
-    ctx.fillStyle = '#ff4fa3';
-    ctx.fillRect(-bw, d.bodyTop + bh * 0.12, bw * 2, bh * 0.18);
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = `bold ${Math.round(bw * 0.24)}px system-ui, sans-serif`;
+    const ly = d.bodyTop + bh * 0.12, lh = bh * 0.18;
+    if (sk.label === 'rainbow') {
+      const cols = ['#ff5e5e', '#ff9f43', '#ffd23f', '#5dffb0', '#4fd1ff', '#a78bfa'];
+      cols.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(-bw, ly + (lh / cols.length) * i, bw * 2, lh / cols.length + 0.5); });
+    } else if (sk.label !== 'none') {
+      ctx.fillStyle = sk.label;
+      ctx.fillRect(-bw, ly, bw * 2, lh);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(-bw, ly, bw * 2, lh); ctx.clip();
+      ctx.fillStyle = sk.pat; ctx.strokeStyle = sk.pat;
+      if (sk.pattern === 'stripes') {
+        for (let x = -bw * 1.5; x < bw * 1.5; x += bw * 0.22) { ctx.beginPath(); ctx.moveTo(x, ly + lh); ctx.lineTo(x + bw * 0.1, ly + lh); ctx.lineTo(x + bw * 0.3, ly); ctx.lineTo(x + bw * 0.2, ly); ctx.fill(); }
+      } else if (sk.pattern === 'dots') {
+        for (let i = 0; i < 10; i++) { ctx.beginPath(); ctx.arc(-bw / 2 + (i % 5) * bw * 0.25, ly + lh * (i < 5 ? 0.22 : 0.8), bw * 0.045, 0, TAU); ctx.fill(); }
+      } else if (sk.pattern === 'stars') {
+        for (let i = 0; i < 9; i++) { ctx.globalAlpha = 0.5 + 0.5 * Math.sin(now * 3 + i * 2); ctx.fillRect(-bw / 2 + ((i * 37) % 100) / 100 * bw, ly + ((i * 53) % 100) / 100 * lh, 2, 2); }
+        ctx.globalAlpha = 1;
+      } else if (sk.pattern === 'band') {
+        ctx.fillRect(-bw, ly + lh * 0.06, bw * 2, lh * 0.12); ctx.fillRect(-bw, ly + lh * 0.82, bw * 2, lh * 0.12);
+      } else if (sk.pattern === 'swirl') {
+        ctx.lineWidth = lh * 0.16;
+        for (let x = -bw; x < bw; x += bw * 0.3) { ctx.beginPath(); ctx.moveTo(x, ly + lh); ctx.quadraticCurveTo(x + bw * 0.15, ly + lh * 0.5, x + bw * 0.05, ly); ctx.stroke(); }
+      } else if (sk.pattern === 'camo') {
+        for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.ellipse(-bw / 2 + ((i * 29) % 100) / 100 * bw, ly + ((i * 61) % 100) / 100 * lh, bw * 0.12, lh * 0.22, i, 0, TAU); ctx.fill(); }
+      }
+      ctx.restore();
+    }
+    ctx.fillStyle = sk.textColor;
+    ctx.font = `900 ${Math.round(bw * 0.24)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('FLIP', 0, d.bodyTop + bh * 0.21);
+    if (sk.textGlow) { ctx.shadowColor = sk.textColor; ctx.shadowBlur = 10; }
+    ctx.fillText(sk.text, 0, ly + lh / 2);
+    ctx.shadowBlur = 0;
 
     // Glass shine
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fillStyle = 'rgba(255,255,255,' + (sk.shine || 0.22) + ')';
     ctx.fillRect(-bw / 2 + bw * 0.12, d.bodyTop, bw * 0.1, bh * 0.6);
     ctx.restore();
 
     bottlePath(bh, bw);
     ctx.lineWidth = 2.5;
     // Light outline at night, darker by day so the glass shows against the bright wall
-    ctx.strokeStyle = dayMix > 0.5 ? 'rgba(70, 100, 130, 0.8)' : 'rgba(220, 240, 255, 0.85)';
+    ctx.strokeStyle = sk.outline || (dayMix > 0.5 ? 'rgba(70, 100, 130, 0.8)' : 'rgba(220, 240, 255, 0.85)');
+    if (sk.glow) { ctx.shadowColor = sk.glow; ctx.shadowBlur = 14; }
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    ctx.fillStyle = '#4fd1ff';
-    roundRect(-d.neckW / 2 - 2, d.top, d.neckW + 4, d.capH + 2, 3);
+    ctx.fillStyle = sk.cap === 'rainbow' ? 'hsl(' + ((now * 120) % 360) + ', 95%, 62%)' : sk.cap;
+    const capExtra = sk.capTall ? d.capH * 0.9 : 0;
+    roundRect(-d.neckW / 2 - 2, d.top - capExtra, d.neckW + 4, d.capH + 2 + capExtra, 3);
     ctx.fill();
+    if (sk.capTall) { ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fillRect(-d.neckW / 2 - 2, d.top - capExtra + 2, d.neckW + 4, 2); }
   }
 
   // Text with a soft dark shadow (no hard outline) so it reads on both the night and day walls.
@@ -1028,6 +1098,38 @@
   }
 
   // ---------- Input ----------
+  // Skin picker on the menu (the preview reuses the real bottle drawing)
+  const skCv = document.getElementById('skCv'), skCtx = skCv.getContext('2d');
+  function drawSkinPreview() {
+    if (!G.bh || !s.lq) return;   // the screen hasn't been measured yet
+    const d2 = Math.min(window.devicePixelRatio || 1, 2);
+    const w = skCv.clientWidth || 44, h = skCv.clientHeight || 64;
+    if (skCv.width !== Math.round(w * d2)) { skCv.width = Math.round(w * d2); skCv.height = Math.round(h * d2); }
+    skCtx.setTransform(1, 0, 0, 1, 0, 0);
+    skCtx.clearRect(0, 0, skCv.width, skCv.height);
+    const k = (h * 0.92) / (G.bh * 1.1);
+    skCtx.setTransform(d2 * k, 0, 0, d2 * k, (w / 2) * d2, (h / 2 + 2) * d2);
+    const keepLq = s.lq, keepA = s.waveA;
+    s.lq = { ux: 0, uy: -1, level: keepLq ? keepLq.level : 0 }; s.waveA = 1.5;
+    ctx = skCtx;
+    try { drawBottle(); } finally { ctx = mainCtx; s.lq = keepLq; s.waveA = keepA; }
+  }
+  function setSkin(i) {
+    skinIndex = (i + SKINS.length) % SKINS.length;
+    try { localStorage.setItem('bottleSkin', skinIndex); } catch (e) {}
+    document.getElementById('skName').textContent = skin().name;
+    document.getElementById('skNum').textContent = (skinIndex + 1) + ' / ' + SKINS.length;
+    drawSkinPreview();
+  }
+  for (const [id, step] of [['skPrev', -1], ['skNext', 1]]) {
+    const b = document.getElementById(id);
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); setSkin(skinIndex + step); initAudio(); });
+  }
+  // keep the preview's waves moving while the menu is up
+  setSkin(skinIndex);
+  (function skLoop() { if (!started) drawSkinPreview(); requestAnimationFrame(skLoop); })();
+
   canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); tap(); });
   window.addEventListener('keydown', (e) => {
     const isFlipKey = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space';

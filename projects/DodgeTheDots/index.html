@@ -96,6 +96,20 @@
   .legend { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 28px; font-size: 13px; color: #a9a9d6; }
   .legend b { font-weight: 800; }
   .gone { display: none; }
+  .overlay.hidden { visibility: hidden; transition: opacity 0.35s, visibility 0s linear 0.35s; }
+  .overlay.hidden * { pointer-events: none !important; }
+  /* Skin picker */
+  .skinSel { pointer-events: auto; margin-top: 22px; display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; border-radius: 20px; background: rgba(10, 8, 30, 0.6); border: 1px solid rgba(255, 255, 255, 0.16); }
+  .skArrow { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.08);
+    color: #fff; font-size: 22px; line-height: 1; cursor: pointer; padding: 0 0 3px; font-family: inherit; }
+  .skArrow:active { transform: scale(0.92); }
+  .skMid { display: flex; align-items: center; gap: 10px; min-width: 150px; }
+  #skCv { width: 52px; height: 52px; }
+  .skText { text-align: left; }
+  .skLab { font-size: 10px; font-weight: 800; letter-spacing: 0.18em; color: #8f8fc0; }
+  .skName { font-size: 16px; font-weight: 900; color: #fff; }
+  .skNum { font-size: 11px; color: #8f8fc0; }
 </style>
 </head>
 <body>
@@ -119,6 +133,11 @@
   <h1><span class="a">DODGE</span><br /><span class="b">THE DOTS</span></h1>
   <p class="sub" id="howto"></p>
   <div class="cta" id="startCta">TAP TO START</div>
+  <div class="skinSel">
+    <button class="skArrow" id="skPrev" type="button" aria-label="Previous skin">‹</button>
+    <div class="skMid"><canvas id="skCv"></canvas><div class="skText"><div class="skLab">YOUR DOT</div><div class="skName" id="skName"></div><div class="skNum" id="skNum"></div></div></div>
+    <button class="skArrow" id="skNext" type="button" aria-label="Next skin">›</button>
+  </div>
   <div class="legend">
     <span><b style="color:#ffd23f">★</b> +25</span>
     <span><b style="color:#5dffb0">◯</b> Shield</span>
@@ -332,6 +351,112 @@
   let lastShownScore = -1;
   const keys = {};
 
+  // ---------- Player skins ----------
+  // Looks only: the hitbox is the same for every skin.
+  const SKINS = [
+    { name: 'Comet', color: '#4fd1ff', shape: 'orb', trail: 'dots' },
+    { name: 'Ember', color: '#ff7a1a', shape: 'orb', trail: 'fire' },
+    { name: 'Mint Gem', color: '#5dffb0', shape: 'diamond', trail: 'dots' },
+    { name: 'Heartbeat', color: '#ff4fa3', shape: 'heart', trail: 'hearts' },
+    { name: 'Lucky Star', color: '#ffd23f', shape: 'star', trail: 'sparkle' },
+    { name: 'Void', color: '#a78bfa', shape: 'ring', trail: 'ghost' },
+    { name: 'Prism', color: 'rainbow', shape: 'orb', trail: 'rainbow' },
+    { name: 'Frost', color: '#bae6fd', shape: 'flake', trail: 'sparkle' },
+    { name: 'Solar', color: '#ffae00', shape: 'sun', trail: 'fire' },
+    { name: 'Pixel', color: '#c6ff3d', shape: 'square', trail: 'squares' },
+  ];
+  let skinIndex = 0;
+  try { const v = Number(localStorage.getItem('dodgeSkin')); if (v >= 0 && v < SKINS.length) skinIndex = v; } catch (e) {}
+  const skin = () => SKINS[skinIndex];
+  // hue -> hex (glow sprites need a hex color)
+  function hueHex(h) {
+    const f = (n) => { const k = (n + h / 30) % 12, a = 0.95 * Math.min(0.62, 1 - 0.62); const c = 0.62 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(c * 255).toString(16).padStart(2, '0'); };
+    return '#' + f(0) + f(8) + f(4);
+  }
+  // the skin's color right now (Prism cycles through the rainbow)
+  function skinColor(sk = skin(), t = performance.now() / 1000, offset = 0) {
+    return sk.color === 'rainbow' ? hueHex(Math.round(((t * 90 + offset) % 360) / 15) * 15) : sk.color;
+  }
+  // Draw the dot's core shape at (x, y), radius r
+  function drawDotCore(g, sk, x, y, r, t) {
+    const c = skinColor(sk, t);
+    g.save();
+    g.translate(x, y);
+    g.fillStyle = '#ffffff'; g.strokeStyle = c; g.lineWidth = Math.max(1.5, r * 0.22);
+    g.shadowColor = c; g.shadowBlur = r * 1.2;
+    const sh = sk.shape;
+    if (sh === 'orb') {
+      g.beginPath(); g.arc(0, 0, r * 0.62, 0, TAU); g.fill();
+    } else if (sh === 'diamond') {
+      g.rotate(Math.sin(t * 2) * 0.25);
+      g.beginPath(); g.moveTo(0, -r); g.lineTo(r * 0.72, 0); g.lineTo(0, r); g.lineTo(-r * 0.72, 0); g.closePath(); g.fill(); g.stroke();
+    } else if (sh === 'heart') {
+      const k = r * 0.95 * (1 + Math.max(0, Math.sin(t * 7)) ** 8 * 0.18);
+      g.beginPath(); g.moveTo(0, k * 0.75);
+      g.bezierCurveTo(-k * 1.1, 0, -k * 0.6, -k * 0.85, 0, -k * 0.3);
+      g.bezierCurveTo(k * 0.6, -k * 0.85, k * 1.1, 0, 0, k * 0.75); g.fill(); g.stroke();
+    } else if (sh === 'star') {
+      g.rotate(t * 1.5);
+      g.beginPath();
+      for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r * 1.05; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+      g.closePath(); g.fill(); g.stroke();
+    } else if (sh === 'ring') {
+      g.fillStyle = '#05030f';
+      g.beginPath(); g.arc(0, 0, r * 0.8, 0, TAU); g.fill(); g.lineWidth = r * 0.34; g.stroke();
+      g.shadowBlur = 0; g.fillStyle = c; g.globalAlpha = 0.6 + 0.4 * Math.sin(t * 4);
+      g.beginPath(); g.arc(0, 0, r * 0.22, 0, TAU); g.fill();
+    } else if (sh === 'flake') {
+      g.rotate(t * 0.6); g.lineWidth = Math.max(1.5, r * 0.18); g.strokeStyle = '#ffffff'; g.lineCap = 'round';
+      g.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU, ex = Math.cos(a) * r, ey = Math.sin(a) * r;
+        g.moveTo(0, 0); g.lineTo(ex, ey);
+        const bx = Math.cos(a) * r * 0.6, by = Math.sin(a) * r * 0.6;
+        g.moveTo(bx, by); g.lineTo(bx + Math.cos(a + 0.7) * r * 0.3, by + Math.sin(a + 0.7) * r * 0.3);
+        g.moveTo(bx, by); g.lineTo(bx + Math.cos(a - 0.7) * r * 0.3, by + Math.sin(a - 0.7) * r * 0.3);
+      }
+      g.stroke();
+    } else if (sh === 'sun') {
+      g.rotate(t * 1.2); g.fillStyle = c;
+      for (let i = 0; i < 8; i++) { g.rotate(TAU / 8); g.beginPath(); g.moveTo(-r * 0.2, -r * 0.7); g.lineTo(0, -r * 1.25); g.lineTo(r * 0.2, -r * 0.7); g.fill(); }
+      g.fillStyle = '#fff7d6'; g.beginPath(); g.arc(0, 0, r * 0.62, 0, TAU); g.fill();
+    } else if (sh === 'square') {
+      g.rotate(Math.round(t * 2) * (Math.PI / 4) * 0);   // pixels don't spin
+      g.fillRect(-r * 0.6, -r * 0.6, r * 1.2, r * 1.2); g.strokeRect(-r * 0.6, -r * 0.6, r * 1.2, r * 1.2);
+    }
+    g.restore();
+  }
+  // The trail behind the dot
+  function drawDotTrail(g, sk, trail, r, t) {
+    const n = trail.length;
+    for (let i = 0; i < n; i++) {
+      const p = trail[i], k = i / n;
+      const c = sk.trail === 'rainbow' ? skinColor(sk, t, -i * 18) : skinColor(sk, t);
+      g.globalAlpha = k * (sk.trail === 'ghost' ? 0.22 : 0.4);
+      g.fillStyle = c;
+      if (sk.trail === 'squares' || sk.trail === 'hearts' && i % 3) {
+        const sz = r * k * 1.1; g.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz);
+      } else if (sk.trail === 'hearts') {
+        const k2 = r * k * 0.8; g.beginPath(); g.moveTo(p.x, p.y + k2 * 0.75); g.bezierCurveTo(p.x - k2 * 1.1, p.y, p.x - k2 * 0.6, p.y - k2 * 0.85, p.x, p.y - k2 * 0.3); g.bezierCurveTo(p.x + k2 * 0.6, p.y - k2 * 0.85, p.x + k2 * 1.1, p.y, p.x, p.y + k2 * 0.75); g.fill();
+      } else if (sk.trail === 'fire') {
+        const rise = (1 - k) * r * 1.2;
+        g.fillStyle = k > 0.6 ? '#ffd23f' : k > 0.3 ? c : '#e63946';
+        g.beginPath(); g.arc(p.x + Math.sin(t * 9 + i) * (1 - k) * 4, p.y - rise, r * k * 0.9, 0, TAU); g.fill();
+      } else if (sk.trail === 'sparkle') {
+        if (i % 2) continue;
+        const sz = r * k * 0.9, tw = Math.sin(t * 10 + i) * 0.5 + 0.5;
+        g.fillStyle = tw > 0.5 ? '#ffffff' : c;
+        g.beginPath(); g.moveTo(p.x, p.y - sz); g.lineTo(p.x + sz * 0.3, p.y); g.lineTo(p.x, p.y + sz); g.lineTo(p.x - sz * 0.3, p.y); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(p.x - sz, p.y); g.lineTo(p.x, p.y + sz * 0.3); g.lineTo(p.x + sz, p.y); g.lineTo(p.x, p.y - sz * 0.3); g.closePath(); g.fill();
+      } else if (sk.trail === 'ghost') {
+        g.beginPath(); g.arc(p.x, p.y, r * (0.6 + k * 0.6), 0, TAU); g.fill();
+      } else {
+        g.beginPath(); g.arc(p.x, p.y, r * k, 0, TAU); g.fill();
+      }
+    }
+    g.globalAlpha = 1;
+  }
+
   // ---------- Glow sprites (pre-rendered for speed) ----------
   const sprites = new Map();
   function glowSprite(color, r) {
@@ -497,7 +622,7 @@
     state = 'dying';
     deathT = 0;
     shake = 16;
-    burst(player.x, player.y, '#4fd1ff', 46, 380);
+    burst(player.x, player.y, skinColor(), 46, 380);
     burst(player.x, player.y, '#ffffff', 16, 200);
     burst(h.x, h.y, h.color, 20, 260);
     sfx.explode();
@@ -1067,16 +1192,10 @@
     if (state === 'play' || state === 'menu') {
       const blink = player.inv > 0 && Math.floor(player.inv * 16) % 2 === 0;
       if (!blink) {
-        const n = player.trail.length;
-        for (let i = 0; i < n; i++) {
-          const t = player.trail[i];
-          const k = i / n;
-          ctx.globalAlpha = k * 0.35;
-          ctx.fillStyle = '#4fd1ff';
-          ctx.beginPath(); ctx.arc(t.x, t.y, PLAYER_R * k, 0, TAU); ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-        drawSprite(glowSprite('#4fd1ff', PLAYER_R + 2), player.x, player.y, 1 + Math.sin(performance.now() / 200) * 0.05);
+        const sk = skin(), tNow = performance.now() / 1000;
+        drawDotTrail(ctx, sk, player.trail, PLAYER_R, tNow);
+        drawSprite(glowSprite(skinColor(sk, tNow), PLAYER_R + 2), player.x, player.y, (sk.shape === 'orb' ? 1 : 0.85) + Math.sin(performance.now() / 200) * 0.05);
+        if (sk.shape !== 'orb') drawDotCore(ctx, sk, player.x, player.y, PLAYER_R, tNow);
         if (shield) {
           ctx.strokeStyle = '#5dffb0';
           ctx.lineWidth = 2;
@@ -1237,6 +1356,41 @@
     if (state === 'menu') start();
     else if (state === 'over' && performance.now() > overReadyAt) start();
   }
+  // ---------- Skin picker (menu) ----------
+  const skCv = document.getElementById('skCv'), skCtx = skCv.getContext('2d');
+  const skTrail = [];
+  function drawSkinPreview() {
+    const d2 = Math.min(window.devicePixelRatio || 1, 2);
+    const w = skCv.clientWidth || 52, h = skCv.clientHeight || 52;
+    if (skCv.width !== Math.round(w * d2)) { skCv.width = Math.round(w * d2); skCv.height = Math.round(h * d2); }
+    const g = skCtx, t = performance.now() / 1000, sk = skin();
+    g.setTransform(d2, 0, 0, d2, 0, 0);
+    g.clearRect(0, 0, w, h);
+    // the dot circles around so you can see its trail
+    const x = w / 2 + Math.cos(t * 3) * w * 0.22, y = h / 2 + Math.sin(t * 3) * h * 0.22;
+    skTrail.push({ x, y }); if (skTrail.length > 12) skTrail.shift();
+    drawDotTrail(g, sk, skTrail, 7, t);
+    const c = skinColor(sk, t);
+    const gr = g.createRadialGradient(x, y, 0, x, y, 16);
+    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.25, c); gr.addColorStop(0.5, c + '88'); gr.addColorStop(1, c + '00');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, 16, 0, TAU); g.fill();
+    if (sk.shape !== 'orb') drawDotCore(g, sk, x, y, 7, t);
+  }
+  function setSkin(i) {
+    skinIndex = (i + SKINS.length) % SKINS.length;
+    try { localStorage.setItem('dodgeSkin', skinIndex); } catch (e) {}
+    document.getElementById('skName').textContent = skin().name;
+    document.getElementById('skNum').textContent = (skinIndex + 1) + ' / ' + SKINS.length;
+    skTrail.length = 0;
+  }
+  for (const [id, stepBy] of [['skPrev', -1], ['skNext', 1]]) {
+    const b = document.getElementById(id);
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); setSkin(skinIndex + stepBy); });
+  }
+  setSkin(skinIndex);
+  (function skLoop() { if (state === 'menu') drawSkinPreview(); requestAnimationFrame(skLoop); })();
+
   window.addEventListener('pointermove', (e) => setTarget(e.clientX, e.clientY));
   window.addEventListener('pointerdown', (e) => {
     setTarget(e.clientX, e.clientY);
