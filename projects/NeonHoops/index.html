@@ -136,6 +136,8 @@
   button.cta { pointer-events: auto; cursor: pointer; border: 0; font-family: inherit; line-height: normal; }
   button.cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
+  /* phones: the button row sat right where the STREAK text shows under the timer; move it down */
+  @media (max-width: 520px) { #sound, #viewBtn, #mirrorBtn, #pauseBtn { top: calc(max(12px, env(safe-area-inset-top)) + 84px) !important; } }
   /* ----- phones: a tidier layout ----- */
   @media (max-width: 520px) {
     .overlay { padding: 18px 16px; background: radial-gradient(ellipse at center, rgba(7, 3, 15, 0.7), rgba(7, 3, 15, 0.92)); }
