@@ -285,7 +285,7 @@
   <p id="howto"></p>
   <button type="button" class="cta" id="startCta">▶ START</button>
   <button type="button" class="alt" data-shop>⬆ UPGRADES &amp; GEAR · 🪙 <b class="coinNum">0</b></button>
-  <div class="zones"><div style="color:#7fe3ff">SHALLOWS</div><div style="color:#5dffb0">CORAL REEF</div><div style="color:#a5b4fc">TWILIGHT</div><div style="color:#818cf8">MIDNIGHT</div><div style="color:#c084fc">THE ABYSS</div><div style="color:#ff6b9a">THE TRENCH</div></div>
+  <div class="zones"><div style="color:#7fe3ff">SHALLOWS</div><div style="color:#5dffb0">CORAL REEF</div><div style="color:#a5b4fc">TWILIGHT</div><div style="color:#818cf8">MIDNIGHT</div><div style="color:#c084fc">THE ABYSS</div><div style="color:#ff6b9a">THE TRENCH</div><div style="color:#fb923c">HADAL ZONE</div><div style="color:#e879f9">THE VOID</div></div>
 </div>
 <div class="overlay hidden" id="over">
   <div class="kick">THE SUN HAS SET</div>
@@ -320,7 +320,7 @@
   // ---------- World ----------
   // The ocean is drawn at a low "pixel" resolution and scaled up, so everything looks pixel-art.
   const M = 4;                     // pixels per meter of depth
-  const MAX_DEPTH = 260;           // meters to the bottom of the trench
+  const MAX_DEPTH = 400;           // meters to the very bottom
   const FLOOR = MAX_DEPTH * M;
   const DAY = 150;                 // seconds of daylight per game
   const ZONES = [
@@ -329,10 +329,12 @@
     { name: 'TWILIGHT', from: 50, to: 90, color: '#a5b4fc' },
     { name: 'MIDNIGHT', from: 90, to: 140, color: '#818cf8' },
     { name: 'THE ABYSS', from: 140, to: 200, color: '#c084fc' },
-    { name: 'THE TRENCH', from: 200, to: MAX_DEPTH, color: '#ff6b9a' },
+    { name: 'THE TRENCH', from: 200, to: 260, color: '#ff6b9a' },
+    { name: 'THE HADAL ZONE', from: 260, to: 330, color: '#fb923c' },
+    { name: 'THE VOID', from: 330, to: MAX_DEPTH, color: '#e879f9' },
   ];
   const zoneAt = (m) => ZONES.find((z) => m < z.to) || ZONES[ZONES.length - 1];
-  const WATER = [[0, [42, 167, 201]], [20, [22, 127, 168]], [50, [11, 76, 122]], [90, [6, 42, 77]], [140, [4, 24, 52]], [200, [3, 13, 32]], [MAX_DEPTH + 10, [2, 6, 18]]];
+  const WATER = [[0, [42, 167, 201]], [20, [22, 127, 168]], [50, [11, 76, 122]], [90, [6, 42, 77]], [140, [4, 24, 52]], [200, [3, 13, 32]], [260, [2, 7, 20]], [330, [2, 4, 13]], [MAX_DEPTH + 10, [1, 2, 8]]];
   function waterAt(m) {
     for (let i = 1; i < WATER.length; i++) {
       if (m <= WATER[i][0]) {
@@ -414,10 +416,38 @@
     { id: 'ghost', name: 'Ghost Shark', zone: 5, rarity: 'legendary', pts: 600, str: 2.2, speed: [16, 22], w: 20, h: 6.6, shape: 'shark', glow: '#bfe9ff',
       col: { top: '#8e9cc0', body: '#d9e4fb', belly: '#f6f9ff', fin: '#b9c7e6', eye: '#5dffe0' } },
   ];
+  // the hadal zone and the void
+  SPECIES.push(
+    { id: 'snail', name: 'Snailfish', zone: 6, rarity: 'common', pts: 280, str: 1.0, speed: [8, 12], w: 11, h: 5, shape: 'fish',
+      col: { top: '#f9a8d4', body: '#fce7f3', belly: '#ffffff', fin: '#fbcfe8' } },
+    { id: 'amphipod', name: 'Giant Amphipod', zone: 6, rarity: 'uncommon', pts: 330, str: 1.1, speed: [6, 9], w: 10, h: 5.5, shape: 'isopod',
+      col: { top: '#fda4af', body: '#fecdd3', belly: '#fff1f2', fin: '#fb7185' } },
+    { id: 'frilled', name: 'Frilled Shark', zone: 6, rarity: 'rare', pts: 480, str: 1.8, speed: [12, 16], w: 22, h: 5, shape: 'eel',
+      col: { top: '#3f2a1e', body: '#5c4033', belly: '#8b6a55', fin: '#4a3428', pat: '#f5d0a9' }, fangs: true, crest: true },
+    { id: 'glass', name: 'Glass Squid', zone: 7, rarity: 'common', pts: 360, str: 1.1, speed: [10, 14], w: 11, h: 5, shape: 'squid', glow: '#a5f3fc',
+      col: { top: '#67e8f9', body: '#a5f3fc', belly: '#ecfeff', fin: '#22d3ee' } },
+    { id: 'barreleye', name: 'Barreleye', zone: 7, rarity: 'rare', pts: 540, str: 1.4, speed: [8, 12], w: 11, h: 5.5, shape: 'fish', glow: '#86efac',
+      col: { top: '#1f2937', body: '#374151', belly: '#6b7280', fin: '#4b5563', eye: '#22c55e' }, pattern: 'lights' },
+    { id: 'dumbo', name: 'Dumbo Octopus', zone: 7, rarity: 'epic', pts: 680, str: 1.5, speed: [6, 9], w: 11, h: 9, shape: 'octopus',
+      col: { top: '#be185d', body: '#f472b6', belly: '#fbcfe8', fin: '#ec4899', pat: '#fdf2f8' } },
+  );
   // The sea monster of the trench (never picked at random; it spawns on its own)
   const LEVIATHAN = { id: 'leviathan', name: 'The Leviathan', zone: 5, rarity: 'mythic', pts: 2500, str: 2.6, speed: [7, 10], w: 64, h: 15, shape: 'eel', boss: true, glow: '#ff3b5c',
     col: { top: '#0b2a2a', body: '#14524a', belly: '#4fa58a', fin: '#0f3d38', pat: '#ff3b5c' }, crest: true, fangs: true, horns: true };
   SPECIES.push(LEVIATHAN);
+  // ...and two more, even deeper
+  const MEGALODON = { id: 'megalodon', name: 'The Megalodon', zone: 6, rarity: 'mythic', pts: 4000, str: 2.8, speed: [12, 16], w: 60, h: 20, shape: 'shark', boss: true, glow: '#ff3b5c',
+    col: { top: '#1f2937', body: '#4b5563', belly: '#d1d5db', fin: '#374151', eye: '#0b0b14' }, fangs: true, warn: 'A GIANT SHADOW IS CIRCLING…' };
+  const KRAKEN = { id: 'kraken', name: 'The Kraken', zone: 7, rarity: 'mythic', pts: 6000, str: 3.0, speed: [6, 9], w: 46, h: 30, shape: 'octopus', boss: true, glow: '#f43f5e',
+    col: { top: '#4c0519', body: '#9f1239', belly: '#fda4af', fin: '#881337', pat: '#fecdd3' }, warn: 'TENTACLES IN THE DARK…' };
+  LEVIATHAN.warn = 'SOMETHING HUGE IS DOWN HERE';
+  SPECIES.push(MEGALODON, KRAKEN);
+  // where each monster lurks, and how often it shows up
+  const BOSSES = [
+    { sp: LEVIATHAN, chance: 0.7, from: 212, to: 248 },
+    { sp: MEGALODON, chance: 0.65, from: 272, to: 320 },
+    { sp: KRAKEN, chance: 0.6, from: 345, to: 388 },
+  ];
   // Things that aren't fish
   const JUNK = [
     { id: 'boot', name: 'Old Boot', pts: 2, str: 0.35, w: 6, h: 6, item: 'boot' },
@@ -437,6 +467,14 @@
     g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
     g.fillStyle = iris; g.beginPath(); g.arc(x + r * 0.22, y, r * 0.62, 0, TAU); g.fill();
     g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.arc(x + r * 0.05, y - r * 0.3, r * 0.22, 0, TAU); g.fill();
+  }
+  // a monster's eye: glowing yellow, a slit pupil and an angry brow
+  function bossEye(g, x, y, r) {
+    g.fillStyle = '#fde047'; g.shadowColor = '#facc15'; g.shadowBlur = r * 3;
+    g.beginPath(); g.ellipse(x, y, r * 1.3, r, 0, 0, TAU); g.fill(); g.shadowBlur = 0;
+    g.fillStyle = '#0b0b14'; g.beginPath(); g.ellipse(x + r * 0.1, y, r * 0.28, r * 0.9, 0, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = r * 0.5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x - r * 1.5, y - r * 1.6); g.lineTo(x + r * 1.4, y - r * 0.9); g.stroke();
   }
   const bodyGrad = (g, c, h) => {
     const gr = g.createLinearGradient(0, -h / 2, 0, h / 2);
@@ -533,7 +571,17 @@
         for (let i = 0; i < 9; i++) { const a = -Math.PI / 2 - 0.9 + i * 0.22, bx = BL * (0.12 - i * 0.04); g.beginPath(); g.moveTo(bx, -h * 0.36); g.lineTo(bx + Math.cos(a) * h * 0.9, -h * 0.36 + Math.sin(a) * h * 0.9 + Math.sin(t * 3 + i) * h * 0.05); g.stroke(); }
         for (const sd of [1]) { g.strokeStyle = c.pat; for (let i = 0; i < 6; i++) { const a = 0.4 + i * 0.22; g.beginPath(); g.moveTo(BL * 0.1, h * 0.15); g.lineTo(BL * 0.1 - Math.cos(a) * h * 0.9, h * 0.15 + Math.sin(a) * h * 0.9 * sd); g.stroke(); } }
       }
-      if (sp.fangs) {
+      if (sp.boss && sp.shape === 'shark') {
+        // the megalodon: a gaping jaw and an old scar
+        g.fillStyle = '#1a0a0e'; g.beginPath(); g.moveTo(BL * 0.48, h * 0.06); g.quadraticCurveTo(BL * 0.3, h * 0.12, BL * 0.26, h * 0.3); g.quadraticCurveTo(BL * 0.4, h * 0.3, BL * 0.48, h * 0.06); g.fill();
+        g.fillStyle = '#f8fafc';
+        for (let i = 0; i < 6; i++) { const tx = BL * (0.46 - i * 0.03); g.beginPath(); g.moveTo(tx, h * 0.08); g.lineTo(tx - BL * 0.01, h * 0.2); g.lineTo(tx - BL * 0.02, h * 0.09); g.fill(); }
+        g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = h * 0.025;
+        g.beginPath(); g.moveTo(BL * 0.1, -h * 0.3); g.lineTo(-BL * 0.02, -h * 0.05); g.moveTo(BL * 0.06, -h * 0.28); g.lineTo(BL * 0.0, -h * 0.2); g.stroke();
+        g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = h * 0.03;
+        for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(BL * (0.2 - i * 0.03), -h * 0.12); g.lineTo(BL * (0.18 - i * 0.03), h * 0.12); g.stroke(); }
+      }
+      if (sp.fangs && !(sp.boss && sp.shape === 'shark')) {
         g.fillStyle = '#f1f5f9';
         for (let i = 0; i < 3; i++) { const fx = BL * (0.44 - i * 0.04); g.beginPath(); g.moveTo(fx, h * 0.04); g.lineTo(fx - BL * 0.012, h * (0.28 + (i % 2) * 0.1)); g.lineTo(fx - BL * 0.03, h * 0.04); g.fill(); }
       }
@@ -544,7 +592,7 @@
       g.fillStyle = c.fin; g.globalAlpha = 0.9;
       g.beginPath(); g.ellipse(BL * 0.12, h * 0.16, BL * 0.09, h * 0.1, 0.5 + wag * 0.6, 0, TAU); g.fill();
       g.globalAlpha = 1;
-      eye(g, BL * 0.33, -h * 0.08, Math.max(0.55, h * 0.13), c.eye || '#0b0b14');
+      if (sp.boss) bossEye(g, BL * 0.33, -h * 0.1, h * 0.07, 1); else eye(g, BL * 0.33, -h * 0.08, Math.max(0.55, h * 0.13), c.eye || '#0b0b14');
       g.restore();
     } else if (sp.shape === 'round') {
       tail(g, -L * 0.36, L * 0.9, h * 0.75, wag, c.fin, false);
@@ -605,9 +653,15 @@
         g.beginPath(); g.moveTo(L * 0.02, yy * 0.5); g.bezierCurveTo(-L * 0.18, yy + w2, -L * 0.3, yy * 1.6 - w2, -L * 0.48, yy * 2 + w2 * 0.6); g.stroke();
       }
       g.fillStyle = c.pat; for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(-L * (0.12 + (i % 3) * 0.1), (i - 2.5) * h * 0.13, h * 0.035, 0, TAU); g.fill(); }
+      if (sp.boss) {   // suckers along the Kraken's arms
+        g.fillStyle = c.pat; g.globalAlpha = 0.6;
+        for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(-L * (0.06 + (i % 7) * 0.06), (i < 7 ? -1 : 1) * h * (0.08 + (i % 7) * 0.025) + Math.sin(t * 5 + i) * h * 0.03, h * 0.018, 0, TAU); g.fill(); }
+        g.globalAlpha = 1;
+      }
       const hg = g.createRadialGradient(L * 0.18, -h * 0.15, 0, L * 0.15, 0, L * 0.3); hg.addColorStop(0, c.belly); hg.addColorStop(0.5, c.body); hg.addColorStop(1, c.top);
       g.fillStyle = hg; g.beginPath(); g.ellipse(L * 0.2, -h * 0.04, L * 0.28, h * 0.34, -0.15, 0, TAU); g.fill();
-      eye(g, L * 0.24, h * 0.06, Math.max(0.6, h * 0.08)); eye(g, L * 0.36, h * 0.02, Math.max(0.6, h * 0.08));
+      if (sp.boss) { bossEye(g, L * 0.24, h * 0.04, h * 0.06, 1); bossEye(g, L * 0.37, h * 0.0, h * 0.06, 1); }
+      else { eye(g, L * 0.24, h * 0.06, Math.max(0.6, h * 0.08)); eye(g, L * 0.36, h * 0.02, Math.max(0.6, h * 0.08)); }
     } else if (sp.shape === 'ray') {
       // wide wings that flap slowly
       const flap = Math.sin(t * 2.5) * 0.35;
@@ -926,6 +980,12 @@
     { id: 'hunter', name: 'Leviathan Hunter', req: 5,
       hull: ['#14524a', '#0b2a2a'], trim: '#ff3b5c', stripe: '#4fa58a', cabin: '#1f3d3a', roof: '#0f3d38', window: '#ff3b5c',
       shirt: '#7f1d1d', skin: '#c68a5e', hat: 'horns', hatColor: '#4b5563', rod: '#e7dcc0', line: 'rgba(255,59,92,0.85)', lure: '#ff3b5c', hook: '#e7dcc0', glow: '#ff3b5c', bobber: ['#ff3b5c', '#0b2a2a'], fin: true },
+    { id: 'hadal', name: 'Hadal Diver', req: 6,
+      hull: ['#7c2d12', '#431407'], trim: '#f97316', stripe: '#fdba74', cabin: '#fed7aa', roof: '#9a3412', window: '#fb923c', porthole: true,
+      shirt: '#1c1917', skin: '#e8b07f', hat: 'helmet', hatColor: '#f97316', rod: '#fdba74', line: 'rgba(249,115,22,0.9)', lure: '#fb923c', hook: '#fed7aa', glow: '#fb923c', bobber: ['#f97316', '#1c1917'], fin: true },
+    { id: 'void', name: 'Void Walker', req: 7,
+      hull: ['#3b0764', '#1e0336'], trim: '#e879f9', stripe: '#c084fc', cabin: '#2e1065', roof: '#a21caf', window: '#e879f9',
+      shirt: '#0b0b14', skin: '#f1c27d', hat: 'horns', hatColor: '#581c87', rod: '#e879f9', line: 'rgba(232,121,249,0.95)', lure: '#f0abfc', hook: '#e879f9', glow: '#e879f9', neon: true, bobber: ['#e879f9', '#3b0764'] },
     { id: 'legend', name: 'Golden Legend', req: 'all',
       hull: ['#fde68a', '#b45309'], trim: '#fff7d6', stripe: '#ffffff', cabin: '#fffbeb', roof: '#f59e0b', window: '#fde68a',
       shirt: '#7c3aed', skin: '#f1c27d', hat: 'crown', hatColor: '#ffd23f', rod: '#ffd23f', line: 'rgba(255,215,90,0.95)', lure: '#ffd23f', hook: '#ffe680', glow: '#ffe680', bobber: ['#ffd23f', '#ffffff'], sparkle: true, flag: '#ffd23f' },
@@ -963,7 +1023,7 @@
   let landing = null;            // { f, t }
   let fishes = [], jellies = [], junk = [], chest = null;
   let popups = [], bubbles = [], plankton = [];
-  let trenchWarned = false, celebrate = 0;
+  let trenchWarned = false, celebrate = 0, zoneWarned = new Set();
   let gearAnnounced = new Set(gearAnnouncedLoad);
   let camY = -60, time = 0, shake = 0, hint = '', hintT = 0;
   const keys = {};
@@ -985,7 +1045,7 @@
   }
   function populate() {
     fishes = [];
-    const counts = [6, 5, 4, 4, 3, 3];
+    const counts = [6, 5, 4, 4, 3, 3, 3, 3];
     counts.forEach((n, z) => { for (let i = 0; i < n; i++) fishes.push(spawnFish(z, true)); });
     jellies = [];
     for (let i = 0; i < 8; i++) jellies.push({ x: rand(10, W - 10), y: rand(22, 170) * M, ph: rand(0, TAU), vx: rand(-4, 4) });
@@ -993,8 +1053,8 @@
     for (let i = 0; i < 2; i++) junk.push({ sp: JUNK[i], x: rand(15, W - 15), y: rand(8, 70) * M, ph: rand(0, TAU) });
     chest = Math.random() < 0.75 ? { sp: CHEST, x: rand(20, W - 30), y: FLOOR - 6 } : null;
     // the sea monster: lurks in the trench on most days
-    if (Math.random() < 0.7) { const m = spawnFish(5, true); m.sp = LEVIATHAN; m.speed = rand(7, 10); m.baseY = m.y = rand(212, 245) * M; m.curious = true; fishes.push(m); }
-    trenchWarned = false;
+    for (const B of BOSSES) if (Math.random() < B.chance) { const m = spawnFish(B.sp.zone, true); m.sp = B.sp; m.speed = rand(B.sp.speed[0], B.sp.speed[1]); m.baseY = m.y = rand(B.from, B.to) * M; m.curious = true; fishes.push(m); }
+    trenchWarned = false; zoneWarned = new Set();
     guardsLeft = lv('jelly');
   }
 
@@ -1122,8 +1182,8 @@
     phase = 'fight'; hooked++;
     fight = { f, tension: 15, slack: 0, thrash: 0, nextThrash: rand(0.8, 1.6), tickT: 0 };
     sfx.bite(); shake = 3;
-    if (f.sp.boss) { shake = 9; sfx.snap(); showHint('THE LEVIATHAN! HOLD ON TIGHT!', 3.5); }
-    popup(hook.x, hook.y - 8, f.sp.boss ? 'LEVIATHAN!' : f.sp.id === 'chest' ? 'TREASURE!' : (f.sp.rarity && RARITY[f.sp.rarity].w < 5 ? 'BIG ONE!' : 'BITE!'), '#ffd23f');
+    if (f.sp.boss) { shake = 9; sfx.snap(); showHint(f.sp.name.toUpperCase() + '! HOLD ON TIGHT!', 3.5); }
+    popup(hook.x, hook.y - 8, f.sp.boss ? f.sp.name.replace('The ', '').toUpperCase() + '!' : f.sp.id === 'chest' ? 'TREASURE!' : (f.sp.rarity && RARITY[f.sp.rarity].w < 5 ? 'BIG ONE!' : 'BITE!'), '#ffd23f');
     if (hooked === 1) showHint('HOLD REEL TO PULL IT UP · LET GO WHEN IT THRASHES (!!)', 4.5);
   }
   function mermaidGift(f) {
@@ -1232,15 +1292,20 @@
     if (playing && phase === 'line') {
       hook.x = lerp(hook.x, hook.tx, Math.min(1, dt * 4));
       if (holding && !castLock) {
-        hook.y -= 125 * reelMul() * dt;
+        hook.y -= 170 * reelMul() * dt;
         if (time % 0.1 < dt) sfx.tick();
         if (hook.y <= 0) { hook.y = 0; phase = 'idle'; }
       } else {
-        hook.y = Math.min(FLOOR - 4, hook.y + 62 * sinkMul() * dt);
+        hook.y = Math.min(FLOOR - 4, hook.y + 82 * sinkMul() * dt);
       }
       deepest = Math.max(deepest, Math.round(hook.y / M));
       // bites, junk, treasure, jellyfish
-      if (!trenchWarned && hook.y > 200 * M) { trenchWarned = true; showHint(fishes.some((q) => q.sp.boss) ? 'THE TRENCH… SOMETHING HUGE IS DOWN HERE' : 'THE TRENCH: THE DEEPEST WATER', 3.5); }
+      const zi = ZONES.indexOf(zoneAt(hook.y / M));
+      if (zi >= 5 && !zoneWarned.has(zi)) {
+        zoneWarned.add(zi);
+        const boss = fishes.find((q) => q.sp.boss && q.sp.zone === zi);
+        showHint(ZONES[zi].name + (boss ? '… ' + boss.sp.warn : ['', '', '', '', '', ': VERY DEEP WATER', ': CRUSHING DARK', ': THE BOTTOM OF EVERYTHING'][zi]), 3.5);
+      }
       for (const f of fishes) {
         const s = f.sp.spr;
         const reach = 1 + 0.3 * lv('hook');
@@ -1277,7 +1342,7 @@
       if (F.thrash > 0) F.thrash -= dt;
       const reeling = holding && !castLock;
       if (reeling) {
-        hook.y -= (84 - 10 * s) * reelMul() * dt * (F.thrash > 0 ? 0.35 : 1);
+        hook.y -= (96 - 10 * s) * reelMul() * dt * (F.thrash > 0 ? 0.35 : 1);
         F.tension += ((14 + 15 * s) + (F.thrash > 0 ? 55 * s : 0)) * lineMul() * dt;
         F.slack = 0;
         F.tickT -= dt; if (F.tickT <= 0) { F.tickT = 0.08; sfx.tick(); }
@@ -1296,7 +1361,7 @@
       else if (hook.y <= 2) landFish();
       else for (const j of jellies) if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6 && !jellyBlocked(j)) { loseFish('sting'); break; }
     } else if (playing && phase === 'return') {
-      hook.y -= 220 * dt;
+      hook.y -= 320 * dt;
       hook.x = lerp(hook.x, rodTip().x + 4, Math.min(1, dt * 2));
       if (hook.y <= 0) { hook.y = 0; phase = 'idle'; }
     } else if (playing && phase === 'landing') {
@@ -1911,7 +1976,7 @@
       g.strokeStyle = gs.line; g.lineWidth = 0.45; g.beginPath(); g.moveTo(16, -17); g.quadraticCurveTo(19, -10, 20, -1.5); g.stroke();
       g.fillStyle = gs.bobber[0]; g.beginPath(); g.arc(20, -1, 1.5, Math.PI, TAU); g.fill(); g.fillStyle = gs.bobber[1]; g.beginPath(); g.arc(20, -1, 1.5, 0, Math.PI); g.fill();
       d.appendChild(cv);
-      const zoneName = gs.req === null ? '' : gs.req === 'all' ? 'every species' : 'all ' + ZONES[gs.req].name.toLowerCase().replace(/^the /, '') + ' fish';
+      const zoneName = gs.req === null ? '' : gs.req === 'all' ? 'every species' : 'all ' + ZONES[gs.req].name.toLowerCase().replace(/^the /, '').replace(' zone', '') + ' fish';
       d.insertAdjacentHTML('beforeend', '<div class="nm">' + gs.name + '</div>'
         + '<div class="rq">' + (gs.req === null ? 'Your starting gear' : open ? 'Unlocked!' : 'Catch ' + zoneName + ' (' + have + '/' + need.length + ')') + '</div>'
         + (gs.req === null ? '<div class="bar" style="visibility:hidden"></div>' : '<div class="bar"><i style="width:' + Math.round(100 * have / Math.max(1, need.length)) + '%"></i></div>'));
