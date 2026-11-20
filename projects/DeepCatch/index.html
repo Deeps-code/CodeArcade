@@ -223,6 +223,22 @@
   @media (max-width: 560px) { .geargrid { grid-template-columns: repeat(2, 1fr); } }
   .shopnote { font-size: 12.5px !important; color: var(--dim) !important; margin: 12px 2px 0 !important; max-width: none !important; }
   @media (max-width: 560px) { .shopgrid { grid-template-columns: 1fr; } .shopbox { padding: 13px; } }
+
+  /* ----- phones: a tidier layout ----- */
+  @media (max-width: 520px) {
+    .logo .s, .logo svg { display: none; }
+    .top { gap: 6px; }
+    #sound { font-size: 0; width: 34px; padding: 0; }
+    #sound::after { content: attr(data-icon); font-size: 15px; }
+    /* four stats in one row: score, combo, depth and daylight */
+    .stats { grid-template-columns: repeat(4, 1fr); }
+    .stats .st:nth-child(2), .stats .st:nth-child(4) { display: none; }
+    .st .v small { display: none; }
+    .btnbox .mini { display: none; }
+    #lineBtn { min-height: 58px; }
+    .overlay .zones { display: none; }
+    .overlay p { font-size: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -1807,7 +1823,7 @@
     b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); startFromKey(); });
   }
   const soundBtn = $('sound');
-  function refreshSound() { soundBtn.textContent = muted ? 'SOUND OFF' : 'SOUND ON'; }
+  function refreshSound() { soundBtn.textContent = muted ? 'SOUND OFF' : 'SOUND ON'; soundBtn.dataset.icon = muted ? '🔇' : '🔊'; }
   soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
   soundBtn.addEventListener('click', (e) => {
     e.stopPropagation(); muted = !muted; soundBtn.blur();
@@ -2019,6 +2035,9 @@
       },
     };
   })();
+
+  // the pause button lives in the top bar, next to the coins
+  { const pb = document.getElementById('pauseBtn'); pb.style.position = 'static'; document.getElementById('shopBtn').before(pb); }
 
   // ---------- Start ----------
   resize();
