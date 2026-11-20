@@ -188,6 +188,12 @@
   .up .now { font-size: 11.5px; color: #9fe6c4; margin-top: 3px; font-weight: 600; }
   .pips { display: flex; gap: 3px; margin-top: 5px; }
   .pips i { width: 14px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
+  .pips i.own { background: rgba(255, 210, 63, 0.3); }
+  .lvset { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--ink); }
+  .lvset button { width: 26px; height: 24px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(255, 255, 255, 0.07); color: #fff;
+    font-family: var(--f); font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; }
+  .lvset button:active { transform: scale(0.92); }
+  .up .now.off { color: #8fb0cc; }
   .pips i.on { background: var(--gold); box-shadow: 0 0 6px rgba(255, 210, 63, 0.6); }
   .buy { flex-shrink: 0; min-width: 78px; padding: 9px 10px; border-radius: 12px; border: 0; cursor: pointer; font-family: var(--f); font-size: 14px; font-weight: 700;
     color: #3b2304; background: linear-gradient(180deg, #ffe066, #f5a30b); box-shadow: 0 3px 0 #a5620a; }
@@ -279,7 +285,7 @@
     <div class="shopgrid" id="shGrid"></div>
     <div class="gearhead"><div class="kick">REWARD GEAR</div><div class="gprog" id="gProg"></div></div>
     <div class="geargrid" id="gearGrid"></div>
-    <p class="shopnote">Upgrades are pricey and every level costs more, so save up! Every catch earns coins, saved between days. Catch every kind of fish in a zone to unlock its gear, and all of them for the Golden Legend set. The game waits while this is open.</p>
+    <p class="shopnote">Upgrades are pricey and every level costs more, so save up! Use − / + to turn an upgrade down if you'd rather play with less. Every catch earns coins, saved between days. Catch every kind of fish in a zone to unlock its gear, and all of them for the Golden Legend set. The game waits while this is open.</p>
   </div>
 </div>
 
@@ -359,14 +365,26 @@
       col: { top: '#0d9488', body: '#2dd4bf', belly: '#a7f3d0', fin: '#f472b6', pat: '#f472b6' }, pattern: 'scales' },
     { id: 'lion', name: 'Lionfish', zone: 1, rarity: 'rare', pts: 85, str: 1.1, speed: [8, 12], w: 11, h: 6, shape: 'fish',
       col: { top: '#9a3412', body: '#fdba74', belly: '#fff1e6', fin: '#fb923c', pat: '#b91c1c' }, pattern: 'lion' },
+    { id: 'turtle', name: 'Sea Turtle', zone: 1, rarity: 'rare', pts: 150, str: 1.2, speed: [9, 13], w: 13, h: 8, shape: 'turtle',
+      col: { top: '#365314', body: '#65a30d', belly: '#d9f99d', fin: '#84cc16', pat: '#3f6212' } },
+    { id: 'mermaid', name: 'Mermaid', zone: 1, rarity: 'legendary', pts: 500, str: 0, speed: [10, 14], w: 15, h: 8, shape: 'mermaid', gift: true,
+      col: { top: '#0e7490', body: '#14b8a6', belly: '#5eead4', fin: '#a78bfa', pat: '#fbcfe8', hair: '#f472b6', skin: '#f1c27d' } },
     { id: 'barracuda', name: 'Barracuda', zone: 2, rarity: 'uncommon', pts: 80, str: 1.3, speed: [36, 48], w: 19, h: 4.4, shape: 'fish',
       col: { top: '#334155', body: '#94a3b8', belly: '#f1f5f9', fin: '#475569', pat: '#1e293b' }, pattern: 'bars', shine: true },
+    { id: 'octo', name: 'Octopus', zone: 2, rarity: 'rare', pts: 170, str: 1.5, speed: [8, 12], w: 12, h: 9, shape: 'octopus',
+      col: { top: '#9a3412', body: '#f97316', belly: '#fed7aa', fin: '#ea580c', pat: '#fdba74' } },
+    { id: 'manta', name: 'Manta Ray', zone: 2, rarity: 'epic', pts: 350, str: 1.8, speed: [14, 18], w: 18, h: 9, shape: 'ray',
+      col: { top: '#1e293b', body: '#334155', belly: '#f1f5f9', fin: '#0f172a' } },
     { id: 'hatchet', name: 'Hatchetfish', zone: 3, rarity: 'common', pts: 70, str: 0.8, speed: [10, 14], w: 7, h: 7, shape: 'round', glow: '#a5f3fc',
       col: { top: '#64748b', body: '#cbd5e1', belly: '#f8fafc', fin: '#94a3b8', pat: '#a5f3fc' }, pattern: 'lights' },
     { id: 'blob', name: 'Blobfish', zone: 3, rarity: 'uncommon', pts: 110, str: 0.7, speed: [4, 7], w: 9, h: 7, shape: 'blob',
       col: { top: '#f9a8d4', body: '#fbcfe8', belly: '#fde4f1', fin: '#f9a8d4' } },
     { id: 'viper', name: 'Viperfish', zone: 3, rarity: 'rare', pts: 200, str: 1.5, speed: [14, 20], w: 13, h: 4.6, shape: 'fish', glow: '#5eead4',
       col: { top: '#0f172a', body: '#1e3a5f', belly: '#335980', fin: '#0f2742', pat: '#5eead4' }, pattern: 'lights', fangs: true },
+    { id: 'vamp', name: 'Vampire Squid', zone: 3, rarity: 'epic', pts: 400, str: 1.6, speed: [10, 14], w: 12, h: 6, shape: 'squid', glow: '#93c5fd',
+      col: { top: '#450a0a', body: '#7f1d1d', belly: '#b91c1c', fin: '#991b1b' } },
+    { id: 'isopod', name: 'Giant Isopod', zone: 4, rarity: 'uncommon', pts: 240, str: 1.1, speed: [5, 8], w: 11, h: 6, shape: 'isopod',
+      col: { top: '#a8a29e', body: '#d6d3d1', belly: '#f5f5f4', fin: '#78716c' } },
     { id: 'angler', name: 'Anglerfish', zone: 4, rarity: 'rare', pts: 160, str: 1.3, speed: [8, 12], w: 12, h: 8, shape: 'angler', glow: '#fff3a0',
       col: { top: '#231a33', body: '#4b3a66', belly: '#6b5a86', fin: '#3a2d4f', pat: '#fff3a0' } },
     { id: 'gulper', name: 'Gulper Eel', zone: 4, rarity: 'uncommon', pts: 220, str: 1.4, speed: [10, 14], w: 22, h: 6, shape: 'eel', glow: '#f472b6',
@@ -549,6 +567,81 @@
       g.fillStyle = 'rgba(160, 40, 80, 0.35)';
       for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(L * (0.04 + i * 0.07), h * (((i * 41) % 10) / 10 - 0.5) * 0.4, h * 0.045, 0, TAU); g.fill(); }
       eye(g, -L * 0.06, -h * 0.06, Math.max(0.6, h * 0.14));
+    } else if (sp.shape === 'turtle') {
+      const pad = Math.sin(t * 4) * 0.5;
+      g.fillStyle = c.fin;
+      for (const [fx, fy, a] of [[L * 0.18, -h * 0.32, -0.9 - pad], [L * 0.18, h * 0.32, 0.9 + pad], [-L * 0.26, -h * 0.28, -2.4 + pad * 0.6], [-L * 0.26, h * 0.28, 2.4 - pad * 0.6]]) {
+        g.save(); g.translate(fx, fy); g.rotate(a); g.beginPath(); g.ellipse(L * 0.12, 0, L * 0.16, h * 0.1, 0, 0, TAU); g.fill(); g.restore();
+      }
+      g.beginPath(); g.ellipse(L * 0.42, -h * 0.02, L * 0.1, h * 0.17, 0, 0, TAU); g.fill();   // head
+      const sg = g.createRadialGradient(-L * 0.05, -h * 0.15, 0, 0, 0, L * 0.4); sg.addColorStop(0, c.body); sg.addColorStop(1, c.top);
+      g.fillStyle = sg; g.beginPath(); g.ellipse(0, 0, L * 0.34, h * 0.42, 0, 0, TAU); g.fill();
+      g.strokeStyle = c.pat; g.lineWidth = h * 0.05;
+      for (let i = -1; i <= 1; i++) { g.beginPath(); g.ellipse(i * L * 0.17, 0, L * 0.08, h * 0.16, 0, 0, TAU); g.stroke(); }
+      g.beginPath(); g.moveTo(-L * 0.34, 0); g.lineTo(L * 0.34, 0); g.stroke();
+      eye(g, L * 0.45, -h * 0.07, Math.max(0.5, h * 0.06));
+    } else if (sp.shape === 'octopus') {
+      // a round head in front, wiggly arms trailing behind
+      g.strokeStyle = c.body; g.lineCap = 'round';
+      for (let i = 0; i < 6; i++) {
+        const yy = (i - 2.5) * h * 0.1, w2 = Math.sin(t * 5 + i * 1.3) * h * 0.2;
+        g.lineWidth = h * 0.12;
+        g.beginPath(); g.moveTo(L * 0.02, yy * 0.5); g.bezierCurveTo(-L * 0.18, yy + w2, -L * 0.3, yy * 1.6 - w2, -L * 0.48, yy * 2 + w2 * 0.6); g.stroke();
+      }
+      g.fillStyle = c.pat; for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(-L * (0.12 + (i % 3) * 0.1), (i - 2.5) * h * 0.13, h * 0.035, 0, TAU); g.fill(); }
+      const hg = g.createRadialGradient(L * 0.18, -h * 0.15, 0, L * 0.15, 0, L * 0.3); hg.addColorStop(0, c.belly); hg.addColorStop(0.5, c.body); hg.addColorStop(1, c.top);
+      g.fillStyle = hg; g.beginPath(); g.ellipse(L * 0.2, -h * 0.04, L * 0.28, h * 0.34, -0.15, 0, TAU); g.fill();
+      eye(g, L * 0.24, h * 0.06, Math.max(0.6, h * 0.08)); eye(g, L * 0.36, h * 0.02, Math.max(0.6, h * 0.08));
+    } else if (sp.shape === 'ray') {
+      // wide wings that flap slowly
+      const flap = Math.sin(t * 2.5) * 0.35;
+      g.strokeStyle = c.fin; g.lineWidth = h * 0.05;
+      g.beginPath(); g.moveTo(-L * 0.2, 0); g.quadraticCurveTo(-L * 0.4, Math.sin(t * 3) * h * 0.08, -L * 0.55, 0); g.stroke();   // tail
+      const wg = g.createLinearGradient(0, -h / 2, 0, h / 2); wg.addColorStop(0, c.top); wg.addColorStop(0.5, c.body); wg.addColorStop(1, c.top);
+      g.fillStyle = wg;
+      g.beginPath(); g.moveTo(L * 0.34, 0);
+      g.quadraticCurveTo(L * 0.1, -h * (0.5 + flap), -L * 0.05, -h * (0.55 + flap));
+      g.quadraticCurveTo(-L * 0.08, -h * 0.12, -L * 0.22, 0);
+      g.quadraticCurveTo(-L * 0.08, h * 0.12, -L * 0.05, h * (0.55 - flap));
+      g.quadraticCurveTo(L * 0.1, h * (0.5 - flap), L * 0.34, 0); g.fill();
+      g.fillStyle = c.belly; g.globalAlpha = 0.5; g.beginPath(); g.ellipse(L * 0.08, 0, L * 0.16, h * 0.1, 0, 0, TAU); g.fill(); g.globalAlpha = 1;
+      g.fillStyle = c.fin; for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(L * 0.36, sd * h * 0.08, L * 0.05, h * 0.04, sd * 0.5, 0, TAU); g.fill(); }
+      eye(g, L * 0.3, -h * 0.1, Math.max(0.5, h * 0.05));
+    } else if (sp.shape === 'isopod') {
+      // armored, like a giant pill bug
+      g.strokeStyle = c.fin; g.lineWidth = h * 0.05;
+      for (let i = 0; i < 6; i++) { const lx = L * (0.25 - i * 0.09), k = Math.sin(t * 8 + i) * h * 0.05; g.beginPath(); g.moveTo(lx, h * 0.25); g.lineTo(lx - L * 0.03, h * 0.45 + k); g.stroke(); }
+      g.beginPath(); g.moveTo(L * 0.42, -h * 0.05); g.quadraticCurveTo(L * 0.6, -h * 0.4, L * 0.65, -h * 0.25); g.stroke();
+      g.beginPath(); g.moveTo(-L * 0.42, 0); g.lineTo(-L * 0.52, -h * 0.15); g.moveTo(-L * 0.42, 0); g.lineTo(-L * 0.52, h * 0.12); g.stroke();
+      g.fillStyle = bodyGrad(g, c, h); g.beginPath(); g.ellipse(0, 0, L * 0.45, h * 0.38, 0, 0, TAU); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = h * 0.04;
+      for (let i = 0; i < 6; i++) { const px = L * (0.3 - i * 0.12); g.beginPath(); g.moveTo(px, -h * 0.36); g.quadraticCurveTo(px - L * 0.04, 0, px, h * 0.36); g.stroke(); }
+      g.fillStyle = '#1c1233'; g.beginPath(); g.arc(L * 0.36, -h * 0.08, h * 0.06, 0, TAU); g.fill();
+    } else if (sp.shape === 'mermaid') {
+      // a friendly mermaid: flowing hair, shell top, a swishing tail
+      const sw = Math.sin(t * 3) * 0.22;
+      g.save(); g.translate(-L * 0.3, h * 0.05); g.rotate(sw);
+      g.fillStyle = c.fin; g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-L * 0.12, -h * 0.4, -L * 0.2, -h * 0.45); g.quadraticCurveTo(-L * 0.12, 0, -L * 0.2, h * 0.45); g.quadraticCurveTo(-L * 0.12, h * 0.4, 0, 0); g.fill();
+      g.restore();
+      const tg = g.createLinearGradient(0, -h * 0.3, 0, h * 0.3); tg.addColorStop(0, c.belly); tg.addColorStop(0.5, c.body); tg.addColorStop(1, c.top);
+      g.fillStyle = tg;
+      g.beginPath(); g.moveTo(L * 0.05, -h * 0.2); g.quadraticCurveTo(-L * 0.15, -h * 0.22 + Math.sin(t * 3 + 1) * h * 0.05, -L * 0.32, h * 0.04); g.quadraticCurveTo(-L * 0.15, h * 0.22, L * 0.08, h * 0.2); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = h * 0.025;
+      for (let i = 0; i < 4; i++) { g.beginPath(); g.arc(-L * (0.04 + i * 0.07), 0, h * 0.1, -1, 1); g.stroke(); }
+      // hair streaming behind
+      g.fillStyle = c.hair;
+      g.beginPath(); g.moveTo(L * 0.34, -h * 0.42);
+      g.quadraticCurveTo(L * 0.1, -h * 0.55, -L * 0.05, -h * 0.3 + Math.sin(t * 4) * h * 0.06);
+      g.quadraticCurveTo(L * 0.08, -h * 0.25, L * 0.22, -h * 0.1); g.closePath(); g.fill();
+      // torso, arm, head
+      g.fillStyle = c.skin; rrect(g, L * 0.06, -h * 0.26, L * 0.16, h * 0.42, L * 0.06); g.fill();
+      g.strokeStyle = c.skin; g.lineWidth = h * 0.08; g.beginPath(); g.moveTo(L * 0.18, -h * 0.12); g.quadraticCurveTo(L * 0.3, -h * 0.02 + Math.sin(t * 3) * h * 0.08, L * 0.36, h * 0.08); g.stroke();
+      g.fillStyle = c.pat; g.beginPath(); g.arc(L * 0.12, -h * 0.12, h * 0.08, 0, TAU); g.arc(L * 0.2, -h * 0.12, h * 0.08, 0, TAU); g.fill();
+      g.fillStyle = c.skin; g.beginPath(); g.arc(L * 0.29, -h * 0.36, h * 0.17, 0, TAU); g.fill();
+      g.fillStyle = c.hair; g.beginPath(); g.arc(L * 0.27, -h * 0.42, h * 0.17, Math.PI * 0.9, Math.PI * 2.05); g.fill();
+      g.fillStyle = '#1c1233'; g.beginPath(); g.arc(L * 0.35, -h * 0.37, h * 0.03, 0, TAU); g.fill();
+      g.strokeStyle = '#be185d'; g.lineWidth = h * 0.025; g.beginPath(); g.arc(L * 0.33, -h * 0.3, h * 0.05, 0.2, 1.4); g.stroke();
+      g.fillStyle = '#fde68a'; g.beginPath(); g.arc(L * 0.26, -h * 0.56, h * 0.04, 0, TAU); g.fill();   // a little shell clip
     } else if (sp.shape === 'seahorse') {
       g.rotate(0.12 * dir);
       const bob = Math.sin(t * 2) * h * 0.03;
@@ -684,7 +777,7 @@
   function iconURL(sp, dark = false) {
     const c = document.createElement('canvas'), cw = 96, ch = 60; c.width = cw; c.height = ch;
     const g = c.getContext('2d');
-    const k = Math.min((cw - 12) / (sp.w * (sp.shape === 'sword' ? 1.05 : 1)), (ch - 10) / (sp.h * (sp.shape === 'angler' ? 1.4 : sp.shape === 'eel' ? 2.2 : 1.15)));
+    const k = Math.min((cw - 12) / (sp.w * (sp.shape === 'sword' ? 1.05 : 1)), (ch - 10) / (sp.h * (sp.shape === 'angler' || sp.shape === 'mermaid' ? 1.4 : sp.shape === 'eel' ? 2.2 : 1.15)));
     g.translate(cw / 2, ch / 2 + (sp.shape === 'angler' ? 4 : 0)); g.scale(k, k);
     drawFish(g, sp, 0, 0, 1, 0.4, 0.5);
     if (dark) { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#20324d'; g.fillRect(0, 0, cw, ch); }
@@ -773,15 +866,19 @@
   ];
   let coins = 0, upg = {};
   try { coins = Number(localStorage.getItem('deepcatchCoins')) || 0; upg = JSON.parse(localStorage.getItem('deepcatchUpg') || '{}') || {}; } catch (e) {}
-  const lv = (id) => upg[id] || 0;
-  const upCost = (u) => Math.round(u.base * Math.pow(1.85, lv(u.id)) / 10) * 10;   // each level costs a lot more than the last
+  let upgOn = {};
+  try { upgOn = JSON.parse(localStorage.getItem('deepcatchUpgOn') || '{}') || {}; } catch (e) {}
+  const owned = (id) => upg[id] || 0;
+  // the level actually in use (you can turn an upgrade down, e.g. a smaller hook)
+  const lv = (id) => Math.min(owned(id), upgOn[id] ?? owned(id));
+  const upCost = (u) => Math.round(u.base * Math.pow(1.85, owned(u.id)) / 10) * 10;   // each level costs a lot more than the last
   const lineMul = () => 1 - 0.1 * lv('line');
   const reelMul = () => 1 + 0.12 * lv('reel');
   const sinkMul = () => 1 + 0.2 * lv('sinker');
   const lightRadius = () => 34 * (1 + 0.3 * lv('lantern'));
   const baitMul = (r) => (r === 'common' ? 1 : r === 'uncommon' ? 1 + 0.2 * lv('bait') : 1 + 0.5 * lv('bait'));
   const dayLength = () => DAY + 10 * lv('day');
-  function saveCoins() { try { localStorage.setItem('deepcatchCoins', coins); localStorage.setItem('deepcatchUpg', JSON.stringify(upg)); } catch (e) {} }
+  function saveCoins() { try { localStorage.setItem('deepcatchCoins', coins); localStorage.setItem('deepcatchUpg', JSON.stringify(upg)); localStorage.setItem('deepcatchUpgOn', JSON.stringify(upgOn)); } catch (e) {} }
   function showCoins() {
     document.getElementById('topCoins').textContent = coins;
     document.querySelectorAll('.coinNum').forEach((n) => { n.textContent = coins; });
@@ -827,7 +924,8 @@
     return SPECIES.filter((sp) => gs.req === 'all' || sp.zone === gs.req);
   }
   const gearHave = (gs) => gearNeeds(gs).filter((sp) => seen.has(sp.id)).length;
-  const gearUnlocked = (gs) => gearHave(gs) >= gearNeeds(gs).length;
+  const gearComplete = (gs) => gearHave(gs) >= gearNeeds(gs).length;
+  const gearUnlocked = (gs) => gs.req === null || gearAnnounced.has(gs.id) || gearComplete(gs);
   function gear() {
     const g0 = GEAR.find((x) => x.id === gearId);
     return g0 && gearUnlocked(g0) ? g0 : GEAR[0];
@@ -1012,11 +1110,28 @@
     popup(hook.x, hook.y - 8, f.sp.boss ? 'LEVIATHAN!' : f.sp.id === 'chest' ? 'TREASURE!' : (f.sp.rarity && RARITY[f.sp.rarity].w < 5 ? 'BIG ONE!' : 'BITE!'), '#ffd23f');
     if (hooked === 1) showHint('HOLD REEL TO PULL IT UP · LET GO WHEN IT THRASHES (!!)', 4.5);
   }
+  function mermaidGift(f) {
+    const sp = f.sp;
+    f.gifted = true; f.curious = false; f.speed *= 1.6;
+    const pts = sp.pts * combo;
+    score += pts; coins += Math.round(pts * (1 + 0.1 * lv('market'))); saveCoins(); showCoins();
+    today[sp.id] = (today[sp.id] || 0) + 1;
+    const first = !seen.has(sp.id);
+    seen.add(sp.id); try { localStorage.setItem('deepcatchSeen', JSON.stringify([...seen])); } catch (e) {}
+    renderColl(sp.id);
+    popup(hook.x, hook.y - 10, '♥ +' + pts, '#fbcfe8', true);
+    showHint(first ? 'A MERMAID! SHE LEFT YOU A PEARL' : 'THE MERMAID LEFT YOU ANOTHER PEARL', 3.5);
+    addLog({ name: 'Mermaid' + (first ? ' ★ NEW' : ''), detail: Math.round(hook.y / M) + 'm · She left you a pearl!', pts: '+' + pts, icon: sp.icon, rarity: sp.rarity });
+    [784, 988, 1175, 1568].forEach((fq, i) => tone(fq, fq, 0.16, 'sine', 0.06, i * 0.09));
+    for (let i = 0; i < 8; i++) bubbles.push({ x: f.x + rand(-6, 6), y: f.y + rand(-4, 4), vy: rand(-26, -12), life: 1.6 });
+    if (!bestCatch || pts > bestCatch.pts) bestCatch = { name: sp.name, pts, rarity: sp.rarity };
+    if (first) checkGearUnlocks();
+  }
   function checkGearUnlocks() {
     let got = null;
     for (const gs of GEAR) {
       if (!gs.req && gs.req !== 0) continue;
-      if (gearUnlocked(gs) && !gearAnnounced.has(gs.id)) { gearAnnounced.add(gs.id); got = gs; }
+      if (gearComplete(gs) && !gearAnnounced.has(gs.id)) { gearAnnounced.add(gs.id); got = gs; }
     }
     try { localStorage.setItem('deepcatchGearSeen', JSON.stringify([...gearAnnounced])); } catch (e) {}
     if (!got) return;
@@ -1114,7 +1229,8 @@
         const s = f.sp.spr;
         const reach = 1 + 0.3 * lv('hook');
         const hx = f.sp.boss ? f.x + f.dir * s.w * 0.4 : f.x, bw = (f.sp.boss ? 7 : s.w / 2 + 2) * reach;
-        if (Math.abs(hx - hook.x) < bw && Math.abs(f.y - hook.y) < (s.h / 2 + 2) * reach && !f.spooked) {
+        if (Math.abs(hx - hook.x) < bw && Math.abs(f.y - hook.y) < (s.h / 2 + 2) * reach && !f.spooked && !f.gifted) {
+          if (f.sp.gift) { mermaidGift(f); break; }
           fishes.splice(fishes.indexOf(f), 1);
           f.depth = hook.y / M;
           fishes.push(spawnFish(f.sp.zone));       // a new fish swims in to replace it
@@ -1705,17 +1821,19 @@
   function renderShop(flashId) {
     shGrid.innerHTML = '';
     for (const u of UPGRADES) {
-      const l = lv(u.id), maxed = l >= u.max, cost = upCost(u);
+      const own = owned(u.id), l = lv(u.id), maxed = own >= u.max, cost = upCost(u);
       const d = document.createElement('div');
       d.className = 'up' + (flashId === u.id ? ' bought' : '');
       d.innerHTML = '<div class="ic">' + u.icon + '</div><div class="mid"><div class="nm">' + u.name + '</div><div class="ds">' + u.desc + '</div>'
-        + '<div class="pips">' + Array.from({ length: u.max }, (_, i) => '<i class="' + (i < l ? 'on' : '') + '"></i>').join('') + '</div>'
-        + (l ? '<div class="now">Now: ' + u.now(l) + '</div>' : '') + '</div>';
+        + '<div class="pips">' + Array.from({ length: u.max }, (_, i) => '<i class="' + (i < l ? 'on' : i < own ? 'own' : '') + '"></i>').join('') + '</div>'
+        + (l ? '<div class="now">Now: ' + u.now(l) + '</div>' : own ? '<div class="now off">Turned off</div>' : '')
+        + (own ? '<div class="lvset"><button type="button" data-d="-1" aria-label="Use one level less">−</button><span>Using ' + l + ' / ' + own + '</span><button type="button" data-d="1" aria-label="Use one level more">+</button></div>' : '') + '</div>';
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'buy' + (maxed ? ' max' : '');
       b.textContent = maxed ? 'MAX' : '🪙 ' + cost;
       b.disabled = maxed || coins < cost;
       b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); buyUpgrade(u); });
+      d.querySelectorAll('.lvset button').forEach((x) => x.addEventListener('click', (e) => { e.stopPropagation(); x.blur(); setActive(u, +x.dataset.d); }));
       d.appendChild(b);
       shGrid.appendChild(d);
     }
@@ -1725,12 +1843,12 @@
   function renderUpList(flashId) {
     upList.innerHTML = '';
     for (const u of UPGRADES) {
-      const l = lv(u.id), maxed = l >= u.max, cost = upCost(u);
+      const own = owned(u.id), l = lv(u.id), maxed = own >= u.max, cost = upCost(u);
       const d = document.createElement('div');
       d.className = 'ur' + (flashId === u.id ? ' bought' : '');
       d.title = u.name + ': ' + u.desc + (l ? ' (now ' + u.now(l) + ')' : '');
       d.innerHTML = '<div class="ic">' + u.icon + '</div><div class="mid"><div class="nm">' + u.name + '</div><div class="pips">'
-        + Array.from({ length: u.max }, (_, i) => '<i class="' + (i < l ? 'on' : '') + '"></i>').join('') + '</div></div>';
+        + Array.from({ length: u.max }, (_, i) => '<i class="' + (i < l ? 'on' : i < own ? 'own' : '') + '"></i>').join('') + '</div></div>';
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'buy' + (maxed ? ' max' : '');
       b.textContent = maxed ? 'MAX' : '🪙' + cost;
@@ -1741,10 +1859,19 @@
       upList.appendChild(d);
     }
   }
+  function setActive(u, d) {
+    const before = lv(u.id), n = clamp(before + d, 0, owned(u.id));
+    if (n === before) return;
+    upgOn[u.id] = n; saveCoins();
+    if (u.id === 'day' && state === 'playing') timeLeft = Math.max(1, timeLeft + (n - before) * 10);
+    initAudio(); tone(d > 0 ? 700 : 500, d > 0 ? 900 : 380, 0.07, 'triangle', 0.05);
+    renderShop(); renderUpList();
+  }
   function buyUpgrade(u) {
-    if (lv(u.id) >= u.max || coins < upCost(u)) return;
-    coins -= upCost(u); upg[u.id] = lv(u.id) + 1; saveCoins(); showCoins();
-    if (u.id === 'day' && state === 'playing') timeLeft += 10;   // the extra daylight counts today too
+    if (owned(u.id) >= u.max || coins < upCost(u)) return;
+    const before = lv(u.id);
+    coins -= upCost(u); upg[u.id] = owned(u.id) + 1; delete upgOn[u.id]; saveCoins(); showCoins();
+    if (u.id === 'day' && state === 'playing') timeLeft += (lv(u.id) - before) * 10;   // the extra daylight counts today too
     initAudio(); [660, 880, 1175].forEach((fq, i) => tone(fq, fq, 0.08, 'triangle', 0.06, i * 0.06));
     renderShop(u.id); renderUpList(u.id);
   }
