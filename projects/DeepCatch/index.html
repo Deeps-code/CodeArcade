@@ -1200,7 +1200,7 @@
     phase = 'idle'; holding = false; castLock = false;
     score = 0; combo = 1; caught = 0; casts = 0; hooked = 0; deepest = 0; timeLeft = dayLength(); bestCatch = null;
     today = {}; log = [];
-    fight = null; landing = null; popups = []; hint = ''; helpers = []; mbConfirm = 0; zapConfirm = 0; zaps = []; lureConfirm = 0;
+    fight = null; landing = null; popups = []; hint = ''; predator = null; helpers = []; mbConfirm = 0; zapConfirm = 0; zaps = []; lureConfirm = 0;
     hook.x = hook.tx = W * 0.5 + 18; hook.y = 0;
     populate();
     renderColl(); renderLog(); updateHud();
@@ -1372,16 +1372,93 @@
     const f = fight.f;
     if (reason === 'snap') { sfx.snap(); shake = 6; popup(hook.x, hook.y - 8, 'SNAP!', '#ff6b6b', true); }
     else if (reason === 'sting') { sfx.sting(); popup(hook.x, hook.y - 8, 'STUNG!', '#f0abfc', true); }
+    else if (reason === 'eaten') { sfx.snap(); shake = 7; popup(hook.x, hook.y - 8, 'CHOMP!', '#ff6b6b', true); }
     else { sfx.escape(); popup(hook.x, hook.y - 8, 'GOT AWAY…', '#93c5fd', true); }
-    addLog({ name: f.sp.name + (reason === 'snap' ? ' snapped the line' : reason === 'sting' ? ' (stung!)' : ' got away'), detail: Math.round(hook.y / M) + 'm · combo lost', pts: '×', icon: f.sp.icon, bad: true });
+    addLog({ name: f.sp.name + (reason === 'snap' ? ' snapped the line' : reason === 'sting' ? ' (stung!)' : reason === 'eaten' ? ' was eaten by a ' + eaterName : ' got away'), detail: Math.round(hook.y / M) + 'm · combo lost', pts: '×', icon: f.sp.icon, bad: true });
     // a fish that gets away swims off; junk sinks back down
     f.lured = false;
-    if (f.sp.zone !== undefined) { f.x = hook.x; f.y = f.baseY = hook.y; f.dir = Math.random() < 0.5 ? 1 : -1; f.speed *= 2.2; f.curious = false; f.spooked = 3; if (fishes.length < 22) fishes.push(f); }
+    if (f.sp.zone !== undefined && reason !== 'eaten') { f.x = hook.x; f.y = f.baseY = hook.y; f.dir = Math.random() < 0.5 ? 1 : -1; f.speed *= 2.2; f.curious = false; f.spooked = 3; if (fishes.length < 22) fishes.push(f); }
     fight = null; combo = 1;
     phase = 'return';
   }
+  // ---------- Bigger fish ----------
+  // While you reel a fish in, a bigger one may come for it. Land your fish first, or CHOMP:
+  // it eats your catch and either swims off with it, or gets hooked itself (a bigger fight!).
+  let predator = null, eaterName = '';
+  function pickPredator(prey) {
+    const z = prey.sp.zone;
+    const list = SPECIES.filter((p) => (p.zone === z || p.zone === z + 1) && p.pts > prey.sp.pts * 1.3 && p.w > prey.sp.w
+      && !p.boss && !p.gift && !p.big && p.id !== 'mermaid' && ['fish', 'shark', 'sword', 'eel', 'angler'].includes(p.shape));
+    return list.length ? list[Math.floor(Math.random() * list.length)] : null;
+  }
+  function updatePredator(dt) {
+    const fighting = phase === 'fight' && fight && fight.f.sp.zone !== undefined && !fight.f.sp.boss && fight.f.sp.id !== 'mermaid' && !fight.f.isPredator;
+    // a chance each second, once the fight has gone on a moment (rarer with divers around)
+    if (!predator && fighting && (fight.age || 0) > 1.5 && hook.y > 12 * M && Math.random() < dt * 0.045 / (helpers.length ? 2 : 1)) {
+      const sp = pickPredator(fight.f);
+      if (sp) {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        predator = { sp, x: dir > 0 ? -sp.w : W + sp.w, y: hook.y + rand(-14, 14), dir, speed: 55 + sp.zone * 4, t: 0 };
+        showHint('⚠ A BIGGER ' + sp.name.toUpperCase() + ' IS COMING FOR YOUR CATCH! REEL IT IN!', 3);
+        tone(180, 120, 0.4, 'sawtooth', 0.06); tone(170, 110, 0.4, 'sawtooth', 0.05, 0.25);
+      }
+    }
+    if (!predator) return;
+    const p = predator;
+    p.t += dt;
+    if (!fighting) {
+      // nothing left to chase: it swims off
+      p.x += p.dir * p.speed * 1.4 * dt;
+      if (p.x < -p.sp.w * 2 || p.x > W + p.sp.w * 2) predator = null;
+      return;
+    }
+    // chase the fish on your line
+    const tx = hook.x, ty = hook.y + fight.f.sp.h / 2;
+    const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+    if (Math.abs(dx) > 2) p.dir = dx > 0 ? 1 : -1;
+    const sp = p.speed * (1 + Math.min(1, p.t / 4) * 0.5);   // it speeds up as it closes in
+    p.x += dx / d * sp * dt; p.y += dy / d * sp * dt;
+    if (d < 5 + p.sp.w * 0.25) {
+      eaterName = p.sp.name;
+      if (Math.random() < 0.4) {
+        // CHOMP, and now the big one is on your hook
+        const prey = fight.f;
+        popup(hook.x, hook.y - 8, 'CHOMP!', '#ff6b6b', true);
+        addLog({ name: prey.sp.name + ' was eaten by a ' + p.sp.name, detail: Math.round(hook.y / M) + 'm · but it got hooked!', pts: '→', icon: prey.sp.icon, bad: true });
+        const big = { sp: p.sp, x: hook.x, y: hook.y, baseY: hook.y, dir: p.dir, speed: p.speed, ph: 0, amp: 2, curious: false, turnT: 9, depth: hook.y / M, isPredator: true };
+        fight = { f: big, tension: 45, slack: 0, thrash: 0.6, nextThrash: 1.2, tickT: 0 };
+        hooked++; shake = 8; sfx.bite();
+        showHint('🦈 THE ' + p.sp.name.toUpperCase() + ' IS ON YOUR HOOK NOW! BIGGER CATCH!', 3.5);
+      } else {
+        loseFish('eaten');
+        // the thief swims off with your catch
+        fishes.push({ sp: p.sp, x: p.x, y: p.y, baseY: p.y, dir: p.dir, speed: p.speed * 0.6, ph: 0, amp: 2, curious: false, spooked: 4, turnT: 9 });
+      }
+      predator = null;
+    }
+  }
+  function drawPredator() {
+    const p = predator; if (!p) return;
+    const y = SY(p.y);
+    if (y < -20 || y > H + 20) return;
+    const gl = ctx.createRadialGradient(p.x, y, 0, p.x, y, p.sp.w * 0.8);
+    gl.addColorStop(0, 'rgba(239, 68, 68, 0.28)'); gl.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(p.x, y, p.sp.w * 0.8, 0, TAU); ctx.fill();
+    drawFish(ctx, p.sp, p.x, y, p.dir, time * 2.5, 1.6);
+  }
+  function drawPredatorWarning() {
+    const p = predator; if (!p || phase !== 'fight') return;
+    const y = SY(p.y), blink = Math.floor(time * 6) % 2 === 0;
+    ctx.font = FONT(14, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (p.x < 0 || p.x > W || y < 0 || y > H) {
+      // off screen: a warning at the edge it's coming from
+      const ex = clamp(p.x, 8, W - 8), ey = clamp(y, 10, H - 10);
+      if (blink) { ctx.fillStyle = '#ef4444'; ctx.fillText('⚠', ex, ey); }
+    } else if (blink) { ctx.fillStyle = '#ef4444'; ctx.fillText('⚠', p.x, y - p.sp.h * 0.9); }
+  }
   function landFish() {
     const f = fight.f, sp = f.sp;
+    if (predator) { popup(boatX(), -50, 'ESCAPED THE ' + predator.sp.name.toUpperCase() + '!', '#5dffb0'); }
     const isFish = SPECIES.includes(sp);
     const mult = isFish ? combo : 1;
     const pts = sp.pts * mult;
@@ -1746,6 +1823,7 @@
       if (landing.t > 0.9) { landing = null; phase = 'idle'; if (timeLeft <= 0) endDay(); }
     }
     if (state === 'playing' && phase === 'idle' && timeLeft <= 0) endDay();
+    if (playing) updatePredator(dt); else predator = null;
 
     // fish swim
     for (const f of fishes) {
@@ -2320,6 +2398,7 @@
     drawSky();
     drawWater();
     drawCreatures();
+    drawPredator();
     drawZaps();
     drawDark();
     drawStardust();
@@ -2329,6 +2408,7 @@
     drawLanding();
     drawFinder();
     drawTension();
+    drawPredatorWarning();
     drawPopups();
   }
 
