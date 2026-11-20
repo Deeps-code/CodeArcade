@@ -330,7 +330,7 @@
       </div>
       <div class="items"><button id="mermaidBtn" type="button" title="Summon a Mermaid (up to 5 at once): each catches fish for you for 30 seconds and they hold your line. You pay every time."><span class="mi">🧜‍♀️</span><span class="mt"><b id="mbMain">HELPER</b><small id="mbSub">🪙 3000</small></span></button>
       <button id="zapBtn" type="button" title="Jelly Zapper: destroys every jellyfish for the rest of the day. You pay every time."><span class="mi">⚡</span><span class="mt"><b id="zbMain">ZAP JELLY</b><small id="zbSub">🪙 1500</small></span></button>
-      <button id="lureBtn" type="button" title="Mermaid Lure: a singing shell that calls the wild Mermaid to your hook, wherever it is. She fights hard! You pay every time."><span class="mi">🐚</span><span class="mt"><b id="lrMain">LURE</b><small id="lrSub">🪙 6000</small></span></button></div>
+      <button id="lureBtn" type="button" title="Mermaid Lure: a singing shell that calls the wild Mermaid to your hook, wherever it is. She fights hard! You pay every time."><span class="mi">🐚</span><span class="mt"><b id="lrMain">LURE</b><small id="lrSub">🪙 10000</small></span></button></div>
     </div>
     <div class="box collbox"><h3>TODAY'S CATCH <span id="collProg" style="float:right;color:var(--dim);font-weight:600"></span></h3><div id="coll"></div></div>
     <div class="box upbox"><h3>UPGRADES <span class="upcoins">🪙 <b class="coinNum">0</b></span></h3><div id="upList"></div></div>
@@ -1074,9 +1074,15 @@
     { id: 'void', name: 'Void Walker', req: 7,
       hull: ['#3b0764', '#1e0336'], trim: '#e879f9', stripe: '#c084fc', cabin: '#2e1065', roof: '#a21caf', window: '#e879f9',
       shirt: '#0b0b14', skin: '#f1c27d', hat: 'horns', hatColor: '#581c87', rod: '#e879f9', line: 'rgba(232,121,249,0.95)', lure: '#f0abfc', hook: '#e879f9', glow: '#e879f9', neon: true, bobber: ['#e879f9', '#3b0764'] },
-    { id: 'cosmic', name: 'Cosmic Emperor', req: 'buy', price: 3000000, cosmic: true,
+    { id: 'cosmic', name: 'Cosmic Emperor', req: 'buy', price: 1000000, cosmic: true, trail: 'stardust', anim: true,
       hull: ['#6d28d9', '#1e1b4b'], trim: '#f0abfc', stripe: '#ffffff', cabin: '#1e1b4b', roof: '#a855f7', window: '#67e8f9',
       shirt: '#312e81', skin: '#f1c27d', hat: 'crown', hatColor: '#fde68a', rod: '#f0abfc', line: 'rgba(240,171,252,0.95)', lure: '#ffffff', hook: '#e9d5ff', glow: '#e879f9', bobber: ['#a855f7', '#67e8f9'], sparkle: true, flag: '#e879f9', neon: true },
+    { id: 'poseidon', name: 'Poseidon', req: 'buy', price: 1000000, poseidon: true, trail: 'bubbles', anim: true,
+      hull: ['#0f766e', '#042f2e'], trim: '#facc15', stripe: '#5eead4', cabin: '#f0fdfa', roof: '#0d9488', window: '#67e8f9',
+      shirt: '#0e7490', skin: '#e8b07f', hat: 'wavecrown', hatColor: '#facc15', rod: '#facc15', line: 'rgba(103,232,249,0.95)', lure: '#a5f3fc', hook: '#facc15', glow: '#22d3ee', bobber: ['#facc15', '#0d9488'], neon: true },
+    { id: 'phoenix', name: 'Phoenix', req: 'buy', price: 1000000, phoenix: true, trail: 'embers', anim: true,
+      hull: ['#dc2626', '#7c2d12'], trim: '#fde047', stripe: '#fed7aa', cabin: '#fff7ed', roof: '#ea580c', window: '#fde68a',
+      shirt: '#991b1b', skin: '#f1c27d', hat: 'flame', hatColor: '#f97316', rod: '#fb923c', line: 'rgba(253,186,116,0.95)', lure: '#fde047', hook: '#fdba74', glow: '#f97316', bobber: ['#ef4444', '#fde047'], neon: true },
     { id: 'legend', name: 'Golden Legend', req: 'all',
       hull: ['#fde68a', '#b45309'], trim: '#fff7d6', stripe: '#ffffff', cabin: '#fffbeb', roof: '#f59e0b', window: '#fde68a',
       shirt: '#7c3aed', skin: '#f1c27d', hat: 'crown', hatColor: '#ffd23f', rod: '#ffd23f', line: 'rgba(255,215,90,0.95)', lure: '#ffd23f', hook: '#ffe680', glow: '#ffe680', bobber: ['#ffd23f', '#ffffff'], sparkle: true, flag: '#ffd23f' },
@@ -1515,6 +1521,14 @@
     for (const p of stardust) {
       const y = SY(p.y); if (y < -5 || y > H + 5) continue;
       ctx.globalAlpha = Math.max(0, p.life / p.max);
+      if (p.kind === 'bubbles') {
+        ctx.strokeStyle = 'rgba(165, 243, 252, 0.9)'; ctx.lineWidth = 0.35;
+        ctx.beginPath(); ctx.arc(p.x, y, 0.5 + (1 - p.life) * 1.2, 0, TAU); ctx.stroke(); continue;
+      }
+      if (p.kind === 'embers') {
+        ctx.fillStyle = p.life > 0.6 ? '#fde047' : p.life > 0.3 ? '#fb923c' : '#ef4444';
+        ctx.beginPath(); ctx.arc(p.x, y, 0.4 + p.life * 0.8, 0, TAU); ctx.fill(); continue;
+      }
       ctx.fillStyle = hsl(p.h, 95, 78);
       const r = 0.5 + p.life;
       ctx.beginPath(); ctx.moveTo(p.x, y - r * 1.6); ctx.lineTo(p.x + r * 0.4, y); ctx.lineTo(p.x, y + r * 1.6); ctx.lineTo(p.x - r * 0.4, y); ctx.closePath(); ctx.fill();
@@ -1560,7 +1574,7 @@
 
   // ---------- Mermaid Lure (you pay every time) ----------
   // A singing shell: the wild Mermaid swims straight to your hook, at any depth. Then you have to catch her.
-  const LURE_COST = 6000;
+  const LURE_COST = 10000;
   let lureConfirm = 0;
   function lureMermaid() {
     if (state !== 'playing' || coins < LURE_COST || fishes.some((q) => q.lured) || (fight && fight.f.sp.id === 'mermaid')) return;
@@ -1733,7 +1747,8 @@
     if (zapConfirm > 0) zapConfirm -= dt;
     if (lureConfirm > 0) lureConfirm -= dt;
     for (const z of zaps) z.t -= dt;
-    if (gear().cosmic && playing && (phase === 'line' || phase === 'fight') && Math.random() < dt * 30) stardust.push({ x: hook.x + rand(-2, 2), y: hook.y + rand(-3, 1), vx: rand(-6, 6), vy: rand(-14, -4), life: rand(0.6, 1.1), max: 1.1, h: time * 120 + rand(0, 90) });
+    const TR = gear().trail;
+    if (TR && playing && (phase === 'line' || phase === 'fight') && Math.random() < dt * 30) stardust.push({ kind: TR, x: hook.x + rand(-2, 2), y: hook.y + rand(-3, 1), vx: rand(-6, 6), vy: rand(-14, -4), life: rand(0.6, 1.1), max: 1.1, h: time * 120 + rand(0, 90) });
     for (const p of stardust) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
     stardust = stardust.filter((p) => p.life > 0);
     zaps = zaps.filter((z) => z.t > 0);
@@ -1943,6 +1958,21 @@
       g.beginPath(); g.ellipse(x, y - 1.3, 2, 1.5, 0, Math.PI, TAU); g.fill();
       g.fillStyle = '#e7dcc0';
       for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(x + sd * 1.6, y - 1.8); g.quadraticCurveTo(x + sd * 3.4, y - 2.4, x + sd * 3, y - 4.4); g.quadraticCurveTo(x + sd * 2.4, y - 2.8, x + sd * 1.1, y - 2.5); g.fill(); }
+    } else if (G.hat === 'wavecrown') {
+      // Poseidon's crown: gold points shaped like waves, an aqua gem
+      g.beginPath(); g.moveTo(x - 2.2, y - 1.3);
+      for (let i = 0; i <= 4; i++) { const px = x - 2.2 + i * 1.1; g.lineTo(px, y - (i % 2 ? 2.6 : 4.2)); }
+      g.lineTo(x + 2.2, y - 1.3); g.closePath(); g.fill();
+      g.fillStyle = '#22d3ee'; g.shadowColor = '#22d3ee'; g.shadowBlur = 4; g.beginPath(); g.arc(x, y - 2.1, 0.55, 0, TAU); g.fill(); g.shadowBlur = 0;
+    } else if (G.hat === 'flame') {
+      // a crown of fire
+      const tt = time * 9;
+      for (let i = -2; i <= 2; i++) {
+        const fh = 2.2 + Math.sin(tt + i * 1.7) * 0.7 + (i === 0 ? 1 : 0);
+        g.fillStyle = i % 2 ? '#fde047' : '#f97316';
+        g.beginPath(); g.moveTo(x + i * 0.9 - 0.7, y - 1.4); g.quadraticCurveTo(x + i * 0.9, y - 1.4 - fh * 1.3, x + i * 0.9 + 0.2, y - 1.4 - fh * 1.6); g.quadraticCurveTo(x + i * 0.9 + 0.6, y - 1.4 - fh * 0.6, x + i * 0.9 + 0.7, y - 1.4); g.fill();
+      }
+      g.fillStyle = '#facc15'; g.fillRect(x - 2.1, y - 1.7, 4.2, 0.7);
     } else if (G.hat === 'crown') {
       g.beginPath(); g.moveTo(x - 2, y - 1.3); g.lineTo(x - 2.1, y - 3.4); g.lineTo(x - 1, y - 2.3); g.lineTo(x, y - 3.8); g.lineTo(x + 1, y - 2.3); g.lineTo(x + 2.1, y - 3.4); g.lineTo(x + 2, y - 1.3); g.fill();
       g.fillStyle = '#ef4444'; g.beginPath(); g.arc(x, y - 2, 0.45, 0, TAU); g.fill();
@@ -1951,6 +1981,34 @@
   }
   // The boat, the fisher and the rod, in any gear set. (x, y) = where the hull meets the water.
   function drawBoatAt(g, G, x, y, t, tipX, tipY, bend = 0) {
+    if (G.poseidon) {
+      // swirling water around the boat and a soft sea-glow
+      const au = g.createRadialGradient(x, y - 6, 2, x, y - 6, 32);
+      au.addColorStop(0, 'rgba(34, 211, 238, 0.35)'); au.addColorStop(1, 'rgba(34, 211, 238, 0)');
+      g.fillStyle = au; g.beginPath(); g.arc(x, y - 6, 32, 0, TAU); g.fill();
+      g.lineWidth = 0.7; g.lineCap = 'round';
+      for (let i = 0; i < 3; i++) {
+        g.strokeStyle = i % 2 ? 'rgba(165, 243, 252, 0.7)' : 'rgba(250, 204, 21, 0.6)';
+        const a0 = t * 1.6 + i * 2.1;
+        g.beginPath(); g.ellipse(x, y - 6, 26 - i * 3, 11 - i, 0, a0, a0 + 1.3); g.stroke();
+      }
+    }
+    if (G.phoenix) {
+      // flaming wings that flap behind the boat
+      const flap = Math.sin(t * 4) * 4;
+      const au = g.createRadialGradient(x, y - 8, 2, x, y - 8, 34);
+      au.addColorStop(0, 'rgba(251, 146, 60, 0.4)'); au.addColorStop(1, 'rgba(251, 146, 60, 0)');
+      g.fillStyle = au; g.beginPath(); g.arc(x, y - 8, 34, 0, TAU); g.fill();
+      for (const sd of [-1, 1]) {
+        const wg = g.createLinearGradient(x, y - 10, x + sd * 30, y - 26);
+        wg.addColorStop(0, 'rgba(239, 68, 68, 0.9)'); wg.addColorStop(0.6, 'rgba(249, 115, 22, 0.85)'); wg.addColorStop(1, 'rgba(253, 224, 71, 0.75)');
+        g.fillStyle = wg;
+        g.beginPath(); g.moveTo(x + sd * 4, y - 9);
+        g.quadraticCurveTo(x + sd * 16, y - 26 - flap, x + sd * 31, y - 25 - flap);
+        for (let k = 0; k < 4; k++) g.quadraticCurveTo(x + sd * (27 - k * 5), y - 18 - flap * 0.6 + k, x + sd * (25 - k * 5), y - 14 - flap * 0.4 + k * 1.2);
+        g.quadraticCurveTo(x + sd * 10, y - 8, x + sd * 4, y - 9); g.fill();
+      }
+    }
     if (G.cosmic) {
       G = cosmicLook(G, t);
       // a shifting aura behind the whole boat
@@ -1994,6 +2052,32 @@
     if (G.neon || G.sparkle) { g.shadowColor = G.rod; g.shadowBlur = 5; }
     g.beginPath(); g.moveTo(x + 7.5, y - 9.5); g.quadraticCurveTo(x + 13, y - 13 + bend * 0.4, tipX, tipY); g.stroke();
     g.shadowBlur = 0;
+    if (G.poseidon) {
+      // a golden trident standing on the cabin
+      g.save(); g.strokeStyle = '#facc15'; g.fillStyle = '#facc15'; g.lineWidth = 0.8; g.lineCap = 'round'; g.shadowColor = '#fde047'; g.shadowBlur = 6;
+      const tx0 = x - 7.5, ty0 = y - 14.6, ty1 = y - 27 + Math.sin(t * 2) * 0.4;
+      g.beginPath(); g.moveTo(tx0, ty0); g.lineTo(tx0, ty1); g.stroke();
+      g.beginPath(); g.moveTo(tx0 - 2.4, ty1 + 2.2); g.quadraticCurveTo(tx0 - 2.4, ty1 + 0.6, tx0, ty1 + 0.6); g.quadraticCurveTo(tx0 + 2.4, ty1 + 0.6, tx0 + 2.4, ty1 + 2.2); g.stroke();
+      for (const px of [-2.4, 0, 2.4]) { g.beginPath(); g.moveTo(px + tx0 - 0.7, ty1 + (px ? 0.6 : 0)); g.lineTo(px + tx0, ty1 - (px ? 2.2 : 3.2)); g.lineTo(px + tx0 + 0.7, ty1 + (px ? 0.6 : 0)); g.fill(); }
+      g.restore();
+      // sea foam churning at the hull
+      g.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      for (let i = 0; i < 9; i++) { g.beginPath(); g.arc(x - 16 + i * 4, y + 1.6 + Math.sin(t * 5 + i) * 0.7, 0.8 + Math.sin(t * 3 + i * 2) * 0.3, 0, TAU); g.fill(); }
+    }
+    if (G.phoenix) {
+      // flames dancing along the hull, embers drifting up
+      for (let i = 0; i < 10; i++) {
+        const fx = x - 16 + i * 3.6, fh = 2 + Math.abs(Math.sin(t * 8 + i * 1.9)) * 3.2;
+        g.fillStyle = i % 2 ? 'rgba(253, 224, 71, 0.9)' : 'rgba(249, 115, 22, 0.9)';
+        g.beginPath(); g.moveTo(fx - 1.2, y - 6.5); g.quadraticCurveTo(fx, y - 6.5 - fh * 1.2, fx + 0.3, y - 6.5 - fh * 1.5); g.quadraticCurveTo(fx + 1, y - 6.5 - fh * 0.5, fx + 1.2, y - 6.5); g.fill();
+      }
+      for (let i = 0; i < 7; i++) {
+        const k = (t * 0.6 + i / 7) % 1;
+        g.globalAlpha = 1 - k; g.fillStyle = i % 2 ? '#fde047' : '#fb923c';
+        g.beginPath(); g.arc(x + Math.sin(i * 2.3 + t) * 18, y - 8 - k * 26, 0.6, 0, TAU); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
     if (G.cosmic) {
       // a glowing halo above the crown
       g.save(); g.strokeStyle = hsl(t * 90, 95, 80); g.lineWidth = 0.6; g.shadowColor = g.strokeStyle; g.shadowBlur = 6;
@@ -2335,7 +2419,7 @@
       const d = document.createElement('div');
       d.className = 'gr' + (on ? ' on' : '') + (open ? '' : ' locked');
       const cv = document.createElement('canvas'); cv.width = 240; cv.height = 128;
-      if (gs.cosmic) cv.dataset.cosmic = '1';
+      if (gs.anim) { cv.dataset.cosmic = '1'; cv.dataset.gear = gs.id; }
       const g = cv.getContext('2d'); g.scale(4.4, 4.4); g.translate(27, 22);
       g.fillStyle = 'rgba(42, 167, 201, 0.55)'; g.fillRect(-40, 0, 80, 10);
       drawBoatAt(g, gs, 0, 0, 0.6, 16, -17);
@@ -2344,7 +2428,7 @@
       d.appendChild(cv);
       const zoneName = gs.req === null || gs.req === 'buy' ? '' : gs.req === 'all' ? 'every species' : 'all ' + ZONES[gs.req].name.toLowerCase().replace(/^the /, '').replace(' zone', '') + ' fish';
       d.insertAdjacentHTML('beforeend', '<div class="nm">' + gs.name + '</div>'
-        + '<div class="rq">' + (gs.req === null ? 'Your starting gear' : open ? (gs.req === 'buy' ? 'Yours! ✨' : 'Unlocked!') : gs.req === 'buy' ? '✨ Amazing effects · 🪙 ' + gs.price.toLocaleString() : 'Catch ' + zoneName + ' (' + have + '/' + need.length + ')') + '</div>'
+        + '<div class="rq">' + (gs.req === null ? 'Your starting gear' : open ? (gs.req === 'buy' ? 'Yours! ✨' : 'Unlocked!') : gs.req === 'buy' ? '✨ Legendary effects · 🪙 ' + gs.price.toLocaleString() : 'Catch ' + zoneName + ' (' + have + '/' + need.length + ')') + '</div>'
         + (gs.req === null ? '<div class="bar" style="visibility:hidden"></div>' : '<div class="bar"><i style="width:' + Math.round(100 * (gs.req === 'buy' ? (open ? 1 : Math.min(1, coins / gs.price)) : have / Math.max(1, need.length))) + '%"></i></div>'));
       const b = document.createElement('button'); b.type = 'button';
       const buyable = gs.req === 'buy' && !open;
@@ -2373,12 +2457,14 @@
   (function animateCosmicCard() {
     requestAnimationFrame(animateCosmicCard);
     if (!shopOpen()) return;
-    const cv = document.querySelector('#gearGrid canvas[data-cosmic]'); if (!cv) return;
-    const g = cv.getContext('2d'), gs = GEAR.find((x) => x.id === 'cosmic'), t = performance.now() / 1000;
-    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
-    g.scale(4.4, 4.4); g.translate(27, 22);
-    g.fillStyle = 'rgba(42, 167, 201, 0.55)'; g.fillRect(-40, 0, 80, 10);
-    drawBoatAt(g, gs, 0, 0, t, 16, -17);
+    const t = performance.now() / 1000;
+    for (const cv of document.querySelectorAll('#gearGrid canvas[data-cosmic]')) {
+      const g = cv.getContext('2d'), gs = GEAR.find((x) => x.id === cv.dataset.gear);
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
+      g.scale(4.0, 4.0); g.translate(30, 27);
+      g.fillStyle = 'rgba(42, 167, 201, 0.55)'; g.fillRect(-40, 0, 80, 10);
+      drawBoatAt(g, gs, 0, 0, t, 16, -17);
+    }
   })();
   function openShop() { initAudio(); renderGear(); holding = false; renderShop(); showCoins(); shopEl.classList.remove('hidden'); }
   function closeShop() { shopEl.classList.add('hidden'); }
