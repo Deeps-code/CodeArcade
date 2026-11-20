@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100" shape-rendering="crispEdges">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa7e0"/><stop offset="1" stop-color="#ffc98a"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2aa7c9"/><stop offset="0.45" stop-color="#0b4c7a"/><stop offset="1" stop-color="#020f22"/></linearGradient>
+  </defs>
+  <rect width="160" height="34" fill="url(#sky)"/>
+  <rect y="34" width="160" height="66" fill="url(#sea)"/>
+  <!-- sun & clouds -->
+  <rect x="112" y="16" width="10" height="2" fill="#fff3b0"/><rect x="110" y="18" width="14" height="6" fill="#fff3b0"/><rect x="112" y="24" width="10" height="2" fill="#fff3b0"/>
+  <rect x="18" y="10" width="18" height="3" fill="#fff"/><rect x="22" y="8" width="9" height="2" fill="#fff"/>
+  <rect x="70" y="16" width="14" height="2" fill="#fff" opacity="0.8"/>
+  <!-- island -->
+  <rect x="128" y="31" width="26" height="3" fill="#2f6f63"/><rect x="133" y="29" width="16" height="2" fill="#2f6f63"/><rect x="140" y="22" width="1" height="7" fill="#24564c"/><rect x="137" y="21" width="8" height="1" fill="#24564c"/>
+  <!-- boat -->
+  <rect x="50" y="29" width="32" height="3" fill="#6b3a1e"/><rect x="52" y="32" width="28" height="2" fill="#6b3a1e"/><rect x="50" y="28" width="32" height="1" fill="#a0522d"/>
+  <rect x="53" y="22" width="10" height="6" fill="#e2e8f0"/><rect x="55" y="23" width="3" height="2" fill="#4fd1ff"/><rect x="52" y="21" width="12" height="1" fill="#ef4444"/>
+  <rect x="69" y="20" width="4" height="2" fill="#ffd23f"/><rect x="70" y="22" width="3" height="2" fill="#f1c27d"/><rect x="69" y="24" width="4" height="4" fill="#2563eb"/>
+  <path d="M72 25 L86 13" stroke="#3b2304" stroke-width="1"/>
+  <!-- waves -->
+  <g fill="#fff" opacity="0.7"><rect x="4" y="34" width="4" height="1"/><rect x="20" y="35" width="4" height="1"/><rect x="36" y="34" width="4" height="1"/><rect x="92" y="35" width="4" height="1"/><rect x="108" y="34" width="4" height="1"/><rect x="124" y="35" width="4" height="1"/><rect x="146" y="34" width="4" height="1"/></g>
+  <!-- line & hook -->
+  <path d="M86 13 Q92 50 96 70" stroke="#fff" stroke-opacity="0.7" stroke-width="0.8" fill="none"/>
+  <rect x="96" y="70" width="1" height="3" fill="#e5e7eb"/><rect x="94" y="73" width="3" height="1" fill="#e5e7eb"/><rect x="95" y="68" width="2" height="2" fill="#ffd23f"/>
+  <!-- fish -->
+  <g transform="translate(18 44)"><rect x="0" y="1" width="1" height="3" fill="#ff7a1a"/><rect x="1" y="2" width="1" height="1" fill="#ff7a1a"/><rect x="2" y="0" width="8" height="5" fill="#ff8c2a"/><rect x="4" y="0" width="1" height="5" fill="#fff"/><rect x="7" y="0" width="1" height="5" fill="#fff"/><rect x="8" y="2" width="1" height="1" fill="#0b0b14"/></g>
+  <g transform="translate(120 52)"><rect x="0" y="1" width="2" height="3" fill="#8fb8d6"/><rect x="2" y="1" width="8" height="2" fill="#9fd0f0"/><rect x="3" y="3" width="7" height="1" fill="#e8f6ff"/><rect x="8" y="1" width="1" height="1" fill="#0b0b14"/></g>
+  <g transform="translate(36 64)"><rect x="0" y="2" width="2" height="4" fill="#2b4f7a"/><rect x="2" y="1" width="13" height="4" fill="#3f6f9f"/><rect x="4" y="0" width="6" height="1" fill="#1b2f4f"/><rect x="3" y="5" width="11" height="1" fill="#d7e3ee"/><rect x="12" y="2" width="1" height="1" fill="#0b0b14"/></g>
+  <!-- a fish nibbling at the hook -->
+  <g transform="translate(100 69)"><rect x="9" y="1" width="2" height="3" fill="#ff5e5e"/><rect x="1" y="0" width="8" height="5" fill="#e8455a"/><rect x="3" y="1" width="1" height="1" fill="#ffe3e8"/><rect x="2" y="2" width="1" height="1" fill="#0b0b14"/></g>
+  <!-- jellyfish -->
+  <g fill="#f0abfc" opacity="0.85"><rect x="140" y="74" width="6" height="2"/><rect x="141" y="72" width="4" height="2"/><rect x="140" y="76" width="1" height="4"/><rect x="142" y="76" width="1" height="5"/><rect x="144" y="76" width="1" height="4"/></g>
+  <!-- glowing anglerfish in the deep -->
+  <rect x="58" y="86" width="9" height="6" fill="#4b3a66"/><rect x="66" y="88" width="1" height="1" fill="#ffe066"/><rect x="67" y="82" width="1" height="4" fill="#6b5a86"/><rect x="68" y="81" width="2" height="2" fill="#fff3a0"/>
+  <rect y="96" width="160" height="4" fill="#141a2b"/>
+  <rect x="18" y="94" width="6" height="2" fill="#28314d"/><rect x="104" y="94" width="8" height="2" fill="#28314d"/>
+</svg>

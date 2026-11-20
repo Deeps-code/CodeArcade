@@ -46,5 +46,13 @@
     "folder": "NeonHoops",
     "thumbnail": "thumb.svg",
     "tags": ["game", "sports", "canvas"]
+  },
+  {
+    "id": "deep-cast",
+    "title": "Deep Cast",
+    "description": "Pixel-art fishing from sunrise to sunset. Drop your line through four ocean zones, fight each catch without snapping the line, and fill your collection, from sardines to the legendary Ghost Shark.",
+    "folder": "DeepCast",
+    "thumbnail": "thumb.svg",
+    "tags": ["game", "fishing", "pixel"]
   }
 ]
