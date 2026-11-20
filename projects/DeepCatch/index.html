@@ -195,6 +195,26 @@
   .buy:disabled { cursor: default; color: #8fb0cc; background: rgba(255, 255, 255, 0.06); box-shadow: none; }
   .buy.max { color: #5dffb0; }
   .up.bought { animation: flash 0.8s; }
+  .shopbox { overflow-y: auto; touch-action: pan-y; }
+  .shopgrid { overflow: visible !important; }
+  .gearhead { display: flex; align-items: baseline; justify-content: space-between; margin: 18px 2px 8px; }
+  .gearhead .kick { margin: 0; color: var(--gold); }
+  .gprog { font-size: 13px; font-weight: 600; color: var(--dim); }
+  .gprog b { color: #fff; }
+  .geargrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .gr { border-radius: 14px; padding: 6px 6px 8px; text-align: center; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.07); }
+  .gr canvas { width: 100%; height: 64px; display: block; }
+  .gr .nm { font-size: 12.5px; font-weight: 700; margin-top: 2px; }
+  .gr .rq { font-size: 10.5px; color: var(--dim); margin-top: 2px; line-height: 1.25; min-height: 26px; }
+  .gr .bar { height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); margin: 4px 6px 6px; overflow: hidden; }
+  .gr .bar i { display: block; height: 100%; background: var(--gold); }
+  .gr button { width: 100%; padding: 6px 4px; border-radius: 10px; border: 0; font-family: var(--f); font-size: 12px; font-weight: 700; cursor: pointer;
+    color: #3b2304; background: linear-gradient(180deg, #ffe066, #f5a30b); }
+  .gr button:disabled { cursor: default; color: #8fb0cc; background: rgba(255, 255, 255, 0.06); }
+  .gr.on { border-color: rgba(93, 255, 176, 0.6); background: rgba(93, 255, 176, 0.08); }
+  .gr.on button { color: #5dffb0; background: transparent; border: 1px solid rgba(93, 255, 176, 0.5); }
+  .gr.locked canvas { filter: grayscale(1) brightness(0.45); }
+  @media (max-width: 560px) { .geargrid { grid-template-columns: repeat(2, 1fr); } }
   .shopnote { font-size: 12.5px !important; color: var(--dim) !important; margin: 12px 2px 0 !important; max-width: none !important; }
   @media (max-width: 560px) { .shopgrid { grid-template-columns: 1fr; } .shopbox { padding: 13px; } }
 </style>
@@ -212,7 +232,7 @@
       <div><div class="t">DEEP <span>CATCH</span></div><div class="s">OCEAN ARCADE</div></div>
     </div>
     <div class="sp"></div>
-    <button class="ibtn tbtn" id="shopBtn" type="button">🪙 <b id="topCoins">0</b></button>
+    <button class="ibtn tbtn" id="shopBtn" type="button" title="Upgrades &amp; gear">🪙 <b id="topCoins">0</b></button>
     <button class="ibtn" id="sound" type="button">SOUND ON</button>
   </div>
   <div class="stats">
@@ -231,7 +251,7 @@
         <div>CASTS<b id="mCasts">0</b></div><div>HOOKED<b id="mHooked">0</b></div><div>DEEPEST<b id="mDeep">0m</b></div>
       </div>
     </div>
-    <div class="box collbox"><h3>TODAY'S CATCH</h3><div id="coll"></div></div>
+    <div class="box collbox"><h3>TODAY'S CATCH <span id="collProg" style="float:right;color:var(--dim);font-weight:600"></span></h3><div id="coll"></div></div>
     <div class="box upbox"><h3>UPGRADES <span class="upcoins">🪙 <b class="coinNum">0</b></span></h3><div id="upList"></div></div>
     <div class="box logbox"><h3>CATCH LOG</h3><div id="log"><div class="empty">Nothing yet. Cast your line!</div></div></div>
   </div>
@@ -242,7 +262,7 @@
   <h1>DEEP<br /><span>CATCH</span></h1>
   <p id="howto"></p>
   <button type="button" class="cta" id="startCta">▶ START</button>
-  <button type="button" class="alt" data-shop>⬆ UPGRADES · 🪙 <b class="coinNum">0</b></button>
+  <button type="button" class="alt" data-shop>⬆ UPGRADES &amp; GEAR · 🪙 <b class="coinNum">0</b></button>
   <div class="zones"><div style="color:#7fe3ff">SHALLOWS</div><div style="color:#5dffb0">CORAL REEF</div><div style="color:#a5b4fc">TWILIGHT</div><div style="color:#818cf8">MIDNIGHT</div><div style="color:#c084fc">THE ABYSS</div><div style="color:#ff6b9a">THE TRENCH</div></div>
 </div>
 <div class="overlay hidden" id="over">
@@ -257,7 +277,9 @@
   <div class="shopbox">
     <div class="shophead"><div><div class="kick">UPGRADES</div><div class="coins">🪙 <span id="shCoins">0</span></div></div><button class="ibtn" id="shClose" type="button">DONE</button></div>
     <div class="shopgrid" id="shGrid"></div>
-    <p class="shopnote">Every catch earns coins (its points). Coins are saved between days. The game waits while this is open.</p>
+    <div class="gearhead"><div class="kick">REWARD GEAR</div><div class="gprog" id="gProg"></div></div>
+    <div class="geargrid" id="gearGrid"></div>
+    <p class="shopnote">Every catch earns coins (its points), saved between days. Catch every kind of fish in a zone to unlock its gear, and all of them for the Golden Legend set. The game waits while this is open.</p>
   </div>
 </div>
 
@@ -759,6 +781,52 @@
     const sc = document.getElementById('shCoins'); if (sc) sc.textContent = coins;
   }
 
+  // ---------- Reward gear ----------
+  // Catch every kind of fish in a zone to unlock a whole new look: boat, fisher, rod, line and lure.
+  // Catch all of them for the golden Legend set.
+  const GEAR = [
+    { id: 'classic', name: 'Classic', req: null,
+      hull: ['#9a5530', '#5a2e14'], trim: '#c0703f', stripe: '#f8fafc', cabin: '#f1f5f9', roof: '#ef4444', window: '#7dd3fc',
+      shirt: '#2563eb', skin: '#f1c27d', hat: 'cap', hatColor: '#ffd23f', rod: '#3b2304', line: 'rgba(255,255,255,0.65)', lure: '#ffd23f', hook: '#e5e7eb', bobber: ['#ef4444', '#ffffff'] },
+    { id: 'beach', name: 'Beach Bum', req: 0,
+      hull: ['#38bdf8', '#0369a1'], trim: '#fde047', stripe: '#ffffff', cabin: '#fff7ed', roof: '#f97316', window: '#a5f3fc',
+      shirt: '#f472b6', skin: '#e8b07f', hat: 'straw', hatColor: '#facc15', rod: '#a16207', line: 'rgba(255,255,255,0.7)', lure: '#f97316', hook: '#e5e7eb', bobber: ['#f97316', '#ffffff'] },
+    { id: 'coral', name: 'Coral Crew', req: 1,
+      hull: ['#fb7185', '#be123c'], trim: '#5eead4', stripe: '#fff1f2', cabin: '#fff1f2', roof: '#14b8a6', window: '#99f6e4',
+      shirt: '#14b8a6', skin: '#c68a5e', hat: 'bandana', hatColor: '#fb7185', rod: '#0f766e', line: 'rgba(153,246,228,0.8)', lure: '#5eead4', hook: '#f1f5f9', bobber: ['#14b8a6', '#ffffff'] },
+    { id: 'moon', name: 'Moonlight', req: 2,
+      hull: ['#64748b', '#1e293b'], trim: '#c7d2fe', stripe: '#e0e7ff', cabin: '#e0e7ff', roof: '#6366f1', window: '#c7d2fe',
+      shirt: '#4338ca', skin: '#f1c27d', hat: 'beanie', hatColor: '#818cf8', rod: '#cbd5e1', line: 'rgba(199,210,254,0.85)', lure: '#c7d2fe', hook: '#e0e7ff', glow: '#a5b4fc', bobber: ['#818cf8', '#e0e7ff'] },
+    { id: 'neon', name: 'Neon Night', req: 3,
+      hull: ['#1e1b4b', '#0f0a2e'], trim: '#22d3ee', stripe: '#f0abfc', cabin: '#312e81', roof: '#ec4899', window: '#22d3ee',
+      shirt: '#0f172a', skin: '#f1c27d', hat: 'cap', hatColor: '#22d3ee', rod: '#f0abfc', line: 'rgba(34,211,238,0.95)', lure: '#f0abfc', hook: '#22d3ee', glow: '#22d3ee', neon: true, bobber: ['#ec4899', '#22d3ee'] },
+    { id: 'explorer', name: 'Deep Explorer', req: 4,
+      hull: ['#facc15', '#a16207'], trim: '#1f2937', stripe: '#1f2937', cabin: '#fde68a', roof: '#1f2937', window: '#38bdf8', porthole: true,
+      shirt: '#ea580c', skin: '#e8b07f', hat: 'helmet', hatColor: '#d4a64a', rod: '#1f2937', line: 'rgba(253,230,138,0.85)', lure: '#f97316', hook: '#fde68a', glow: '#fde68a', bobber: ['#facc15', '#1f2937'] },
+    { id: 'hunter', name: 'Leviathan Hunter', req: 5,
+      hull: ['#14524a', '#0b2a2a'], trim: '#ff3b5c', stripe: '#4fa58a', cabin: '#1f3d3a', roof: '#0f3d38', window: '#ff3b5c',
+      shirt: '#7f1d1d', skin: '#c68a5e', hat: 'horns', hatColor: '#4b5563', rod: '#e7dcc0', line: 'rgba(255,59,92,0.85)', lure: '#ff3b5c', hook: '#e7dcc0', glow: '#ff3b5c', bobber: ['#ff3b5c', '#0b2a2a'], fin: true },
+    { id: 'legend', name: 'Golden Legend', req: 'all',
+      hull: ['#fde68a', '#b45309'], trim: '#fff7d6', stripe: '#ffffff', cabin: '#fffbeb', roof: '#f59e0b', window: '#fde68a',
+      shirt: '#7c3aed', skin: '#f1c27d', hat: 'crown', hatColor: '#ffd23f', rod: '#ffd23f', line: 'rgba(255,215,90,0.95)', lure: '#ffd23f', hook: '#ffe680', glow: '#ffe680', bobber: ['#ffd23f', '#ffffff'], sparkle: true, flag: '#ffd23f' },
+  ];
+  let gearId = 'classic';
+  try { gearId = localStorage.getItem('deepcatchGear') || 'classic'; } catch (e) {}
+  let gearAnnouncedLoad = [];
+  try { gearAnnouncedLoad = JSON.parse(localStorage.getItem('deepcatchGearSeen') || '[]'); } catch (e) {}
+  // what you need for a set, and how close you are
+  function gearNeeds(gs) {
+    if (gs.req === null) return [];
+    return SPECIES.filter((sp) => gs.req === 'all' || sp.zone === gs.req);
+  }
+  const gearHave = (gs) => gearNeeds(gs).filter((sp) => seen.has(sp.id)).length;
+  const gearUnlocked = (gs) => gearHave(gs) >= gearNeeds(gs).length;
+  function gear() {
+    const g0 = GEAR.find((x) => x.id === gearId);
+    return g0 && gearUnlocked(g0) ? g0 : GEAR[0];
+  }
+  function equipGear(id) { gearId = id; try { localStorage.setItem('deepcatchGear', id); } catch (e) {} }
+
   // ---------- State ----------
   let state = 'menu';            // menu | playing | over
   let phase = 'idle';            // idle | line | fight | landing | return
@@ -774,7 +842,8 @@
   let landing = null;            // { f, t }
   let fishes = [], jellies = [], junk = [], chest = null;
   let popups = [], bubbles = [], plankton = [];
-  let trenchWarned = false;
+  let trenchWarned = false, celebrate = 0;
+  let gearAnnounced = new Set(gearAnnouncedLoad);
   let camY = -60, time = 0, shake = 0, hint = '', hintT = 0;
   const keys = {};
 
@@ -884,6 +953,7 @@
     collEl.appendChild(d); slotEls[sp.id] = d;
   }
   function renderColl(flashId) {
+    const cp = document.getElementById('collProg'); if (cp) cp.textContent = SPECIES.filter((sp) => seen.has(sp.id)).length + '/' + SPECIES.length + ' FOUND';
     for (const sp of SPECIES) {
       const d = slotEls[sp.id], n = today[sp.id] || 0, known = seen.has(sp.id);
       d.classList.toggle('got', n > 0);
@@ -934,6 +1004,20 @@
     popup(hook.x, hook.y - 8, f.sp.boss ? 'LEVIATHAN!' : f.sp.id === 'chest' ? 'TREASURE!' : (f.sp.rarity && RARITY[f.sp.rarity].w < 5 ? 'BIG ONE!' : 'BITE!'), '#ffd23f');
     if (hooked === 1) showHint('HOLD REEL TO PULL IT UP · LET GO WHEN IT THRASHES (!!)', 4.5);
   }
+  function checkGearUnlocks() {
+    let got = null;
+    for (const gs of GEAR) {
+      if (!gs.req && gs.req !== 0) continue;
+      if (gearUnlocked(gs) && !gearAnnounced.has(gs.id)) { gearAnnounced.add(gs.id); got = gs; }
+    }
+    try { localStorage.setItem('deepcatchGearSeen', JSON.stringify([...gearAnnounced])); } catch (e) {}
+    if (!got) return;
+    equipGear(got.id);
+    shake = 4;
+    showHint('🎁 ' + (got.req === 'all' ? 'YOU CAUGHT THEM ALL! ' : 'ZONE COMPLETE! ') + 'NEW GEAR UNLOCKED: ' + got.name.toUpperCase(), 4.5);
+    [523, 659, 784, 1047, 1319].forEach((fq, i) => tone(fq, fq, 0.16, 'triangle', 0.07, 0.4 + i * 0.1));
+    celebrate = 2.5;
+  }
   function loseFish(reason) {
     const f = fight.f;
     if (reason === 'snap') { sfx.snap(); shake = 6; popup(hook.x, hook.y - 8, 'SNAP!', '#ff6b6b', true); }
@@ -968,6 +1052,7 @@
       if (!bestCatch || pts > bestCatch.pts) bestCatch = { name: sp.name, pts, rarity: sp.rarity };
       combo = Math.min(5, combo + 1);
       renderColl(sp.id);
+      if (first) checkGearUnlocks();
     } else {
       const treasure = sp.id === 'chest';
       if (treasure) { sfx.catch(true); } else { sfx.junk(); combo = 1; }
@@ -982,6 +1067,7 @@
   function update(dt) {
     time += dt;
     shake = Math.max(0, shake - dt * 20);
+    celebrate = Math.max(0, celebrate - dt);
     if (hintT > 0) { hintT -= dt; if (hintT <= 0 || state !== 'playing') { hintT = 0; hintEl.classList.remove('on'); } }
     const playing = state === 'playing';
     if (playing) {
@@ -1284,65 +1370,133 @@
     ctx.strokeStyle = 'rgba(220, 245, 255, 0.45)'; ctx.lineWidth = 0.35;
     for (const b of bubbles) { const y = SY(b.y); if (y > SY(0) + 1) { ctx.beginPath(); ctx.arc(b.x, y, 0.7, 0, TAU); ctx.stroke(); } }
   }
+  // the fisher's hat for each set
+  function drawHat(g, G, x, y) {
+    const c = G.hatColor;
+    g.fillStyle = c;
+    if (G.hat === 'cap') { g.beginPath(); g.ellipse(x + 0.6, y - 1.4, 2.8, 0.7, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(x, y - 1.8, 1.7, 1.2, 0, Math.PI, TAU); g.fill(); }
+    else if (G.hat === 'straw') { g.beginPath(); g.ellipse(x, y - 1.4, 3.8, 0.8, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(x, y - 1.8, 1.8, 1.3, 0, Math.PI, TAU); g.fill(); g.fillStyle = '#ef4444'; g.fillRect(x - 1.8, y - 2.1, 3.6, 0.5); }
+    else if (G.hat === 'bandana') { g.beginPath(); g.ellipse(x, y - 1.5, 1.9, 1.1, 0, Math.PI, TAU); g.fill(); g.beginPath(); g.moveTo(x - 1.6, y - 1.6); g.lineTo(x - 3.6, y - 2.2 + Math.sin(time * 8) * 0.4); g.lineTo(x - 3.2, y - 0.8); g.fill(); }
+    else if (G.hat === 'beanie') { g.beginPath(); g.ellipse(x, y - 1.3, 1.9, 1.6, 0, Math.PI, TAU); g.fill(); g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x, y - 3.2, 0.7, 0, TAU); g.fill(); }
+    else if (G.hat === 'helmet') {
+      // a brass diving helmet with a little window
+      g.beginPath(); g.arc(x, y - 0.4, 2.4, 0, TAU); g.fill();
+      g.fillStyle = '#7dd3fc'; g.beginPath(); g.arc(x + 0.8, y - 0.3, 1.1, 0, TAU); g.fill();
+      g.strokeStyle = '#8a6a2a'; g.lineWidth = 0.35; g.beginPath(); g.arc(x + 0.8, y - 0.3, 1.1, 0, TAU); g.stroke();
+      return true;   // covers the head
+    } else if (G.hat === 'horns') {
+      g.beginPath(); g.ellipse(x, y - 1.3, 2, 1.5, 0, Math.PI, TAU); g.fill();
+      g.fillStyle = '#e7dcc0';
+      for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(x + sd * 1.6, y - 1.8); g.quadraticCurveTo(x + sd * 3.4, y - 2.4, x + sd * 3, y - 4.4); g.quadraticCurveTo(x + sd * 2.4, y - 2.8, x + sd * 1.1, y - 2.5); g.fill(); }
+    } else if (G.hat === 'crown') {
+      g.beginPath(); g.moveTo(x - 2, y - 1.3); g.lineTo(x - 2.1, y - 3.4); g.lineTo(x - 1, y - 2.3); g.lineTo(x, y - 3.8); g.lineTo(x + 1, y - 2.3); g.lineTo(x + 2.1, y - 3.4); g.lineTo(x + 2, y - 1.3); g.fill();
+      g.fillStyle = '#ef4444'; g.beginPath(); g.arc(x, y - 2, 0.45, 0, TAU); g.fill();
+    }
+    return false;
+  }
+  // The boat, the fisher and the rod, in any gear set. (x, y) = where the hull meets the water.
+  function drawBoatAt(g, G, x, y, t, tipX, tipY, bend = 0) {
+    const tilt = Math.sin(t * 1.6) * 0.03;
+    g.save(); g.translate(x, y); g.rotate(tilt);
+    if (G.flag) {   // a little pennant on a mast
+      g.strokeStyle = '#78350f'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(-8, -14); g.lineTo(-8, -24); g.stroke();
+      g.fillStyle = G.flag; g.beginPath(); g.moveTo(-8, -24); g.quadraticCurveTo(-4, -23 + Math.sin(t * 5) * 0.8, -1, -22.5); g.lineTo(-8, -20.5); g.fill();
+    }
+    // cabin
+    g.fillStyle = G.cabin; rrect(g, -13, -13, 11, 8, 1.4); g.fill();
+    g.fillStyle = G.window;
+    if (G.porthole) { for (const px of [-10, -5.5]) { g.beginPath(); g.arc(px, -9.6, 1.5, 0, TAU); g.fill(); g.strokeStyle = G.trim; g.lineWidth = 0.4; g.stroke(); } }
+    else { rrect(g, -11, -11.5, 3.4, 2.6, 0.6); g.fill(); rrect(g, -6.8, -11.5, 3.4, 2.6, 0.6); g.fill(); }
+    g.fillStyle = G.roof; rrect(g, -14, -14.6, 13, 2, 0.8); g.fill();
+    // the fisher
+    g.fillStyle = G.shirt; rrect(g, 3.3, -11.5, 4.6, 6, 1.6); g.fill();
+    const covered = G.hat === 'helmet';
+    if (!covered) { g.fillStyle = G.skin; g.beginPath(); g.arc(5.6, -13.2, 1.8, 0, TAU); g.fill(); }
+    drawHat(g, G, 5.6, -13.2);
+    // hull
+    const hg = g.createLinearGradient(0, -6, 0, 3);
+    hg.addColorStop(0, G.hull[0]); hg.addColorStop(1, G.hull[1]);
+    g.fillStyle = hg;
+    g.beginPath(); g.moveTo(-18, -6.5); g.lineTo(18, -6.5); g.quadraticCurveTo(16, 1, 10, 2.6); g.lineTo(-11, 2.6); g.quadraticCurveTo(-17, 1, -18, -6.5); g.fill();
+    if (G.neon) { g.strokeStyle = G.trim; g.lineWidth = 0.6; g.shadowColor = G.trim; g.shadowBlur = 6; g.stroke(); g.shadowBlur = 0; }
+    if (G.fin) {   // a monster fin bolted to the side, for the hunter
+      g.fillStyle = G.trim; g.beginPath(); g.moveTo(-14, -6.5); g.quadraticCurveTo(-16, -11, -19, -12); g.quadraticCurveTo(-16, -8, -10, -6.5); g.fill();
+    }
+    g.fillStyle = G.stripe; g.fillRect(-16.5, -4.6, 33, 0.9);
+    g.fillStyle = G.trim; g.fillRect(-18, -7, 36, 1);
+    g.restore();
+    // rod (bends when a fish is on)
+    g.strokeStyle = G.rod; g.lineWidth = 0.8; g.lineCap = 'round';
+    if (G.neon || G.sparkle) { g.shadowColor = G.rod; g.shadowBlur = 5; }
+    g.beginPath(); g.moveTo(x + 7.5, y - 9.5); g.quadraticCurveTo(x + 13, y - 13 + bend * 0.4, tipX, tipY); g.stroke();
+    g.shadowBlur = 0;
+    if (G.sparkle) {   // the golden set glitters
+      g.fillStyle = '#fff6c8';
+      for (let i = 0; i < 6; i++) {
+        const k = (t * 0.5 + i / 6) % 1, a = i * 2.4;
+        g.globalAlpha = Math.sin(k * Math.PI);
+        const sx = x + Math.cos(a) * (10 + k * 10), sy = y - 6 - k * 14 + Math.sin(a) * 3, r = 0.55;
+        g.beginPath(); g.moveTo(sx, sy - r * 2); g.lineTo(sx + r * 0.5, sy); g.lineTo(sx, sy + r * 2); g.lineTo(sx - r * 0.5, sy); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(sx - r * 2, sy); g.lineTo(sx, sy + r * 0.5); g.lineTo(sx + r * 2, sy); g.lineTo(sx, sy - r * 0.5); g.closePath(); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+  }
   function drawBoat() {
     const bx = boatX(), sea = SY(0);
     if (sea < -24 || sea > H + 30) return;
-    const bob = Math.sin(time * 2) * 0.8, tilt = Math.sin(time * 1.6) * 0.03;
-    const y = sea + bob;
-    ctx.save(); ctx.translate(bx, y); ctx.rotate(tilt);
-    // cabin
-    ctx.fillStyle = '#f1f5f9'; rrect(ctx, -13, -13, 11, 8, 1.4); ctx.fill();
-    ctx.fillStyle = '#7dd3fc'; rrect(ctx, -11, -11.5, 3.4, 2.6, 0.6); ctx.fill(); rrect(ctx, -6.8, -11.5, 3.4, 2.6, 0.6); ctx.fill();
-    ctx.fillStyle = '#ef4444'; rrect(ctx, -14, -14.6, 13, 2, 0.8); ctx.fill();
-    // the fisher
-    ctx.fillStyle = '#2563eb'; rrect(ctx, 3.3, -11.5, 4.6, 6, 1.6); ctx.fill();
-    ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(5.6, -13.2, 1.8, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.ellipse(5.6, -14.6, 2.8, 0.7, 0, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(5.6, -15, 1.7, 1.2, 0, Math.PI, TAU); ctx.fill();
-    // hull
-    const hg = ctx.createLinearGradient(0, -6, 0, 3);
-    hg.addColorStop(0, '#9a5530'); hg.addColorStop(1, '#5a2e14');
-    ctx.fillStyle = hg;
-    ctx.beginPath(); ctx.moveTo(-18, -6.5); ctx.lineTo(18, -6.5); ctx.quadraticCurveTo(16, 1, 10, 2.6); ctx.lineTo(-11, 2.6); ctx.quadraticCurveTo(-17, 1, -18, -6.5); ctx.fill();
-    ctx.fillStyle = '#f8fafc'; ctx.fillRect(-16.5, -4.6, 33, 0.9);
-    ctx.fillStyle = '#c0703f'; ctx.fillRect(-18, -7, 36, 1);
-    ctx.restore();
-    // rod (bends when a fish is on)
+    const bob = Math.sin(time * 2) * 0.8;
     const tip = rodTip(), bend = phase === 'fight' ? 3 + Math.sin(time * 12) * 0.8 : 0;
-    ctx.strokeStyle = '#3b2304'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(bx + 7.5, y - 9.5); ctx.quadraticCurveTo(bx + 13, y - 13 + bend * 0.4, tip.x, SY(tip.y) + bob + bend); ctx.stroke();
+    drawBoatAt(ctx, gear(), bx, sea + bob, time, tip.x, SY(tip.y) + bob + bend, bend);
     // the water surface with little waves
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)'; ctx.lineWidth = 0.7;
     ctx.beginPath();
     for (let x = 0; x <= W; x += 3) { const wy = sea + Math.sin(x * 0.18 + time * 2.4) * 0.7; x ? ctx.lineTo(x, wy) : ctx.moveTo(x, wy); }
     ctx.stroke();
+    if (celebrate > 0) {   // fireworks over the boat when you unlock new gear
+      for (let i = 0; i < 14; i++) {
+        const a = (i / 14) * TAU, k = 1 - celebrate / 2.5, r = 6 + k * 26;
+        ctx.globalAlpha = Math.max(0, celebrate / 2.5);
+        ctx.fillStyle = ['#ffd23f', '#ff6b9a', '#5dffb0', '#4fd1ff'][i % 4];
+        ctx.beginPath(); ctx.arc(bx + Math.cos(a) * r, sea - 30 + Math.sin(a) * r * 0.7 + k * 6, 0.9, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
   }
   function drawLine() {
     const tip = rodTip(), bob = Math.sin(time * 2) * 0.8;
     const bend = phase === 'fight' ? 3 + Math.sin(time * 12) * 0.8 : 0;
     const tx = tip.x, ty = SY(tip.y) + bob + bend;
-    ctx.lineWidth = 0.45;
+    const G = gear();
+    ctx.lineWidth = G.neon || G.sparkle ? 0.55 : 0.45;
     if (state !== 'playing' || phase === 'idle' || phase === 'landing') {
       const bx = tip.x + 4, by = SY(0) + Math.sin(time * 3) * 0.5;
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.strokeStyle = G.line;
       ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(tx + 3, ty + 6, bx, by - 1.5); ctx.stroke();
-      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(bx, by - 1, 1.5, Math.PI, TAU); ctx.fill();
-      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(bx, by - 1, 1.5, 0, Math.PI); ctx.fill();
+      ctx.fillStyle = G.bobber[0]; ctx.beginPath(); ctx.arc(bx, by - 1, 1.5, Math.PI, TAU); ctx.fill();
+      ctx.fillStyle = G.bobber[1]; ctx.beginPath(); ctx.arc(bx, by - 1, 1.5, 0, Math.PI); ctx.fill();
       return;
     }
     const hx = hook.x, hy = SY(hook.y);
-    ctx.strokeStyle = fight && fight.tension > 70 ? 'rgba(255, 120, 120, 0.95)' : 'rgba(255, 255, 255, 0.65)';
+    ctx.strokeStyle = fight && fight.tension > 70 ? 'rgba(255, 120, 120, 0.95)' : G.line;
+    if (G.neon) { ctx.shadowColor = G.hook; ctx.shadowBlur = 4; }
     ctx.beginPath(); ctx.moveTo(tx, ty);
     const sag = fight ? 0 : 6;
     ctx.quadraticCurveTo((tx + hx) / 2 + sag, (ty + hy) / 2 + sag, hx, hy); ctx.stroke();
+    ctx.shadowBlur = 0;
     if (fight) {
       const f = fight.f, wig = fight.thrash > 0 ? Math.sin(time * 40) * 1.5 : Math.sin(time * 8) * 0.6;
       const dir = Math.sin(time * (fight.thrash > 0 ? 9 : 2)) > 0 ? 1 : -1;
       drawFish(ctx, f.sp, hx + wig, hy + f.sp.h / 2 + 0.8, f.sp.item ? 1 : dir, time * (fight.thrash > 0 ? 3 : 1.5), 1.6);
     } else {
-      // a little gold lure above a silver hook
-      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.ellipse(hx, hy - 1.2, 0.9, 1.4, 0, 0, TAU); ctx.fill();
-      ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.55;
+      // the lure (it glows in the fancier sets) above the hook
+      if (G.glow) {
+        const lg = ctx.createRadialGradient(hx, hy - 1, 0, hx, hy - 1, 6);
+        lg.addColorStop(0, G.glow + 'aa'); lg.addColorStop(1, G.glow + '00');
+        ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(hx, hy - 1, 6, 0, TAU); ctx.fill();
+      }
+      ctx.fillStyle = G.lure; ctx.beginPath(); ctx.ellipse(hx, hy - 1.2, 0.9, 1.4, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = G.hook; ctx.lineWidth = 0.55;
       ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx, hy + 2.2); ctx.arc(hx - 1.1, hy + 2.2, 1.1, 0, Math.PI); ctx.lineTo(hx - 2.2, hy + 1.4); ctx.stroke();
     }
   }
@@ -1365,6 +1519,13 @@
       dctx.globalCompositeOperation = 'source-over';
     }
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(darkCv, 0, 0); ctx.restore();
+    // a glowing lure shines in the dark too
+    const Gl = gear();
+    if (Gl.glow && state === 'playing' && phase === 'line') {
+      const hx = hook.x, hy = SY(hook.y) - 1, lg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 9);
+      lg.addColorStop(0, Gl.glow + 'cc'); lg.addColorStop(1, Gl.glow + '00');
+      ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(hx, hy, 9, 0, TAU); ctx.fill();
+    }
     // glowing creatures shine through the dark
     for (const f of fishes) {
       if (!f.sp.glow) continue;
@@ -1545,7 +1706,35 @@
   function refreshUpgrades() { if (coins !== lastCoinsShown) { lastCoinsShown = coins; renderUpList(); if (!shopEl.classList.contains('hidden')) renderShop(); } }
   // The shop can be opened any time; while it's open, the game waits.
   const shopOpen = () => !shopEl.classList.contains('hidden');
-  function openShop() { initAudio(); holding = false; renderShop(); showCoins(); shopEl.classList.remove('hidden'); }
+  // reward gear cards: a little picture of the boat in each set
+  function renderGear() {
+    const grid = $('gearGrid'); grid.innerHTML = '';
+    const found = SPECIES.filter((sp) => seen.has(sp.id)).length;
+    $('gProg').innerHTML = 'Species found <b>' + found + ' / ' + SPECIES.length + '</b>';
+    for (const gs of GEAR) {
+      const need = gearNeeds(gs), have = gearHave(gs), open = gearUnlocked(gs), on = gear().id === gs.id;
+      const d = document.createElement('div');
+      d.className = 'gr' + (on ? ' on' : '') + (open ? '' : ' locked');
+      const cv = document.createElement('canvas'); cv.width = 240; cv.height = 128;
+      const g = cv.getContext('2d'); g.scale(4.4, 4.4); g.translate(27, 22);
+      g.fillStyle = 'rgba(42, 167, 201, 0.55)'; g.fillRect(-40, 0, 80, 10);
+      drawBoatAt(g, gs, 0, 0, 0.6, 16, -17);
+      g.strokeStyle = gs.line; g.lineWidth = 0.45; g.beginPath(); g.moveTo(16, -17); g.quadraticCurveTo(19, -10, 20, -1.5); g.stroke();
+      g.fillStyle = gs.bobber[0]; g.beginPath(); g.arc(20, -1, 1.5, Math.PI, TAU); g.fill(); g.fillStyle = gs.bobber[1]; g.beginPath(); g.arc(20, -1, 1.5, 0, Math.PI); g.fill();
+      d.appendChild(cv);
+      const zoneName = gs.req === null ? '' : gs.req === 'all' ? 'every species' : 'all ' + ZONES[gs.req].name.toLowerCase().replace(/^the /, '') + ' fish';
+      d.insertAdjacentHTML('beforeend', '<div class="nm">' + gs.name + '</div>'
+        + '<div class="rq">' + (gs.req === null ? 'Your starting gear' : open ? 'Unlocked!' : 'Catch ' + zoneName + ' (' + have + '/' + need.length + ')') + '</div>'
+        + (gs.req === null ? '<div class="bar" style="visibility:hidden"></div>' : '<div class="bar"><i style="width:' + Math.round(100 * have / Math.max(1, need.length)) + '%"></i></div>'));
+      const b = document.createElement('button'); b.type = 'button';
+      b.textContent = on ? 'EQUIPPED' : open ? 'EQUIP' : '🔒 LOCKED';
+      b.disabled = !open || on;
+      b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); equipGear(gs.id); initAudio(); tone(880, 1320, 0.1, 'triangle', 0.06); renderGear(); });
+      d.appendChild(b);
+      grid.appendChild(d);
+    }
+  }
+  function openShop() { initAudio(); renderGear(); holding = false; renderShop(); showCoins(); shopEl.classList.remove('hidden'); }
   function closeShop() { shopEl.classList.add('hidden'); }
   document.querySelectorAll('[data-shop], #shopBtn').forEach((b) => {
     b.addEventListener('pointerdown', (e) => e.stopPropagation());
