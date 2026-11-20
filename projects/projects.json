@@ -48,11 +48,11 @@
     "tags": ["game", "sports", "canvas"]
   },
   {
-    "id": "deep-cast",
-    "title": "Deep Cast",
-    "description": "Pixel-art fishing from sunrise to sunset. Drop your line through four ocean zones, fight each catch without snapping the line, and fill your collection, from sardines to the legendary Ghost Shark.",
-    "folder": "DeepCast",
+    "id": "deep-catch",
+    "title": "Deep Catch",
+    "description": "Fishing from sunrise to sunset. Drop your line through four ocean zones, fight each catch without snapping the line, spend your coins on upgrades, and fill your collection, from sardines to the legendary Ghost Shark.",
+    "folder": "DeepCatch",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "fishing", "pixel"]
+    "tags": ["game", "fishing", "canvas"]
   }
 ]

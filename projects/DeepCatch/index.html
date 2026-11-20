@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Deep Catch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #eaf6ff; --dim: #8fb0cc; --line: rgba(140, 210, 255, 0.16);
+    --cyan: #4fd1ff; --gold: #ffd23f;
+    --panel: linear-gradient(180deg, rgba(16, 44, 80, 0.88), rgba(8, 24, 46, 0.92));
+    --f: 'Fredoka', 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden; color: var(--ink);
+    background: radial-gradient(ellipse at 50% 0%, #0f3358 0%, #071629 55%, #040b16 100%);
+    font-family: var(--f);
+    user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    touch-action: none; overscroll-behavior: none;
+  }
+  #app {
+    position: fixed; inset: 0; display: grid;
+    grid-template-rows: auto auto 1fr auto; grid-template-columns: 1fr;
+    grid-template-areas: "top" "stats" "stage" "panel";
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  /* ----- top bar ----- */
+  .top { grid-area: top; display: flex; align-items: center; gap: 10px; padding: 10px 14px 8px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo .t { font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 0.02em; line-height: 1; }
+  .logo .t span { color: var(--gold); }
+  .logo .s { font-size: 9.5px; font-weight: 600; color: var(--cyan); letter-spacing: 0.3em; margin-top: 4px; }
+  .top .sp { flex: 1; }
+  .ibtn { height: 34px; min-width: 34px; padding: 0 12px; border-radius: 11px; border: 1px solid var(--line); background: rgba(14, 40, 72, 0.8);
+    color: var(--ink); font-family: var(--f); font-size: 12px; font-weight: 600; cursor: pointer; letter-spacing: 0.06em; }
+  .ibtn:active { transform: scale(0.95); }
+  /* ----- stats ----- */
+  .stats { grid-area: stats; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 0 14px 10px; }
+  .st { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 7px 11px 8px; min-width: 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+  .st .l { font-size: 10px; font-weight: 600; color: var(--dim); letter-spacing: 0.14em; white-space: nowrap; }
+  .st .v { font-size: 22px; font-weight: 700; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+  .st .v small { font-size: 10px; font-weight: 600; color: var(--dim); margin-left: 5px; letter-spacing: 0.08em; }
+  .st.combo { border-color: rgba(192, 132, 252, 0.45); }
+  .st.combo .v { color: #d8b4fe; }
+  .st.time .v { color: var(--gold); }
+  .st.time.low .v { color: #ff6b6b; animation: blink 0.8s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+  /* ----- the ocean ----- */
+  #stage { grid-area: stage; position: relative; overflow: hidden; min-height: 0; margin: 0 14px; border-radius: 18px; border: 1px solid var(--line);
+    background: #0b3a5c; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35); }
+  #hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); max-width: 86%; text-align: center; pointer-events: none;
+    font-size: 13px; font-weight: 600; line-height: 1.35; color: #fff4c2; background: rgba(4, 14, 32, 0.7);
+    border: 1px solid rgba(255, 210, 63, 0.35); border-radius: 12px; padding: 7px 13px; opacity: 0; transition: opacity 0.3s;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  #hint.on { opacity: 1; }
+  #coll, #log { touch-action: pan-x pan-y; }
+  #c { position: absolute; left: 0; top: 0; touch-action: none; }
+  /* ----- bottom panel ----- */
+  #panel { grid-area: panel; display: grid; grid-template-columns: 240px 1fr 1fr; gap: 10px; padding: 10px 14px 12px; height: 188px; box-sizing: border-box; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+  .box h3 { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; color: var(--gold); }
+  #lineBtn { flex: 1; min-height: 58px; border-radius: 16px; border: 0; cursor: pointer; color: #fff;
+    background: linear-gradient(180deg, #2bb8ec, #0b78b0); box-shadow: 0 5px 0 #075580, 0 10px 26px rgba(43, 184, 236, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+    font-family: var(--f); font-size: 22px; font-weight: 700; letter-spacing: 0.04em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; touch-action: none;
+    transition: background 0.2s, box-shadow 0.2s; }
+  #lineBtn small { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; opacity: 0.85; }
+  #lineBtn.reel { background: linear-gradient(180deg, #34d27a, #15964a); box-shadow: 0 5px 0 #0d6b33, 0 10px 26px rgba(52, 210, 122, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+  #lineBtn.fight { background: linear-gradient(180deg, #fbb53a, #d97706); box-shadow: 0 5px 0 #8a4b05, 0 10px 26px rgba(251, 181, 58, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+  #lineBtn.danger { background: linear-gradient(180deg, #f76363, #c22a2a); box-shadow: 0 5px 0 #7a1414, 0 10px 30px rgba(247, 99, 99, 0.55), inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+  #lineBtn.wait { filter: saturate(0.45) brightness(0.8); }
+  #lineBtn.down { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.25); }
+  .mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; text-align: center; }
+  .mini div { font-size: 9.5px; font-weight: 600; color: var(--dim); letter-spacing: 0.12em; }
+  .mini b { display: block; font-size: 16px; color: var(--ink); margin-top: 1px; font-weight: 700; }
+  #coll { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; overflow: auto; scrollbar-width: thin; }
+  .sp-slot { position: relative; display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.03); min-width: 0; }
+  .sp-slot img { width: 34px; height: 21px; object-fit: contain; flex-shrink: 0; }
+  .sp-slot span { font-size: 12px; font-weight: 500; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sp-slot.got { border-color: rgba(79, 209, 255, 0.45); background: rgba(79, 209, 255, 0.08); }
+  .sp-slot.got span { color: var(--ink); font-weight: 600; }
+  .sp-slot i { position: absolute; top: 1px; right: 5px; font-style: normal; font-size: 10px; font-weight: 700; color: var(--gold); }
+  .sp-slot.flash { animation: flash 0.9s; }
+  @keyframes flash { 0%, 60% { background: rgba(255, 210, 63, 0.3); } }
+  #log { overflow: auto; display: flex; flex-direction: column; gap: 5px; scrollbar-width: thin; }
+  .lg { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); border-left: 3px solid var(--rc, #9ca3af); }
+  .lg img { width: 34px; height: 21px; object-fit: contain; flex-shrink: 0; }
+  .lg .n { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+  .lg .n div:last-child { font-size: 11px; font-weight: 500; color: var(--dim); margin-top: 1px; }
+  .lg .p { font-size: 13px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+  .lg.bad { --rc: #ef4444; opacity: 0.75; }
+  .lg.bad .p { color: #fca5a5; }
+  .empty { font-size: 13px; color: var(--dim); padding: 6px 2px; line-height: 1.5; }
+
+  /* phones (portrait): stats in 2 rows, the catch grid becomes a strip, no log */
+  @media (max-width: 720px) {
+    .top { padding: 8px 10px 6px; }
+    .logo .t { font-size: 18px; }
+    .logo .s { font-size: 8px; }
+    .stats { grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 10px 8px; }
+    .st { padding: 5px 9px 6px; border-radius: 10px; }
+    .st .l { font-size: 9px; }
+    .st .v { font-size: 17px; }
+    #stage { margin: 0 10px; border-radius: 14px; }
+    #panel { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; padding: 8px 10px 10px; gap: 7px; }
+    #panel .logbox { display: none; }
+    .btnbox { flex-direction: row; gap: 8px; align-items: stretch; padding: 7px; }
+    #lineBtn { min-height: 62px; font-size: 20px; }
+    .btnbox .mini { grid-template-columns: 1fr; margin: 0; gap: 3px; align-content: center; min-width: 70px; text-align: left; }
+    .btnbox .mini b { display: inline; margin-left: 4px; font-size: 12px; }
+    .collbox { padding: 7px; }
+    .collbox h3 { margin-bottom: 5px; }
+    #coll { display: flex; overflow-x: auto; overflow-y: hidden; gap: 5px; padding-bottom: 2px; }
+    .sp-slot { flex-direction: column; gap: 1px; padding: 4px 5px; min-width: 56px; }
+    .sp-slot span { font-size: 10px; max-width: 60px; }
+  }
+  /* phones held sideways: the panel moves to a column on the right */
+  @media (max-height: 520px) and (orientation: landscape) {
+    #app { grid-template-columns: 1fr 220px; grid-template-rows: auto auto 1fr; grid-template-areas: "top panel" "stats panel" "stage panel"; }
+    .top { padding: 6px 10px 4px; }
+    .stats { grid-template-columns: repeat(6, 1fr); padding: 0 10px 6px; gap: 5px; }
+    .st { padding: 4px 7px; } .st .l { font-size: 8.5px; } .st .v { font-size: 14px; }
+    #stage { margin: 0 0 8px 10px; }
+    #panel { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; padding: 8px 10px 8px 8px; }
+    #panel .logbox { display: none; }
+    .btnbox { flex-direction: column; }
+    #coll { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ----- menus ----- */
+  .overlay { position: fixed; inset: 0; z-index: 6; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 24px; background: radial-gradient(ellipse at center, rgba(6, 22, 48, 0.86), rgba(3, 9, 22, 0.97)); transition: opacity 0.3s; overflow-y: auto; }
+  @media (max-height: 820px) { .overlay h1 { font-size: clamp(46px, 13vw, 76px); } .overlay p { font-size: 14.5px; margin-top: 14px; } .cta { margin-top: 18px; } .zones { margin-top: 14px; } .alt { margin-top: 10px; } }
+  @media (max-height: 640px) { .zones { display: none; } .overlay p { font-size: 13px; } }
+  .overlay.hidden { opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0s linear 0.3s; }
+  .overlay.hidden * { pointer-events: none !important; }
+  .overlay h1 { margin: 0; font-weight: 700; font-size: clamp(54px, 15vw, 96px); line-height: 0.9; color: #fff; letter-spacing: 0.01em;
+    text-shadow: 0 0 30px rgba(79, 209, 255, 0.45); }
+  .overlay h1 span { background: linear-gradient(180deg, #ffe680, #ffb020); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(255, 190, 40, 0.45)); }
+  .overlay .kick { font-size: 12px; font-weight: 600; letter-spacing: 0.34em; color: var(--cyan); margin-bottom: 14px; }
+  .overlay p { max-width: 400px; color: #c4dbef; font-size: 16px; line-height: 1.55; margin: 20px 0 0; }
+  .overlay p b { color: #fff; }
+  .cta { margin-top: 26px; padding: 15px 40px; border-radius: 999px; border: 0; cursor: pointer; color: #3b2304;
+    background: linear-gradient(180deg, #ffe066, #f5a30b); box-shadow: 0 6px 0 #a5620a, 0 14px 34px rgba(255, 190, 40, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.5);
+    font-family: var(--f); font-size: 20px; font-weight: 700; letter-spacing: 0.08em; animation: pulse 1.6s ease-in-out infinite; }
+  .cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #a5620a; }
+  @keyframes pulse { 50% { transform: scale(1.04); } }
+  .zones { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; margin-top: 22px; }
+  .zones div { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: rgba(14, 40, 72, 0.5); }
+  .big { font-size: clamp(56px, 16vw, 92px); font-weight: 700; color: var(--gold); margin-top: 4px; line-height: 1; text-shadow: 0 0 30px rgba(255, 210, 63, 0.4); }
+  .nb { font-size: 13px; font-weight: 700; color: #5dffb0; margin-top: 12px; letter-spacing: 0.16em; }
+  .gone { display: none !important; }
+
+  /* ----- upgrades shop ----- */
+  .tbtn { display: inline-flex; align-items: center; gap: 6px; }
+  .tbtn b { color: var(--gold); font-weight: 700; }
+  .alt { margin-top: 14px; padding: 10px 22px; border-radius: 999px; border: 1px solid rgba(255, 210, 63, 0.45); background: rgba(255, 210, 63, 0.1);
+    color: #ffe9a0; font-family: var(--f); font-size: 15px; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; }
+  .alt:active { transform: scale(0.96); }
+  .alt b { color: var(--gold); }
+  #shop { z-index: 9; }
+  .shopbox { width: min(600px, 94vw); max-height: 88vh; display: flex; flex-direction: column; text-align: left; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 22px; padding: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); box-sizing: border-box; }
+  .shophead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .shophead .kick { margin: 0; text-align: left; }
+  .coins { font-size: 26px; font-weight: 700; color: var(--gold); margin-top: 2px; }
+  .shopgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y: auto; touch-action: pan-y; padding-right: 2px; }
+  .up { display: flex; gap: 10px; align-items: center; padding: 11px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.07); }
+  .up .ic { font-size: 28px; width: 34px; text-align: center; flex-shrink: 0; }
+  .up .mid { flex: 1; min-width: 0; }
+  .up .nm { font-weight: 700; font-size: 15px; }
+  .up .ds { font-size: 12px; color: var(--dim); line-height: 1.3; margin-top: 1px; }
+  .up .now { font-size: 11.5px; color: #9fe6c4; margin-top: 3px; font-weight: 600; }
+  .pips { display: flex; gap: 3px; margin-top: 5px; }
+  .pips i { width: 14px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
+  .pips i.on { background: var(--gold); box-shadow: 0 0 6px rgba(255, 210, 63, 0.6); }
+  .buy { flex-shrink: 0; min-width: 78px; padding: 9px 10px; border-radius: 12px; border: 0; cursor: pointer; font-family: var(--f); font-size: 14px; font-weight: 700;
+    color: #3b2304; background: linear-gradient(180deg, #ffe066, #f5a30b); box-shadow: 0 3px 0 #a5620a; }
+  .buy:active { transform: translateY(2px); box-shadow: 0 1px 0 #a5620a; }
+  .buy:disabled { cursor: default; color: #8fb0cc; background: rgba(255, 255, 255, 0.06); box-shadow: none; }
+  .buy.max { color: #5dffb0; }
+  .up.bought { animation: flash 0.8s; }
+  .shopnote { font-size: 12.5px !important; color: var(--dim) !important; margin: 12px 2px 0 !important; max-width: none !important; }
+  @media (max-width: 560px) { .shopgrid { grid-template-columns: 1fr; } .shopbox { padding: 13px; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top">
+    <div class="logo">
+      <svg width="34" height="24" viewBox="0 0 34 24" aria-hidden="true">
+        <path d="M2 4 L9 12 L2 20 Q4 12 2 4 Z" fill="#2b9fd6"/>
+        <path d="M8 12 C11 3 24 1 32 11 C24 22 11 21 8 12 Z" fill="#4fd1ff"/>
+        <path d="M8 12 C14 15 24 16 32 11 C24 22 11 21 8 12 Z" fill="#c8f1ff"/>
+        <circle cx="25.5" cy="10" r="2.2" fill="#fff"/><circle cx="26" cy="10" r="1.3" fill="#0b0b14"/>
+      </svg>
+      <div><div class="t">DEEP <span>CATCH</span></div><div class="s">OCEAN ARCADE</div></div>
+    </div>
+    <div class="sp"></div>
+    <button class="ibtn tbtn" id="shopBtn" type="button">🪙 <b id="topCoins">0</b></button>
+    <button class="ibtn" id="sound" type="button">SOUND ON</button>
+  </div>
+  <div class="stats">
+    <div class="st"><div class="l">SCORE</div><div class="v" id="sScore">0</div></div>
+    <div class="st"><div class="l">BEST</div><div class="v" id="sBest">0</div></div>
+    <div class="st combo"><div class="l">COMBO</div><div class="v" id="sCombo">x1</div></div>
+    <div class="st"><div class="l">FISH CAUGHT</div><div class="v" id="sFish">0</div></div>
+    <div class="st"><div class="l">DEPTH</div><div class="v"><span id="sDepth">0m</span><small id="sZone">SHALLOWS</small></div></div>
+    <div class="st time" id="timeBox"><div class="l">DAYLIGHT</div><div class="v" id="sTime">2:00</div></div>
+  </div>
+  <div id="stage"><canvas id="c"></canvas><div id="hint"></div></div>
+  <div id="panel">
+    <div class="box btnbox">
+      <button id="lineBtn" type="button"><span id="lbMain">CAST ▼</span><small id="lbSub">DROP THE LINE</small></button>
+      <div class="mini">
+        <div>CASTS<b id="mCasts">0</b></div><div>HOOKED<b id="mHooked">0</b></div><div>DEEPEST<b id="mDeep">0m</b></div>
+      </div>
+    </div>
+    <div class="box collbox"><h3>TODAY'S CATCH</h3><div id="coll"></div></div>
+    <div class="box logbox"><h3>CATCH LOG</h3><div id="log"><div class="empty">Nothing yet. Cast your line!</div></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="menu">
+  <div class="kick">OCEAN ARCADE</div>
+  <h1>DEEP<br /><span>CATCH</span></h1>
+  <p id="howto"></p>
+  <button type="button" class="cta" id="startCta">▶ START</button>
+  <button type="button" class="alt" data-shop>⬆ UPGRADES · 🪙 <b class="coinNum">0</b></button>
+  <div class="zones"><div style="color:#7fe3ff">SHALLOWS</div><div style="color:#5dffb0">CORAL REEF</div><div style="color:#a5b4fc">TWILIGHT</div><div style="color:#c084fc">THE ABYSS</div></div>
+</div>
+<div class="overlay hidden" id="over">
+  <div class="kick">THE SUN HAS SET</div>
+  <div class="big" id="oScore">0</div>
+  <div class="nb gone" id="oBest">★ NEW BEST ★</div>
+  <p id="oStats"></p>
+  <button type="button" class="cta" id="retryCta">↻ FISH AGAIN</button>
+  <button type="button" class="alt" data-shop>⬆ UPGRADES · 🪙 <b class="coinNum">0</b></button>
+</div>
+<div class="overlay hidden" id="shop">
+  <div class="shopbox">
+    <div class="shophead"><div><div class="kick">UPGRADES</div><div class="coins">🪙 <span id="shCoins">0</span></div></div><button class="ibtn" id="shClose" type="button">DONE</button></div>
+    <div class="shopgrid" id="shGrid"></div>
+    <p class="shopnote">Every catch earns coins (its points). Coins are saved between days, so keep fishing and keep upgrading!</p>
+  </div>
+</div>
+
+<script>
+  const TAU = Math.PI * 2;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const $ = (id) => document.getElementById(id);
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
+  $('howto').innerHTML = isTouch
+    ? 'Tap <b>CAST</b> to drop your hook, and drag on the water to steer it. <b>Hold REEL</b> to pull a fish up, but <b>let go when it thrashes</b> or the line snaps! Catch all you can before sunset.'
+    : 'Press <b>CAST</b> (or Space) to drop your hook. Steer with the mouse or arrow keys. <b>Hold REEL</b> to pull a fish up, but <b>let go when it thrashes</b> or the line snaps! Catch all you can before sunset.';
+
+  // ---------- World ----------
+  // The ocean is drawn at a low "pixel" resolution and scaled up, so everything looks pixel-art.
+  const M = 4;                     // pixels per meter of depth
+  const MAX_DEPTH = 125;           // meters to the sea floor
+  const FLOOR = MAX_DEPTH * M;
+  const DAY = 120;                 // seconds of daylight per game
+  const ZONES = [
+    { name: 'SHALLOWS', from: 0, to: 20, color: '#7fe3ff' },
+    { name: 'CORAL REEF', from: 20, to: 50, color: '#5dffb0' },
+    { name: 'TWILIGHT', from: 50, to: 85, color: '#a5b4fc' },
+    { name: 'THE ABYSS', from: 85, to: MAX_DEPTH, color: '#c084fc' },
+  ];
+  const zoneAt = (m) => ZONES.find((z) => m < z.to) || ZONES[ZONES.length - 1];
+  const WATER = [[0, [42, 167, 201]], [20, [22, 127, 168]], [50, [11, 76, 122]], [85, [6, 42, 77]], [MAX_DEPTH + 10, [2, 13, 30]]];
+  function waterAt(m) {
+    for (let i = 1; i < WATER.length; i++) {
+      if (m <= WATER[i][0]) {
+        const a = WATER[i - 1], b = WATER[i], t = clamp((m - a[0]) / (b[0] - a[0]), 0, 1);
+        return a[1].map((v, k) => Math.round(lerp(v, b[1][k], t)));
+      }
+    }
+    return WATER[WATER.length - 1][1];
+  }
+
+  // ---------- Fish ----------
+  // Every creature is drawn with smooth shapes. w / h are its size in world units (also its hitbox).
+  // col: top (back), body, belly, fin; plus optional pattern colors.
+  const RARITY = {
+    common: { color: '#a8b3c2', w: 60, label: 'Common' },
+    uncommon: { color: '#5dffb0', w: 26, label: 'Uncommon' },
+    rare: { color: '#4fd1ff', w: 10, label: 'Rare' },
+    epic: { color: '#c084fc', w: 3.5, label: 'Epic' },
+    legendary: { color: '#ffd23f', w: 1.2, label: 'Legendary' },
+  };
+  const SPECIES = [
+    { id: 'sardine', name: 'Sardine', zone: 0, rarity: 'common', pts: 10, str: 0.5, speed: [22, 30], w: 11, h: 4.6, shape: 'fish',
+      col: { top: '#3d6e9e', body: '#a6d6f2', belly: '#f1f9ff', fin: '#8fb8d6' }, shine: true },
+    { id: 'mackerel', name: 'Mackerel', zone: 0, rarity: 'common', pts: 15, str: 0.7, speed: [26, 34], w: 13, h: 4.8, shape: 'fish',
+      col: { top: '#21507a', body: '#74b0d6', belly: '#e8f2f9', fin: '#4a7fa8', pat: '#163a5c' }, pattern: 'tiger' },
+    { id: 'clown', name: 'Clownfish', zone: 0, rarity: 'uncommon', pts: 25, str: 0.6, speed: [14, 20], w: 10, h: 6, shape: 'fish',
+      col: { top: '#ef6a12', body: '#ff8c2a', belly: '#ffb15c', fin: '#ff7a1a', pat: '#ffffff', edge: '#1c1233' }, pattern: 'bands' },
+    { id: 'squid', name: 'Squid', zone: 1, rarity: 'common', pts: 30, str: 0.9, speed: [16, 24], w: 12, h: 5, shape: 'squid',
+      col: { top: '#d96a88', body: '#f4a7b9', belly: '#ffd6e0', fin: '#e88aa3' } },
+    { id: 'puffer', name: 'Pufferfish', zone: 1, rarity: 'uncommon', pts: 35, str: 0.8, speed: [8, 12], w: 9, h: 8, shape: 'round',
+      col: { top: '#c99a3a', body: '#f2d27a', belly: '#fff6d6', fin: '#e0b552', pat: '#8a6a1e' }, pattern: 'spikes' },
+    { id: 'tuna', name: 'Bluefin Tuna', zone: 1, rarity: 'rare', pts: 70, str: 1.4, speed: [30, 40], w: 15, h: 6.4, shape: 'fish',
+      col: { top: '#162a48', body: '#3f6f9f', belly: '#dce7f1', fin: '#2b4f7a', pat: '#ffd23f' }, pattern: 'finlets', shine: true },
+    { id: 'lantern', name: 'Lanternfish', zone: 2, rarity: 'common', pts: 50, str: 0.8, speed: [14, 20], w: 9, h: 4.4, shape: 'fish', glow: '#7dffea',
+      col: { top: '#2a3550', body: '#526a90', belly: '#93a8c8', fin: '#3a4a6b' }, pattern: 'lights' },
+    { id: 'opah', name: 'Moonfish', zone: 2, rarity: 'uncommon', pts: 90, str: 1.2, speed: [12, 18], w: 11, h: 9, shape: 'round',
+      col: { top: '#a12a3a', body: '#e8455a', belly: '#f7a1ad', fin: '#ff5e5e', pat: '#ffe3e8' }, pattern: 'spots' },
+    { id: 'sword', name: 'Swordfish', zone: 2, rarity: 'rare', pts: 130, str: 1.7, speed: [34, 46], w: 18, h: 5.6, shape: 'sword',
+      col: { top: '#1d2a4f', body: '#4a63a8', belly: '#cfdaf1', fin: '#2c3e70', pat: '#aab6d2' }, shine: true },
+    { id: 'angler', name: 'Anglerfish', zone: 3, rarity: 'rare', pts: 160, str: 1.3, speed: [8, 12], w: 12, h: 8, shape: 'angler', glow: '#fff3a0',
+      col: { top: '#231a33', body: '#4b3a66', belly: '#6b5a86', fin: '#3a2d4f', pat: '#fff3a0' } },
+    { id: 'coela', name: 'Coelacanth', zone: 3, rarity: 'epic', pts: 320, str: 1.8, speed: [10, 14], w: 16, h: 7, shape: 'fish',
+      col: { top: '#1a2f5c', body: '#3b62b0', belly: '#86a0d8', fin: '#2b4a8a', pat: '#e0ebff' }, pattern: 'spots', lobes: true },
+    { id: 'ghost', name: 'Ghost Shark', zone: 3, rarity: 'legendary', pts: 600, str: 2.2, speed: [16, 22], w: 20, h: 6.6, shape: 'shark', glow: '#bfe9ff',
+      col: { top: '#8e9cc0', body: '#d9e4fb', belly: '#f6f9ff', fin: '#b9c7e6', eye: '#5dffe0' } },
+  ];
+  // Things that aren't fish
+  const JUNK = [
+    { id: 'boot', name: 'Old Boot', pts: 2, str: 0.35, w: 6, h: 6, item: 'boot' },
+    { id: 'can', name: 'Rusty Can', pts: 2, str: 0.3, w: 4.5, h: 5.5, item: 'can' },
+  ];
+  const CHEST = { id: 'chest', name: 'Treasure Chest', pts: 250, str: 0.5, w: 10, h: 7, item: 'chest' };
+  const ALL = [...SPECIES, ...JUNK, CHEST];
+  for (const sp of SPECIES) { sp.w *= 1.25; sp.h *= 1.25; }   // a touch bigger so they read well
+  for (const sp of ALL) sp.spr = { w: sp.w, h: sp.h };
+
+  function rrect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+  function eye(g, x, y, r, iris = '#0b0b14') {
+    g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    g.fillStyle = iris; g.beginPath(); g.arc(x + r * 0.22, y, r * 0.62, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.beginPath(); g.arc(x + r * 0.05, y - r * 0.3, r * 0.22, 0, TAU); g.fill();
+  }
+  const bodyGrad = (g, c, h) => {
+    const gr = g.createLinearGradient(0, -h / 2, 0, h / 2);
+    gr.addColorStop(0, c.top); gr.addColorStop(0.45, c.body); gr.addColorStop(1, c.belly);
+    return gr;
+  };
+  // A classic fish outline, nose at +L/2, tail end at -L*0.34
+  function fishPath(g, L, h) {
+    g.beginPath();
+    g.moveTo(L * 0.5, h * 0.02);
+    g.bezierCurveTo(L * 0.42, -h * 0.58, -L * 0.12, -h * 0.6, -L * 0.36, -h * 0.1);
+    g.lineTo(-L * 0.36, h * 0.1);
+    g.bezierCurveTo(-L * 0.12, h * 0.58, L * 0.4, h * 0.54, L * 0.5, h * 0.02);
+    g.closePath();
+  }
+  function tail(g, x, L, h, wag, color, forked = true) {
+    g.save(); g.translate(x, 0); g.rotate(wag);
+    g.fillStyle = color;
+    g.beginPath(); g.moveTo(L * 0.04, 0);
+    g.quadraticCurveTo(-L * 0.08, -h * 0.12, -L * 0.18, -h * 0.52);
+    if (forked) g.quadraticCurveTo(-L * 0.1, 0, -L * 0.18, h * 0.52);
+    else g.quadraticCurveTo(-L * 0.26, 0, -L * 0.18, h * 0.52);
+    g.quadraticCurveTo(-L * 0.08, h * 0.12, L * 0.04, 0);
+    g.fill(); g.restore();
+  }
+  function drawPattern(g, sp, L, h, t) {
+    const c = sp.col;
+    if (sp.pattern === 'tiger') {
+      g.strokeStyle = c.pat; g.lineWidth = h * 0.09; g.lineCap = 'round';
+      for (let i = 0; i < 6; i++) { const x = L * (0.22 - i * 0.1); g.beginPath(); g.moveTo(x, -h * 0.42); g.quadraticCurveTo(x - L * 0.05, -h * 0.25, x + L * 0.01, -h * 0.05); g.stroke(); }
+    } else if (sp.pattern === 'bands') {
+      for (const bx of [L * 0.24, -L * 0.02, -L * 0.26]) {
+        g.fillStyle = c.edge; g.fillRect(bx - L * 0.065, -h, L * 0.13, h * 2);
+        g.fillStyle = c.pat; g.fillRect(bx - L * 0.045, -h, L * 0.09, h * 2);
+      }
+    } else if (sp.pattern === 'spots') {
+      g.fillStyle = c.pat; g.globalAlpha = 0.85;
+      for (let i = 0; i < 9; i++) { const sx = L * (0.3 - ((i * 37) % 100) / 140), sy = h * (((i * 53) % 100) / 100 - 0.55) * 0.8; g.beginPath(); g.arc(sx, sy, h * 0.06 + (i % 3) * h * 0.02, 0, TAU); g.fill(); }
+      g.globalAlpha = 1;
+    } else if (sp.pattern === 'lights') {
+      for (let i = 0; i < 5; i++) { g.fillStyle = sp.glow; g.beginPath(); g.arc(L * (0.26 - i * 0.12), h * 0.28, h * 0.07, 0, TAU); g.fill(); }
+    }
+  }
+  // Draw any creature or item centered at (x, y). dir: 1 faces right, -1 faces left.
+  function drawFish(g, sp, x, y, dir = 1, t = 0, swim = 1) {
+    if (sp.item) return drawItem(g, sp, x, y, t);
+    const L = sp.w, h = sp.h, c = sp.col;
+    const wag = Math.sin(t * (7 + sp.speed[0] * 0.08)) * 0.28 * swim;
+    g.save(); g.translate(x, y); g.scale(dir, 1);
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    if (sp.shape === 'fish' || sp.shape === 'sword' || sp.shape === 'shark') {
+      const bodyL = sp.shape === 'sword' ? L * 0.8 : L, off = sp.shape === 'sword' ? -L * 0.1 : 0;
+      g.save(); g.translate(off, 0);
+      const BL = bodyL;
+      if (sp.shape === 'sword') {
+        // the long bill
+        g.strokeStyle = c.pat; g.lineWidth = h * 0.13;
+        g.beginPath(); g.moveTo(BL * 0.42, -h * 0.04); g.lineTo(BL * 0.5 + L * 0.2, -h * 0.08); g.stroke();
+      }
+      tail(g, -BL * 0.33, BL, h * (sp.shape === 'shark' ? 1.1 : 1), wag, c.fin, true);
+      // dorsal fin (tall for swordfish & shark)
+      g.fillStyle = c.fin;
+      g.beginPath();
+      if (sp.shape === 'fish') { g.moveTo(BL * 0.14, -h * 0.38); g.quadraticCurveTo(0, -h * 0.82, -BL * 0.16, -h * 0.34); }
+      else { g.moveTo(BL * 0.18, -h * 0.36); g.quadraticCurveTo(BL * 0.06, -h * 1.05, -BL * 0.04, -h * 1.0); g.quadraticCurveTo(-BL * 0.02, -h * 0.6, -BL * 0.1, -h * 0.32); }
+      g.fill();
+      // body
+      g.fillStyle = bodyGrad(g, c, h);
+      fishPath(g, BL, h); g.fill();
+      if (sp.pattern) { g.save(); fishPath(g, BL, h); g.clip(); drawPattern(g, sp, BL, h, t); g.restore(); }
+      if (sp.pattern === 'finlets') {
+        g.fillStyle = c.pat;
+        for (let i = 0; i < 4; i++) { const fx = -BL * (0.12 + i * 0.06); for (const s of [-1, 1]) { g.beginPath(); g.moveTo(fx, s * h * (0.34 - i * 0.05)); g.lineTo(fx - BL * 0.03, s * h * (0.48 - i * 0.05)); g.lineTo(fx - BL * 0.05, s * h * (0.3 - i * 0.05)); g.fill(); } }
+      }
+      if (sp.lobes) {   // coelacanth's leg-like fins
+        g.fillStyle = c.fin;
+        for (const fx of [BL * 0.08, -BL * 0.14]) { g.beginPath(); g.ellipse(fx, h * 0.42, BL * 0.06, h * 0.2, 0.5, 0, TAU); g.fill(); }
+      }
+      if (sp.shine) { g.fillStyle = 'rgba(255,255,255,0.28)'; g.beginPath(); g.ellipse(BL * 0.08, -h * 0.16, BL * 0.26, h * 0.07, -0.05, 0, TAU); g.fill(); }
+      // gill and pectoral fin
+      g.strokeStyle = 'rgba(0,0,0,0.22)'; g.lineWidth = Math.max(0.25, h * 0.05);
+      g.beginPath(); g.arc(BL * 0.26, 0, h * 0.3, Math.PI * 0.7, Math.PI * 1.3); g.stroke();
+      g.fillStyle = c.fin; g.globalAlpha = 0.9;
+      g.beginPath(); g.ellipse(BL * 0.12, h * 0.16, BL * 0.09, h * 0.1, 0.5 + wag * 0.6, 0, TAU); g.fill();
+      g.globalAlpha = 1;
+      eye(g, BL * 0.33, -h * 0.08, Math.max(0.55, h * 0.13), c.eye || '#0b0b14');
+      g.restore();
+    } else if (sp.shape === 'round') {
+      tail(g, -L * 0.36, L * 0.9, h * 0.75, wag, c.fin, false);
+      g.fillStyle = c.fin;
+      g.beginPath(); g.moveTo(L * 0.05, -h * 0.4); g.quadraticCurveTo(-L * 0.12, -h * 0.68, -L * 0.24, -h * 0.3); g.fill();
+      g.beginPath(); g.moveTo(L * 0.05, h * 0.4); g.quadraticCurveTo(-L * 0.12, h * 0.66, -L * 0.24, h * 0.3); g.fill();
+      if (sp.pattern === 'spikes') {
+        g.fillStyle = c.pat;
+        for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU, r1 = h * 0.42, r2 = h * 0.58; g.beginPath(); g.moveTo(Math.cos(a - 0.12) * L * 0.42 * (r1 / (h * 0.46)), Math.sin(a - 0.12) * r1); g.lineTo(Math.cos(a) * L * 0.5 * (r2 / (h * 0.5)), Math.sin(a) * r2); g.lineTo(Math.cos(a + 0.12) * L * 0.42 * (r1 / (h * 0.46)), Math.sin(a + 0.12) * r1); g.fill(); }
+      }
+      g.fillStyle = bodyGrad(g, c, h);
+      g.beginPath(); g.ellipse(L * 0.04, 0, L * 0.42, h * 0.46, 0, 0, TAU); g.fill();
+      if (sp.pattern === 'spots' || sp.pattern === 'spikes') {
+        g.save(); g.beginPath(); g.ellipse(L * 0.04, 0, L * 0.42, h * 0.46, 0, 0, TAU); g.clip();
+        if (sp.pattern === 'spots') drawPattern(g, sp, L, h, t);
+        else { g.fillStyle = c.pat; g.globalAlpha = 0.5; for (let i = 0; i < 7; i++) { g.beginPath(); g.arc(L * (0.2 - (i % 4) * 0.13), -h * (0.28 - Math.floor(i / 4) * 0.2), h * 0.05, 0, TAU); g.fill(); } g.globalAlpha = 1; }
+        g.restore();
+      }
+      g.fillStyle = 'rgba(255,255,255,0.3)'; g.beginPath(); g.ellipse(L * 0.02, -h * 0.24, L * 0.2, h * 0.08, -0.1, 0, TAU); g.fill();
+      g.fillStyle = c.fin; g.beginPath(); g.ellipse(L * 0.12, h * 0.08, L * 0.08, h * 0.08, 0.6 + wag, 0, TAU); g.fill();
+      eye(g, L * 0.26, -h * 0.1, Math.max(0.6, h * 0.11));
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(L * 0.45, h * 0.06, L * 0.03, h * 0.04, 0, 0, TAU); g.fill();
+    } else if (sp.shape === 'squid') {
+      // tentacles trailing behind, the mantle pointing forward
+      g.strokeStyle = c.fin; g.lineWidth = h * 0.14;
+      for (let i = 0; i < 5; i++) {
+        const yy = (i - 2) * h * 0.12, w2 = Math.sin(t * 6 + i) * h * 0.18;
+        g.beginPath(); g.moveTo(-L * 0.1, yy * 0.6); g.quadraticCurveTo(-L * 0.3, yy + w2, -L * 0.5, yy * 1.4 - w2); g.stroke();
+      }
+      g.fillStyle = c.body; g.beginPath(); g.ellipse(-L * 0.1, 0, L * 0.1, h * 0.3, 0, 0, TAU); g.fill();
+      g.fillStyle = c.fin;
+      g.beginPath(); g.moveTo(L * 0.34, 0); g.lineTo(L * 0.5, -h * 0.48); g.lineTo(L * 0.42, 0); g.lineTo(L * 0.5, h * 0.48); g.closePath(); g.fill();
+      const gr = g.createLinearGradient(0, -h / 2, 0, h / 2); gr.addColorStop(0, c.top); gr.addColorStop(0.5, c.body); gr.addColorStop(1, c.belly);
+      g.fillStyle = gr;
+      g.beginPath(); g.moveTo(-L * 0.06, -h * 0.32); g.quadraticCurveTo(L * 0.3, -h * 0.42, L * 0.5, 0); g.quadraticCurveTo(L * 0.3, h * 0.42, -L * 0.06, h * 0.32); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(160, 40, 80, 0.35)';
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(L * (0.04 + i * 0.07), h * (((i * 41) % 10) / 10 - 0.5) * 0.4, h * 0.045, 0, TAU); g.fill(); }
+      eye(g, -L * 0.06, -h * 0.06, Math.max(0.6, h * 0.14));
+    } else if (sp.shape === 'angler') {
+      // glowing lure on a stalk
+      g.strokeStyle = c.belly; g.lineWidth = h * 0.06;
+      const lx = L * 0.46 + Math.sin(t * 2) * L * 0.03, ly = -h * 0.62;
+      g.beginPath(); g.moveTo(L * 0.05, -h * 0.4); g.quadraticCurveTo(L * 0.2, -h * 0.85, lx, ly); g.stroke();
+      const lg = g.createRadialGradient(lx, ly, 0, lx, ly, h * 0.35);
+      lg.addColorStop(0, 'rgba(255, 243, 160, 0.8)'); lg.addColorStop(1, 'rgba(255, 243, 160, 0)');
+      g.fillStyle = lg; g.beginPath(); g.arc(lx, ly, h * 0.35, 0, TAU); g.fill();
+      g.fillStyle = c.pat; g.beginPath(); g.arc(lx, ly, h * 0.08, 0, TAU); g.fill();
+      tail(g, -L * 0.34, L * 0.9, h * 0.7, wag, c.fin, false);
+      g.fillStyle = bodyGrad(g, c, h);
+      g.beginPath(); g.ellipse(0, 0, L * 0.4, h * 0.42, 0, 0, TAU); g.fill();
+      // big mouth full of teeth
+      g.fillStyle = '#150d20';
+      g.beginPath(); g.moveTo(L * 0.42, -h * 0.06); g.quadraticCurveTo(L * 0.1, h * 0.12, L * 0.36, h * 0.32); g.quadraticCurveTo(L * 0.46, h * 0.16, L * 0.42, -h * 0.06); g.fill();
+      g.fillStyle = '#f1f5f9';
+      for (let i = 0; i < 4; i++) {
+        const tx = L * (0.38 - i * 0.025), ty = -h * 0.02 + i * h * 0.08;
+        g.beginPath(); g.moveTo(tx, ty); g.lineTo(tx - L * 0.04, ty + h * 0.03); g.lineTo(tx, ty + h * 0.06); g.fill();
+      }
+      g.fillStyle = c.fin; g.beginPath(); g.ellipse(-L * 0.05, h * 0.2, L * 0.1, h * 0.09, 0.4 + wag, 0, TAU); g.fill();
+      eye(g, L * 0.22, -h * 0.16, Math.max(0.6, h * 0.08), '#ffe066');
+    }
+    g.restore();
+  }
+  function drawItem(g, sp, x, y, t) {
+    g.save(); g.translate(x, y);
+    const w = sp.w, h = sp.h;
+    if (sp.item === 'boot') {
+      g.rotate(Math.sin(t) * 0.12);
+      g.fillStyle = '#5b3a22';
+      g.beginPath(); g.moveTo(-w * 0.2, -h * 0.5); g.lineTo(w * 0.15, -h * 0.5); g.lineTo(w * 0.15, h * 0.05); g.quadraticCurveTo(w * 0.5, h * 0.05, w * 0.5, h * 0.3);
+      g.lineTo(w * 0.5, h * 0.42); g.lineTo(-w * 0.32, h * 0.42); g.lineTo(-w * 0.32, h * 0.1); g.quadraticCurveTo(-w * 0.25, -h * 0.2, -w * 0.2, -h * 0.5); g.fill();
+      g.fillStyle = '#2b1a0d'; g.fillRect(-w * 0.34, h * 0.36, w * 0.86, h * 0.12);
+      g.fillStyle = '#7a5332'; g.fillRect(-w * 0.22, -h * 0.5, w * 0.38, h * 0.12);
+    } else if (sp.item === 'can') {
+      g.rotate(0.3 + Math.sin(t) * 0.1);
+      g.fillStyle = '#b45309'; rrect(g, -w / 2, -h / 2, w, h, w * 0.18); g.fill();
+      g.fillStyle = '#94a3b8'; g.fillRect(-w / 2, -h / 2, w, h * 0.14); g.fillRect(-w / 2, h * 0.36, w, h * 0.14);
+      g.fillStyle = '#fde68a'; g.fillRect(-w / 2, -h * 0.12, w, h * 0.24);
+      g.fillStyle = 'rgba(255,255,255,0.3)'; g.fillRect(-w * 0.34, -h * 0.36, w * 0.12, h * 0.72);
+    } else if (sp.item === 'chest') {
+      const gl = g.createRadialGradient(0, 0, 0, 0, 0, w);
+      gl.addColorStop(0, 'rgba(255, 210, 63, 0.35)'); gl.addColorStop(1, 'rgba(255, 210, 63, 0)');
+      g.fillStyle = gl; g.beginPath(); g.arc(0, 0, w, 0, TAU); g.fill();
+      g.fillStyle = '#7a4a16'; rrect(g, -w / 2, -h * 0.1, w, h * 0.6, 0.6); g.fill();
+      g.fillStyle = '#9a6020'; g.beginPath(); g.moveTo(-w / 2, -h * 0.1); g.quadraticCurveTo(0, -h * 0.7, w / 2, -h * 0.1); g.closePath(); g.fill();
+      g.fillStyle = '#ffd23f';
+      g.fillRect(-w / 2, -h * 0.14, w, h * 0.1); g.fillRect(-w * 0.32, -h * 0.4, w * 0.08, h * 0.9); g.fillRect(w * 0.24, -h * 0.4, w * 0.08, h * 0.9);
+      g.fillStyle = '#fff3a0'; rrect(g, -w * 0.08, -h * 0.02, w * 0.16, h * 0.2, 0.3); g.fill();
+      if (Math.sin(t * 3) > 0.6) { g.fillStyle = '#fffbe0'; g.beginPath(); g.arc(w * 0.3, -h * 0.4, 0.5, 0, TAU); g.fill(); }
+    }
+    g.restore();
+  }
+  // Small pictures for the catch panel
+  function iconURL(sp, dark = false) {
+    const c = document.createElement('canvas'), cw = 96, ch = 60; c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    const k = Math.min((cw - 12) / (sp.w * (sp.shape === 'sword' ? 1.05 : 1)), (ch - 10) / (sp.h * (sp.shape === 'angler' ? 1.4 : 1.15)));
+    g.translate(cw / 2, ch / 2 + (sp.shape === 'angler' ? 4 : 0)); g.scale(k, k);
+    drawFish(g, sp, 0, 0, 1, 0.4, 0.5);
+    if (dark) { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = '#20324d'; g.fillRect(0, 0, cw, ch); }
+    return c.toDataURL();
+  }
+  for (const sp of ALL) sp.icon = iconURL(sp);
+  for (const sp of SPECIES) sp.iconDark = iconURL(sp, true);
+
+  // ---------- Canvas ----------
+  // The game world is measured in "units"; PX screen pixels per unit, drawn sharp at the screen's own resolution.
+  const stage = $('stage'), canvas = $('c'), ctx = canvas.getContext('2d');
+  const darkCv = document.createElement('canvas'), dctx = darkCv.getContext('2d');
+  let W = 240, H = 180, PX = 3, dpr = 1;
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    PX = clamp(Math.min(r.width / 250, r.height / 175), 2, 5);
+    W = r.width / PX; H = r.height / PX;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    canvas.style.width = r.width + 'px'; canvas.style.height = r.height + 'px';
+    darkCv.width = canvas.width; darkCv.height = canvas.height;
+  }
+  new ResizeObserver(() => resize()).observe(stage);
+  window.addEventListener('resize', resize);
+
+  // ---------- Sound ----------
+  let actx = null, master = null, noiseBuf = null, muted = false;
+  try { muted = (localStorage.getItem('deepcatchMuted') ?? localStorage.getItem('deepcastMuted')) === '1'; } catch (e) {}
+  function initAudio() {
+    if (!actx) {
+      try {
+        actx = new (window.AudioContext || window.webkitAudioContext)();
+        master = actx.createGain(); master.gain.value = 0.55; master.connect(actx.destination);
+        noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+        const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      } catch (e) { actx = null; }
+    }
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function tone(f, f2, dur, type = 'square', vol = 0.08, delay = 0) {
+    if (muted || !actx) return;
+    const t0 = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0); o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(master); o.start(t0); o.stop(t0 + dur + 0.03);
+  }
+  function noise(dur, vol, f1, f2, delay = 0) {
+    if (muted || !actx) return;
+    const t0 = actx.currentTime + delay, s = actx.createBufferSource(); s.buffer = noiseBuf;
+    const fl = actx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(f1, t0); fl.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    const g = actx.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    s.connect(fl).connect(g).connect(master); s.start(t0); s.stop(t0 + dur + 0.03);
+  }
+  const sfx = {
+    start: () => [392, 523, 659].forEach((f, i) => tone(f, f, 0.1, 'square', 0.05, i * 0.08)),
+    cast: () => { noise(0.25, 0.12, 4000, 800); tone(900, 300, 0.25, 'triangle', 0.05); },
+    splash: () => noise(0.35, 0.22, 2500, 300),
+    bite: () => { tone(220, 880, 0.08, 'square', 0.08); tone(880, 440, 0.12, 'square', 0.06, 0.08); },
+    tick: () => tone(1500, 1400, 0.02, 'square', 0.025),
+    thrash: () => noise(0.18, 0.12, 1500, 500),
+    snap: () => { noise(0.4, 0.3, 6000, 400); tone(300, 60, 0.4, 'sawtooth', 0.08); },
+    escape: () => tone(500, 180, 0.35, 'triangle', 0.07),
+    catch: (rare) => { [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.1, 'square', 0.05, i * 0.07)); if (rare) [1319, 1568].forEach((f, i) => tone(f, f, 0.14, 'triangle', 0.06, 0.32 + i * 0.1)); },
+    junk: () => tone(200, 150, 0.2, 'square', 0.05),
+    sting: () => { tone(1200, 300, 0.25, 'sawtooth', 0.06); noise(0.2, 0.1, 5000, 1000); },
+    end: () => [523, 440, 349, 262].forEach((f, i) => tone(f, f, 0.2, 'triangle', 0.07, i * 0.16)),
+  };
+
+  // ---------- Upgrades ----------
+  // Coins come from every catch and are kept between days. Spend them to fish better.
+  const UPGRADES = [
+    { id: 'line', icon: '🧵', name: 'Strong Line', desc: 'Tension builds up slower, so it snaps less.', max: 5, base: 120, now: (l) => '−' + l * 10 + '% tension' },
+    { id: 'reel', icon: '⚙️', name: 'Fast Reel', desc: 'Pull fish (and your empty hook) up faster.', max: 5, base: 100, now: (l) => '+' + l * 12 + '% reel speed' },
+    { id: 'sinker', icon: '⚓', name: 'Heavy Sinker', desc: 'Your hook drops to the deep faster.', max: 4, base: 80, now: (l) => '+' + l * 20 + '% sink speed' },
+    { id: 'lantern', icon: '💡', name: 'Lantern', desc: 'A bigger light around your hook in the dark.', max: 4, base: 90, now: (l) => '+' + l * 30 + '% light' },
+    { id: 'bait', icon: '🪱', name: 'Lucky Bait', desc: 'Rare, epic and legendary fish show up more.', max: 5, base: 150, now: (l) => '+' + l * 50 + '% rare fish' },
+    { id: 'day', icon: '☀️', name: 'Long Day', desc: 'More daylight to fish in.', max: 3, base: 200, now: (l) => '+' + l * 10 + 's per day' },
+  ];
+  let coins = 0, upg = {};
+  try { coins = Number(localStorage.getItem('deepcatchCoins')) || 0; upg = JSON.parse(localStorage.getItem('deepcatchUpg') || '{}') || {}; } catch (e) {}
+  const lv = (id) => upg[id] || 0;
+  const upCost = (u) => Math.round(u.base * Math.pow(1.7, lv(u.id)) / 10) * 10;
+  const lineMul = () => 1 - 0.1 * lv('line');
+  const reelMul = () => 1 + 0.12 * lv('reel');
+  const sinkMul = () => 1 + 0.2 * lv('sinker');
+  const lightRadius = () => 34 * (1 + 0.3 * lv('lantern'));
+  const baitMul = (r) => (r === 'common' ? 1 : r === 'uncommon' ? 1 + 0.2 * lv('bait') : 1 + 0.5 * lv('bait'));
+  const dayLength = () => DAY + 10 * lv('day');
+  function saveCoins() { try { localStorage.setItem('deepcatchCoins', coins); localStorage.setItem('deepcatchUpg', JSON.stringify(upg)); } catch (e) {} }
+  function showCoins() {
+    document.getElementById('topCoins').textContent = coins;
+    document.querySelectorAll('.coinNum').forEach((n) => { n.textContent = coins; });
+    const sc = document.getElementById('shCoins'); if (sc) sc.textContent = coins;
+  }
+
+  // ---------- State ----------
+  let state = 'menu';            // menu | playing | over
+  let phase = 'idle';            // idle | line | fight | landing | return
+  let holding = false, castLock = false;
+  let score = 0, combo = 1, caught = 0, casts = 0, hooked = 0, deepest = 0, timeLeft = DAY, bestCatch = null;
+  let today = {}, log = [];
+  let best = 0;
+  try { best = Number(localStorage.getItem('deepcatchBest') ?? localStorage.getItem('deepcastBest')) || 0; } catch (e) {}
+  let seen = new Set();
+  try { seen = new Set(JSON.parse(localStorage.getItem('deepcatchSeen') || localStorage.getItem('deepcastSeen') || '[]')); } catch (e) {}
+  const hook = { x: 120, y: 0, tx: 120 };
+  let fight = null;              // { f, tension, slack, thrash, nextThrash, tickT }
+  let landing = null;            // { f, t }
+  let fishes = [], jellies = [], junk = [], chest = null;
+  let popups = [], bubbles = [], plankton = [];
+  let camY = -60, time = 0, shake = 0, hint = '', hintT = 0;
+  const keys = {};
+
+  function pickSpecies(zone) {
+    const list = SPECIES.filter((s) => s.zone === zone);
+    const wt = (s) => RARITY[s.rarity].w * baitMul(s.rarity);
+    let tot = 0; for (const s of list) tot += wt(s);
+    let r = Math.random() * tot;
+    for (const s of list) { r -= wt(s); if (r <= 0) return s; }
+    return list[0];
+  }
+  function spawnFish(zone, anywhere = false) {
+    const sp = pickSpecies(zone), z = ZONES[zone];
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const y = rand(z.from + 3, z.to - 3) * M;
+    const x = anywhere ? rand(0, W) : (dir > 0 ? -sp.spr.w - rand(0, 40) : W + rand(0, 40));
+    return { sp, x, y, baseY: y, dir, speed: rand(sp.speed[0], sp.speed[1]) * 0.5, ph: rand(0, TAU), amp: rand(1, 4), curious: Math.random() < 0.85, turnT: rand(2, 6) };
+  }
+  function populate() {
+    fishes = [];
+    const counts = [6, 5, 4, 3];
+    counts.forEach((n, z) => { for (let i = 0; i < n; i++) fishes.push(spawnFish(z, true)); });
+    jellies = [];
+    for (let i = 0; i < 5; i++) jellies.push({ x: rand(10, W - 10), y: rand(22, 95) * M, ph: rand(0, TAU), vx: rand(-4, 4) });
+    junk = [];
+    for (let i = 0; i < 2; i++) junk.push({ sp: JUNK[i], x: rand(15, W - 15), y: rand(8, 70) * M, ph: rand(0, TAU) });
+    chest = Math.random() < 0.75 ? { sp: CHEST, x: rand(20, W - 30), y: FLOOR - 6 } : null;
+  }
+
+  function reset() {
+    phase = 'idle'; holding = false; castLock = false;
+    score = 0; combo = 1; caught = 0; casts = 0; hooked = 0; deepest = 0; timeLeft = dayLength(); bestCatch = null;
+    today = {}; log = [];
+    fight = null; landing = null; popups = []; hint = '';
+    hook.x = hook.tx = W * 0.5 + 18; hook.y = 0;
+    populate();
+    renderColl(); renderLog(); updateHud();
+  }
+  function start() {
+    initAudio();
+    reset();
+    state = 'playing';
+    $('menu').classList.add('hidden'); $('over').classList.add('hidden');
+    sfx.start();
+    showHint(isTouch ? 'TAP CAST TO DROP YOUR LINE' : 'PRESS CAST OR SPACE');
+  }
+  function toMenu() {
+    state = 'menu'; reset();
+    $('over').classList.add('hidden'); $('menu').classList.remove('hidden');
+  }
+  function endDay() {
+    state = 'over'; phase = 'idle'; holding = false;
+    sfx.end();
+    const isBest = score > best;
+    if (isBest) { best = score; try { localStorage.setItem('deepcatchBest', best); } catch (e) {} }
+    $('oScore').textContent = score;
+    $('oBest').classList.toggle('gone', !isBest);
+    const species = Object.keys(today).filter((k) => SPECIES.some((s) => s.id === k)).length;
+    $('oStats').innerHTML = `🪙 <b>+${score}</b> coins (you have <b>${coins}</b>)<br><b>${caught}</b> fish · <b>${species}</b> of ${SPECIES.length} species · deepest <b>${deepest}m</b>`
+      + (bestCatch ? `<br>Best catch: <b style="color:${RARITY[bestCatch.rarity]?.color || '#fff'}">${bestCatch.name}</b> (+${bestCatch.pts})` : '');
+    updateHud();
+    setTimeout(() => { if (state === 'over') $('over').classList.remove('hidden'); }, 500);
+  }
+
+  // ---------- HUD ----------
+  const el = { score: $('sScore'), best: $('sBest'), combo: $('sCombo'), fish: $('sFish'), depth: $('sDepth'), zone: $('sZone'), time: $('sTime'), timeBox: $('timeBox'),
+    casts: $('mCasts'), hooked: $('mHooked'), deep: $('mDeep'), btn: $('lineBtn'), lbMain: $('lbMain'), lbSub: $('lbSub') };
+  let lastHud = '';
+  function updateHud() {
+    const depth = phase === 'idle' || phase === 'landing' ? 0 : Math.max(0, Math.round(hook.y / M));
+    const z = zoneAt(depth);
+    const secs = Math.ceil(Math.max(0, timeLeft));
+    const key = [score, best, combo, caught, depth, secs, casts, hooked, deepest, state].join('|');
+    if (key !== lastHud) {
+      lastHud = key;
+      el.score.textContent = score; el.best.textContent = Math.max(best, score);
+      el.combo.textContent = 'x' + combo; el.fish.textContent = caught;
+      el.depth.textContent = depth + 'm'; el.zone.textContent = z.name; el.zone.style.color = z.color;
+      el.time.textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+      el.timeBox.classList.toggle('low', state === 'playing' && secs <= 15);
+      document.getElementById('shopBtn').style.opacity = state === 'playing' ? 0.55 : 1;
+      el.casts.textContent = casts; el.hooked.textContent = hooked; el.deep.textContent = deepest + 'm';
+    }
+    // the big button says what it will do right now
+    let main = 'CAST ▼', sub = 'DROP THE LINE', cls = '';
+    if (state !== 'playing') { main = 'CAST ▼'; sub = 'PRESS START'; cls = 'wait'; }
+    else if (phase === 'line') { main = holding && !castLock ? 'REELING ▲' : 'HOLD: REEL ▲'; sub = 'LET GO TO SINK'; cls = 'reel'; }
+    else if (phase === 'fight') {
+      const danger = fight.tension > 70 || fight.thrash > 0;
+      main = fight.thrash > 0 ? 'LET GO!' : (holding ? 'REELING ▲' : 'HOLD: REEL ▲');
+      sub = fight.thrash > 0 ? 'IT\'S FIGHTING!' : 'WATCH THE TENSION';
+      cls = danger ? 'danger' : 'fight';
+    } else if (phase === 'landing') { main = 'NICE!'; sub = 'INTO THE BOAT'; cls = 'reel wait'; }
+    else if (phase === 'return') { main = 'REELING…'; sub = 'LINE COMING UP'; cls = 'wait'; }
+    if (el.lbMain.textContent !== main) el.lbMain.textContent = main;
+    if (el.lbSub.textContent !== sub) el.lbSub.textContent = sub;
+    const want = cls + (holding ? ' down' : '');
+    if (el.btn.className !== want) el.btn.className = want;
+  }
+  // Today's catch: every species, with how many you caught today ('???' until you've ever caught one)
+  const collEl = $('coll'), slotEls = {};
+  for (const sp of SPECIES) {
+    const d = document.createElement('div'); d.className = 'sp-slot';
+    d.innerHTML = '<img alt=""><span></span><i></i>';
+    collEl.appendChild(d); slotEls[sp.id] = d;
+  }
+  function renderColl(flashId) {
+    for (const sp of SPECIES) {
+      const d = slotEls[sp.id], n = today[sp.id] || 0, known = seen.has(sp.id);
+      d.classList.toggle('got', n > 0);
+      const img = d.querySelector('img'), want = known ? sp.icon : sp.iconDark;
+      if (img.getAttribute('src') !== want) img.src = want;
+      d.querySelector('span').textContent = known ? sp.name : '???';
+      d.querySelector('span').style.color = n > 0 ? RARITY[sp.rarity].color : '';
+      d.querySelector('i').textContent = n > 0 ? '×' + n : '';
+      d.title = known ? sp.name + ' · ' + RARITY[sp.rarity].label + ' · ' + ZONES[sp.zone].name : 'Not caught yet · ' + ZONES[sp.zone].name;
+      if (flashId === sp.id) { d.classList.remove('flash'); void d.offsetWidth; d.classList.add('flash'); d.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+    }
+  }
+  function renderLog() {
+    const L = $('log');
+    if (!log.length) { L.innerHTML = '<div class="empty">Nothing yet. Cast your line!</div>'; return; }
+    L.innerHTML = '';
+    for (const e of log.slice(0, 30)) {
+      const d = document.createElement('div');
+      d.className = 'lg' + (e.bad ? ' bad' : '');
+      if (!e.bad && e.rarity) d.style.setProperty('--rc', RARITY[e.rarity].color);
+      const img = document.createElement('img'); img.src = e.icon; img.alt = '';
+      d.appendChild(img);
+      d.insertAdjacentHTML('beforeend', `<div class="n"><div>${e.name}</div><div>${e.detail}</div></div><div class="p">${e.pts}</div>`);
+      L.appendChild(d);
+    }
+  }
+  function addLog(entry) { log.unshift(entry); renderLog(); }
+  const hintEl = $('hint');
+  function showHint(t, dur = 3) { hint = t; hintT = dur; hintEl.textContent = t; hintEl.classList.add('on'); }
+  function popup(x, y, text, color, big = false) { popups.push({ x, y, text, color, life: big ? 1.8 : 1.2, max: big ? 1.8 : 1.2, big }); }
+
+  // ---------- Boat & line ----------
+  const boatX = () => Math.round(W * 0.5);
+  const rodTip = () => ({ x: boatX() + 16, y: -17 });
+
+  function cast() {
+    phase = 'line'; castLock = true; casts++;
+    hook.x = rodTip().x + 4; hook.tx = hook.x; hook.y = 0;
+    sfx.cast(); setTimeout(sfx.splash, 180);
+    for (let i = 0; i < 6; i++) bubbles.push({ x: hook.x + rand(-3, 3), y: rand(0, 6), vy: rand(-12, -6), life: 1 });
+    if (casts === 1) showHint(isTouch ? 'DRAG ON THE WATER TO STEER' : 'STEER WITH MOUSE / ARROWS');
+  }
+  function hookFish(f) {
+    phase = 'fight'; hooked++;
+    fight = { f, tension: 15, slack: 0, thrash: 0, nextThrash: rand(0.8, 1.6), tickT: 0 };
+    sfx.bite(); shake = 3;
+    popup(hook.x, hook.y - 8, f.sp.id === 'chest' ? 'TREASURE!' : (f.sp.rarity && RARITY[f.sp.rarity].w < 5 ? 'BIG ONE!' : 'BITE!'), '#ffd23f');
+    if (hooked === 1) showHint('HOLD REEL TO PULL IT UP · LET GO WHEN IT THRASHES (!!)', 4.5);
+  }
+  function loseFish(reason) {
+    const f = fight.f;
+    if (reason === 'snap') { sfx.snap(); shake = 6; popup(hook.x, hook.y - 8, 'SNAP!', '#ff6b6b', true); }
+    else if (reason === 'sting') { sfx.sting(); popup(hook.x, hook.y - 8, 'STUNG!', '#f0abfc', true); }
+    else { sfx.escape(); popup(hook.x, hook.y - 8, 'GOT AWAY…', '#93c5fd', true); }
+    addLog({ name: f.sp.name + (reason === 'snap' ? ' snapped the line' : reason === 'sting' ? ' (stung!)' : ' got away'), detail: Math.round(hook.y / M) + 'm · combo lost', pts: '×', icon: f.sp.icon, bad: true });
+    // a fish that gets away swims off; junk sinks back down
+    if (f.sp.zone !== undefined) { f.x = hook.x; f.y = f.baseY = hook.y; f.dir = Math.random() < 0.5 ? 1 : -1; f.speed *= 2.2; f.curious = false; f.spooked = 3; if (fishes.length < 22) fishes.push(f); }
+    fight = null; combo = 1;
+    phase = 'return';
+  }
+  function landFish() {
+    const f = fight.f, sp = f.sp;
+    const isFish = SPECIES.includes(sp);
+    const mult = isFish ? combo : 1;
+    const pts = sp.pts * mult;
+    score += pts;
+    coins += pts; saveCoins(); showCoins();
+    landing = { f, t: 0 };
+    phase = 'landing'; fight = null;
+    const depth = Math.round(f.depth || 0);
+    if (isFish) {
+      caught++;
+      today[sp.id] = (today[sp.id] || 0) + 1;
+      const first = !seen.has(sp.id);
+      seen.add(sp.id); try { localStorage.setItem('deepcatchSeen', JSON.stringify([...seen])); } catch (e) {}
+      const R = RARITY[sp.rarity];
+      sfx.catch(R.w < 15);
+      popup(boatX(), -30, '+' + pts + (mult > 1 ? ' ×' + mult : ''), R.color, true);
+      popup(boatX(), -40, (first ? 'NEW! ' : '') + sp.name.toUpperCase(), R.color);
+      addLog({ name: sp.name + (first ? ' ★ NEW' : ''), detail: depth + 'm · ' + R.label, pts: '+' + pts + (mult > 1 ? ' ×' + mult : ''), icon: sp.icon, rarity: sp.rarity });
+      if (!bestCatch || pts > bestCatch.pts) bestCatch = { name: sp.name, pts, rarity: sp.rarity };
+      combo = Math.min(5, combo + 1);
+      renderColl(sp.id);
+    } else {
+      const treasure = sp.id === 'chest';
+      if (treasure) { sfx.catch(true); } else { sfx.junk(); combo = 1; }
+      popup(boatX(), -30, '+' + pts, treasure ? '#ffd23f' : '#9ca3af', true);
+      popup(boatX(), -40, treasure ? 'TREASURE!' : sp.name.toUpperCase(), treasure ? '#ffd23f' : '#9ca3af');
+      addLog({ name: sp.name, detail: depth + 'm · ' + (treasure ? 'Treasure!' : 'Junk · combo reset'), pts: '+' + pts, icon: sp.icon, rarity: treasure ? 'legendary' : 'common' });
+      if (treasure) chest = null;
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dt) {
+    time += dt;
+    shake = Math.max(0, shake - dt * 20);
+    if (hintT > 0) { hintT -= dt; if (hintT <= 0 || state !== 'playing') { hintT = 0; hintEl.classList.remove('on'); } }
+    const playing = state === 'playing';
+    if (playing) {
+      timeLeft -= dt;
+      if (timeLeft <= 0 && (phase === 'idle' || phase === 'line' || phase === 'return')) { timeLeft = 0; endDay(); }
+    }
+
+    // steer the hook
+    if (keys.ArrowLeft || keys.KeyA) hook.tx -= 80 * dt;
+    if (keys.ArrowRight || keys.KeyD) hook.tx += 80 * dt;
+    hook.tx = clamp(hook.tx, 4, W - 4);
+
+    if (playing && phase === 'line') {
+      hook.x = lerp(hook.x, hook.tx, Math.min(1, dt * 4));
+      if (holding && !castLock) {
+        hook.y -= 85 * reelMul() * dt;
+        if (time % 0.1 < dt) sfx.tick();
+        if (hook.y <= 0) { hook.y = 0; phase = 'idle'; }
+      } else {
+        hook.y = Math.min(FLOOR - 4, hook.y + 44 * sinkMul() * dt);
+      }
+      deepest = Math.max(deepest, Math.round(hook.y / M));
+      // bites, junk, treasure, jellyfish
+      for (const f of fishes) {
+        const s = f.sp.spr;
+        if (Math.abs(f.x - hook.x) < s.w / 2 + 2 && Math.abs(f.y - hook.y) < s.h / 2 + 2 && !f.spooked) {
+          fishes.splice(fishes.indexOf(f), 1);
+          f.depth = hook.y / M;
+          fishes.push(spawnFish(f.sp.zone));       // a new fish swims in to replace it
+          hookFish(f);
+          break;
+        }
+      }
+      if (phase === 'line') for (const j of junk) {
+        if (Math.abs(j.x - hook.x) < 5 && Math.abs(j.y - hook.y) < 5) {
+          junk.splice(junk.indexOf(j), 1);
+          junk.push({ sp: JUNK[Math.floor(Math.random() * JUNK.length)], x: rand(15, W - 15), y: rand(8, 70) * M, ph: rand(0, TAU) });
+          hookFish({ sp: j.sp, x: j.x, y: j.y, depth: hook.y / M }); break;
+        }
+      }
+      if (phase === 'line' && chest && Math.abs(chest.x + 5 - hook.x) < 7 && hook.y > FLOOR - 14) {
+        const c = chest; chest = null;
+        hookFish({ sp: c.sp, x: c.x, y: c.y, depth: hook.y / M });
+      }
+      if (phase === 'line') for (const j of jellies) {
+        if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6) { sfx.sting(); popup(hook.x, hook.y - 8, 'ZAP!', '#f0abfc'); phase = 'return'; shake = 3; break; }
+      }
+    } else if (playing && phase === 'fight') {
+      const F = fight;
+      F.age = (F.age || 0) + dt;
+      const s = F.f.sp.str * Math.max(0.55, 1 - F.age / 30);   // fish tire out the longer they fight
+      F.nextThrash -= dt;
+      if (F.nextThrash <= 0 && F.thrash <= 0) { F.thrash = rand(0.55, 0.85); F.nextThrash = rand(1.1, 2.6) / (0.6 + 0.4 * s); sfx.thrash(); shake = 2; }
+      if (F.thrash > 0) F.thrash -= dt;
+      const reeling = holding && !castLock;
+      if (reeling) {
+        hook.y -= (72 - 10 * s) * reelMul() * dt * (F.thrash > 0 ? 0.35 : 1);
+        F.tension += ((14 + 15 * s) + (F.thrash > 0 ? 55 * s : 0)) * lineMul() * dt;
+        F.slack = 0;
+        F.tickT -= dt; if (F.tickT <= 0) { F.tickT = 0.08; sfx.tick(); }
+      } else {
+        F.tension -= 46 * dt;
+        hook.y += (8 * s + (F.thrash > 0 ? 14 * s : 0)) * dt;
+        F.slack += dt;
+      }
+      // the fish tugs the line side to side
+      hook.x = clamp(hook.x + Math.sin(time * (3 + s * 2)) * s * 14 * dt, 4, W - 4);
+      hook.y = Math.min(FLOOR - 4, hook.y);
+      F.tension = clamp(F.tension, 0, 100);
+      if (Math.random() < dt * 6) bubbles.push({ x: hook.x + rand(-4, 4), y: hook.y, vy: rand(-20, -10), life: 1.2 });
+      if (F.tension >= 100) loseFish('snap');
+      else if (F.slack > 3.2 || timeLeft < -20) loseFish('escape');
+      else if (hook.y <= 2) landFish();
+      else for (const j of jellies) if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6) { loseFish('sting'); break; }
+    } else if (playing && phase === 'return') {
+      hook.y -= 150 * dt;
+      hook.x = lerp(hook.x, rodTip().x + 4, Math.min(1, dt * 2));
+      if (hook.y <= 0) { hook.y = 0; phase = 'idle'; }
+    } else if (playing && phase === 'landing') {
+      landing.t += dt;
+      if (landing.t > 0.9) { landing = null; phase = 'idle'; if (timeLeft <= 0) endDay(); }
+    }
+    if (state === 'playing' && phase === 'idle' && timeLeft <= 0) endDay();
+
+    // fish swim
+    for (const f of fishes) {
+      const s = f.sp.spr;
+      if (f.spooked) f.spooked = Math.max(0, f.spooked - dt);
+      // curious fish come to look at an empty hook nearby
+      const near = playing && phase === 'line' && f.curious && !f.spooked && Math.abs(f.y - hook.y) < 28 && Math.abs(f.x - hook.x) < 48;
+      if (near) {
+        f.dir = hook.x > f.x ? 1 : -1;
+        f.baseY = lerp(f.baseY, hook.y, Math.min(1, dt * 0.9));
+        f.x += f.dir * f.speed * 0.75 * dt;
+      } else {
+        f.x += f.dir * f.speed * dt;
+        f.turnT -= dt;
+        if (f.turnT <= 0 && f.x > 0 && f.x < W) { f.turnT = rand(3, 8); if (Math.random() < 0.3) f.dir *= -1; }
+      }
+      f.ph += dt * 2;
+      f.y = f.baseY + Math.sin(f.ph) * f.amp;
+      const z = ZONES[f.sp.zone];
+      f.baseY = clamp(f.baseY, (z.from + 1) * M, (z.to - 1) * M);
+      if (f.x < -s.w - 50 || f.x > W + s.w + 50) Object.assign(f, spawnFish(f.sp.zone));
+    }
+    for (const j of jellies) {
+      j.ph += dt;
+      j.y += Math.sin(j.ph * 1.3) * 6 * dt;
+      j.x += j.vx * dt; if (j.x < 6 || j.x > W - 6) j.vx *= -1;
+    }
+    for (const j of junk) { j.ph += dt; }
+    // bubbles & plankton
+    if (Math.random() < dt * 3) bubbles.push({ x: rand(0, W), y: camY + H + 2, vy: rand(-14, -6), life: 4 });
+    for (const b of bubbles) { b.y += b.vy * dt; b.x += Math.sin(time * 3 + b.y) * 4 * dt; b.life -= dt; }
+    bubbles = bubbles.filter((b) => b.life > 0 && b.y > -2);
+    for (const p of popups) { p.y -= 12 * dt; p.life -= dt; }
+    popups = popups.filter((p) => p.life > 0);
+
+    // camera: show the sky when the line is up, follow the hook when it's down
+    const skyView = Math.round(H * 0.46);
+    const wantCam = phase === 'idle' || phase === 'landing' || state !== 'playing' ? -skyView : hook.y - H * 0.42;
+    camY = lerp(camY, clamp(wantCam, -skyView, FLOOR + 14 - H), Math.min(1, dt * 3.5));
+    updateHud();
+  }
+
+  // ---------- Draw ----------
+  const dayT = () => clamp(1 - timeLeft / dayLength(), 0, 1);
+  function skyColors() {
+    const t = state === 'menu' ? 0.62 : dayT();
+    const stops = [
+      [0, ['#5bb8f0', '#c8ecff']], [0.55, ['#4d9bd8', '#ffd9a0']], [0.8, ['#34408f', '#ff9a5c']], [1, ['#191a48', '#c2507a']],
+    ];
+    for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+      const a = stops[i - 1], b = stops[i], k = (t - a[0]) / (b[0] - a[0]);
+      return [mixHex(a[1][0], b[1][0], k), mixHex(a[1][1], b[1][1], k)];
+    }
+    return stops[stops.length - 1][1];
+  }
+  function mixHex(a, b, k) {
+    const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const A = p(a), B = p(b);
+    return 'rgb(' + A.map((v, i) => Math.round(lerp(v, B[i], k))).join(',') + ')';
+  }
+  const SY = (y) => y - camY;                 // world y -> screen y
+  const fs = (cssPx) => cssPx / PX;           // a font size in screen pixels -> world units
+  const FONT = (px, w = 700) => `${w} ${fs(px)}px Fredoka, 'Baloo 2', system-ui, sans-serif`;
+
+  function cloud(x, y, s, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2 * s, 0, TAU); ctx.arc(x + 4 * s, y - 1.6 * s, 4 * s, 0, TAU); ctx.arc(x + 8.5 * s, y, 3.4 * s, 0, TAU);
+    ctx.rect(x, y, 8.5 * s, 3.2 * s);
+    ctx.fill();
+  }
+  function drawSky() {
+    const sea = SY(0);
+    if (sea <= 0) return;
+    const [c1, c2] = skyColors();
+    const g = ctx.createLinearGradient(0, sea - H * 0.7, 0, sea);
+    g.addColorStop(0, c1); g.addColorStop(1, c2);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, sea);
+    const t = state === 'menu' ? 0.62 : dayT();
+    // the sun sinks over the day
+    const sx = W * (0.2 + t * 0.55), sy = sea - (H * 0.36) * (1 - t * 0.9) - 4;
+    const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, 22);
+    glow.addColorStop(0, t > 0.75 ? 'rgba(255, 170, 90, 0.7)' : 'rgba(255, 245, 200, 0.75)'); glow.addColorStop(1, 'rgba(255, 220, 160, 0)');
+    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(sx, sy, 22, 0, TAU); ctx.fill();
+    ctx.fillStyle = t > 0.75 ? '#ff9a52' : '#fff6c8'; ctx.beginPath(); ctx.arc(sx, sy, 6, 0, TAU); ctx.fill();
+    // soft clouds drifting by
+    const cc = t > 0.75 ? 'rgba(255, 196, 180, 0.75)' : 'rgba(255, 255, 255, 0.85)';
+    for (let i = 0; i < 4; i++) {
+      const cx = ((i * 97 + time * (1.5 + i * 0.7)) % (W + 60)) - 30, cy = sea - H * (0.2 + (i % 3) * 0.08);
+      cloud(cx, cy, 0.8 + (i % 2) * 0.35, cc);
+    }
+    // a little island with a palm tree
+    const ix = W * 0.8;
+    ctx.fillStyle = t > 0.75 ? '#3b2f5c' : '#2f7a6a';
+    ctx.beginPath(); ctx.moveTo(ix - 18, sea + 0.5); ctx.quadraticCurveTo(ix - 4, sea - 9, ix + 18, sea + 0.5); ctx.fill();
+    ctx.strokeStyle = t > 0.75 ? '#2a2246' : '#5a4022'; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(ix - 1, sea - 5); ctx.quadraticCurveTo(ix + 1, sea - 11, ix + 3, sea - 15); ctx.stroke();
+    ctx.fillStyle = t > 0.75 ? '#2a2246' : '#2f8f4a';
+    for (let k = 0; k < 5; k++) { ctx.save(); ctx.translate(ix + 3, sea - 15); ctx.rotate(-2.6 + k * 0.85 + Math.sin(time + k) * 0.05); ctx.beginPath(); ctx.ellipse(4, 0, 4.5, 1.1, 0.25, 0, TAU); ctx.fill(); ctx.restore(); }
+  }
+  function drawWater() {
+    const sea = Math.max(0, SY(0));
+    if (sea >= H) return;
+    // smooth gradient that follows the depth
+    const top = SY(0), bot = SY(FLOOR + 40);
+    const g = ctx.createLinearGradient(0, top, 0, bot);
+    for (const [m, c] of WATER) g.addColorStop(clamp((m * M) / (FLOOR + 40), 0, 1), `rgb(${c[0]},${c[1]},${c[2]})`);
+    ctx.fillStyle = g; ctx.fillRect(0, sea, W, H - sea);
+    // light rays from the surface
+    if (top < H && top > -120) {
+      for (let i = 0; i < 4; i++) {
+        const x0 = ((i * 71 + time * 2.5) % (W + 60)) - 30;
+        const rg = ctx.createLinearGradient(0, top, 0, top + 110);
+        rg.addColorStop(0, 'rgba(255, 255, 255, 0.11)'); rg.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x0 + 9, top); ctx.lineTo(x0 + 40, top + 110); ctx.lineTo(x0 + 18, top + 110); ctx.fill();
+      }
+      // shimmering caustics just under the surface
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; ctx.lineWidth = 0.6;
+      for (let r = 0; r < 3; r++) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 4) { const y = top + 5 + r * 6 + Math.sin(x * 0.12 + time * 1.8 + r * 2) * 1.2; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.stroke();
+      }
+    }
+    // depth markers on the right
+    ctx.font = FONT(11, 600); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let m = 10; m <= MAX_DEPTH; m += 10) {
+      const y = SY(m * M);
+      if (y < 6 || y > H - 6) continue;
+      ctx.fillStyle = 'rgba(210, 240, 255, 0.4)';
+      ctx.fillRect(W - 4, y - 0.25, 4, 0.5);
+      ctx.fillText(m + 'm', W - 5.5, y);
+    }
+    // zone boundaries
+    for (const z of ZONES) {
+      const y = SY(z.from * M);
+      if (z.from === 0 || y < 0 || y > H) continue;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 0.5; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = z.color; ctx.globalAlpha = 0.6; ctx.textAlign = 'left'; ctx.font = FONT(12, 700);
+      ctx.fillText(z.name, 4, y + fs(12)); ctx.globalAlpha = 1;
+    }
+    // kelp swaying on the reef
+    for (let i = 0; i < 6; i++) {
+      const kx = i < 3 ? 5 + i * 8 : W - 6 - (i - 3) * 9, base = (49 - (i % 2) * 2) * M, h = (15 + (i * 7) % 10) * M;
+      const by = SY(base); if (by < -h - 10 || by - h > H + 10) continue;
+      ctx.strokeStyle = i % 2 ? '#1f8a52' : '#27a060'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      ctx.beginPath();
+      const pts = [];
+      for (let k = 0; k <= 12; k++) { const u = k / 12; const x = kx + Math.sin(time * 1.3 + u * 3 + i) * u * 4; const y = by - u * h; pts.push([x, y]); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.stroke();
+      ctx.fillStyle = i % 2 ? '#26a05f' : '#33b86e';
+      for (let k = 2; k < 12; k += 2) { const [x, y] = pts[k]; ctx.beginPath(); ctx.ellipse(x + (k % 4 ? 1.6 : -1.6), y, 2, 0.8, k % 4 ? 0.6 : -0.6, 0, TAU); ctx.fill(); }
+    }
+    // coral
+    const corals = [['#ff6b9a', 12], ['#ffb04f', 24], ['#c084fc', -22], ['#5dffb0', -10]];
+    for (const [col, off] of corals) {
+      const cx = off > 0 ? off : W + off, cy = SY(49.5 * M);
+      if (cy < -12 || cy > H + 12) continue;
+      ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy); ctx.quadraticCurveTo(cx - 1, cy - 4, cx - 3, cy - 7);
+      ctx.moveTo(cx, cy); ctx.quadraticCurveTo(cx + 1, cy - 5, cx + 3, cy - 8);
+      ctx.moveTo(cx - 1, cy - 4); ctx.lineTo(cx - 5, cy - 5);
+      ctx.moveTo(cx + 1.5, cy - 5); ctx.lineTo(cx + 5, cy - 5.5);
+      ctx.stroke();
+    }
+    // the sea floor
+    const fy = SY(FLOOR);
+    if (fy < H) {
+      const sg = ctx.createLinearGradient(0, fy - 4, 0, H);
+      sg.addColorStop(0, '#222c45'); sg.addColorStop(1, '#0b1020');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.moveTo(0, H + 2); ctx.lineTo(0, fy);
+      for (let x = 0; x <= W + 10; x += 10) ctx.quadraticCurveTo(x + 5, fy - 2 - Math.sin(x * 0.7) * 1.5, x + 10, fy);
+      ctx.lineTo(W, H + 2); ctx.fill();
+      ctx.fillStyle = '#2b3654';
+      for (let i = 0; i < 6; i++) { const rx = (i * 53) % W; ctx.beginPath(); ctx.ellipse(rx + 3, fy - 1, 4 + (i % 3), 2.4, 0, Math.PI, TAU); ctx.fill(); }
+      // a glowing vent
+      const vx = W * 0.3;
+      ctx.fillStyle = '#3a2d4f'; ctx.beginPath(); ctx.moveTo(vx - 4, fy); ctx.lineTo(vx - 1.5, fy - 9); ctx.lineTo(vx + 1.5, fy - 9); ctx.lineTo(vx + 4, fy); ctx.fill();
+      for (let i = 0; i < 6; i++) { const k = (time * 0.6 + i / 6) % 1; ctx.fillStyle = `rgba(255, 150, 90, ${0.5 * (1 - k)})`; ctx.beginPath(); ctx.arc(vx + Math.sin(i + time) * 2 * k, fy - 10 - k * 24, 0.8 + k * 1.4, 0, TAU); ctx.fill(); }
+    }
+  }
+  function drawJelly(j) {
+    const y = SY(j.y); if (y < -12 || y > H + 12) return;
+    const x = j.x, pulse = Math.sin(j.ph * 3) * 0.12;
+    const gl = ctx.createRadialGradient(x, y - 1, 0, x, y - 1, 9);
+    gl.addColorStop(0, 'rgba(240, 171, 252, 0.3)'); gl.addColorStop(1, 'rgba(240, 171, 252, 0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, y - 1, 9, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(240, 171, 252, 0.6)'; ctx.lineWidth = 0.45;
+    for (let k = -2; k <= 2; k++) {
+      ctx.beginPath(); ctx.moveTo(x + k * 1.1, y);
+      for (let s = 1; s <= 4; s++) ctx.lineTo(x + k * 1.1 + Math.sin(time * 4 + k + s) * 0.7, y + s * 1.6);
+      ctx.stroke();
+    }
+    const dg = ctx.createLinearGradient(0, y - 4, 0, y);
+    dg.addColorStop(0, 'rgba(250, 210, 255, 0.95)'); dg.addColorStop(1, 'rgba(216, 120, 240, 0.8)');
+    ctx.fillStyle = dg;
+    ctx.beginPath(); ctx.ellipse(x, y, 3.6 * (1 + pulse), 3.6 * (1 - pulse * 0.6), 0, Math.PI, TAU); ctx.quadraticCurveTo(x, y + 1, x - 3.6 * (1 + pulse), y); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(x - 1.2, y - 2.2, 1, 0.5, -0.4, 0, TAU); ctx.fill();
+  }
+  function drawCreatures() {
+    for (const j of junk) { const y = SY(j.y + Math.sin(j.ph) * 2); if (y > -10 && y < H + 10) drawFish(ctx, j.sp, j.x, y, 1, j.ph); }
+    if (chest) { const y = SY(chest.y); if (y < H + 12) drawFish(ctx, CHEST, chest.x + 5, y - 2.5, 1, time); }
+    for (const f of fishes) {
+      const y = SY(f.y);
+      if (y < -14 || y > H + 14) continue;
+      drawFish(ctx, f.sp, f.x, y, f.dir, time + f.ph);
+    }
+    for (const j of jellies) drawJelly(j);
+    ctx.strokeStyle = 'rgba(220, 245, 255, 0.45)'; ctx.lineWidth = 0.35;
+    for (const b of bubbles) { const y = SY(b.y); if (y > SY(0) + 1) { ctx.beginPath(); ctx.arc(b.x, y, 0.7, 0, TAU); ctx.stroke(); } }
+  }
+  function drawBoat() {
+    const bx = boatX(), sea = SY(0);
+    if (sea < -24 || sea > H + 30) return;
+    const bob = Math.sin(time * 2) * 0.8, tilt = Math.sin(time * 1.6) * 0.03;
+    const y = sea + bob;
+    ctx.save(); ctx.translate(bx, y); ctx.rotate(tilt);
+    // cabin
+    ctx.fillStyle = '#f1f5f9'; rrect(ctx, -13, -13, 11, 8, 1.4); ctx.fill();
+    ctx.fillStyle = '#7dd3fc'; rrect(ctx, -11, -11.5, 3.4, 2.6, 0.6); ctx.fill(); rrect(ctx, -6.8, -11.5, 3.4, 2.6, 0.6); ctx.fill();
+    ctx.fillStyle = '#ef4444'; rrect(ctx, -14, -14.6, 13, 2, 0.8); ctx.fill();
+    // the fisher
+    ctx.fillStyle = '#2563eb'; rrect(ctx, 3.3, -11.5, 4.6, 6, 1.6); ctx.fill();
+    ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(5.6, -13.2, 1.8, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.ellipse(5.6, -14.6, 2.8, 0.7, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5.6, -15, 1.7, 1.2, 0, Math.PI, TAU); ctx.fill();
+    // hull
+    const hg = ctx.createLinearGradient(0, -6, 0, 3);
+    hg.addColorStop(0, '#9a5530'); hg.addColorStop(1, '#5a2e14');
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.moveTo(-18, -6.5); ctx.lineTo(18, -6.5); ctx.quadraticCurveTo(16, 1, 10, 2.6); ctx.lineTo(-11, 2.6); ctx.quadraticCurveTo(-17, 1, -18, -6.5); ctx.fill();
+    ctx.fillStyle = '#f8fafc'; ctx.fillRect(-16.5, -4.6, 33, 0.9);
+    ctx.fillStyle = '#c0703f'; ctx.fillRect(-18, -7, 36, 1);
+    ctx.restore();
+    // rod (bends when a fish is on)
+    const tip = rodTip(), bend = phase === 'fight' ? 3 + Math.sin(time * 12) * 0.8 : 0;
+    ctx.strokeStyle = '#3b2304'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(bx + 7.5, y - 9.5); ctx.quadraticCurveTo(bx + 13, y - 13 + bend * 0.4, tip.x, SY(tip.y) + bob + bend); ctx.stroke();
+    // the water surface with little waves
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)'; ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 3) { const wy = sea + Math.sin(x * 0.18 + time * 2.4) * 0.7; x ? ctx.lineTo(x, wy) : ctx.moveTo(x, wy); }
+    ctx.stroke();
+  }
+  function drawLine() {
+    const tip = rodTip(), bob = Math.sin(time * 2) * 0.8;
+    const bend = phase === 'fight' ? 3 + Math.sin(time * 12) * 0.8 : 0;
+    const tx = tip.x, ty = SY(tip.y) + bob + bend;
+    ctx.lineWidth = 0.45;
+    if (state !== 'playing' || phase === 'idle' || phase === 'landing') {
+      const bx = tip.x + 4, by = SY(0) + Math.sin(time * 3) * 0.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(tx + 3, ty + 6, bx, by - 1.5); ctx.stroke();
+      ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(bx, by - 1, 1.5, Math.PI, TAU); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(bx, by - 1, 1.5, 0, Math.PI); ctx.fill();
+      return;
+    }
+    const hx = hook.x, hy = SY(hook.y);
+    ctx.strokeStyle = fight && fight.tension > 70 ? 'rgba(255, 120, 120, 0.95)' : 'rgba(255, 255, 255, 0.65)';
+    ctx.beginPath(); ctx.moveTo(tx, ty);
+    const sag = fight ? 0 : 6;
+    ctx.quadraticCurveTo((tx + hx) / 2 + sag, (ty + hy) / 2 + sag, hx, hy); ctx.stroke();
+    if (fight) {
+      const f = fight.f, wig = fight.thrash > 0 ? Math.sin(time * 40) * 1.5 : Math.sin(time * 8) * 0.6;
+      const dir = Math.sin(time * (fight.thrash > 0 ? 9 : 2)) > 0 ? 1 : -1;
+      drawFish(ctx, f.sp, hx + wig, hy + f.sp.h / 2 + 0.8, f.sp.item ? 1 : dir, time * (fight.thrash > 0 ? 3 : 1.5), 1.6);
+    } else {
+      // a little gold lure above a silver hook
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.ellipse(hx, hy - 1.2, 0.9, 1.4, 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.55;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx, hy + 2.2); ctx.arc(hx - 1.1, hy + 2.2, 1.1, 0, Math.PI); ctx.lineTo(hx - 2.2, hy + 1.4); ctx.stroke();
+    }
+  }
+  // the deep gets dark; your lantern lights the water around the hook
+  function drawDark() {
+    const y0 = SY(45 * M), y1 = SY(115 * M);
+    if (y0 > H) return;
+    dctx.setTransform(1, 0, 0, 1, 0, 0);
+    dctx.clearRect(0, 0, darkCv.width, darkCv.height);
+    dctx.setTransform(PX * dpr, 0, 0, PX * dpr, 0, 0);
+    const g = dctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, 'rgba(1, 5, 14, 0)'); g.addColorStop(1, 'rgba(1, 5, 14, 0.85)');
+    dctx.fillStyle = g; dctx.fillRect(0, Math.max(0, y0), W, H - Math.max(0, y0));
+    if (state === 'playing' && phase !== 'idle' && phase !== 'landing') {
+      const hx = hook.x, hy = SY(hook.y), r = lightRadius();
+      dctx.globalCompositeOperation = 'destination-out';
+      const lg = dctx.createRadialGradient(hx, hy, 2, hx, hy, r);
+      lg.addColorStop(0, 'rgba(0,0,0,1)'); lg.addColorStop(0.55, 'rgba(0,0,0,0.75)'); lg.addColorStop(1, 'rgba(0,0,0,0)');
+      dctx.fillStyle = lg; dctx.beginPath(); dctx.arc(hx, hy, r, 0, TAU); dctx.fill();
+      dctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(darkCv, 0, 0); ctx.restore();
+    // glowing creatures shine through the dark
+    for (const f of fishes) {
+      if (!f.sp.glow) continue;
+      const y = SY(f.y); if (y < -12 || y > H + 12) continue;
+      const depthDark = clamp((f.y / M - 45) / 70, 0, 1);
+      if (depthDark <= 0.05) continue;
+      const sp = f.sp;
+      let gx = f.x, gy = y, gr = sp.w * 0.45;
+      if (sp.shape === 'angler') { gx = f.x + f.dir * sp.w * 0.46; gy = y - sp.h * 0.62; gr = sp.h * 0.6; }
+      const gl = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+      gl.addColorStop(0, sp.glow + 'aa'); gl.addColorStop(1, sp.glow + '00');
+      ctx.globalAlpha = depthDark; ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, TAU); ctx.fill();
+      ctx.fillStyle = sp.glow;
+      if (sp.pattern === 'lights') for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(f.x + f.dir * sp.w * (0.26 - i * 0.12), y + sp.h * 0.28, sp.h * 0.08, 0, TAU); ctx.fill(); }
+      else if (sp.shape === 'angler') { ctx.beginPath(); ctx.arc(gx, gy, sp.h * 0.09, 0, TAU); ctx.fill(); }
+      else if (sp.shape === 'shark') { ctx.globalAlpha = depthDark * 0.55; drawFish(ctx, sp, f.x, y, f.dir, time + f.ph); }
+      ctx.globalAlpha = 1;
+    }
+  }
+  function drawTension() {
+    if (!fight) return;
+    const F = fight, bw = 4, x = W - bw - 5, top = H * 0.16, h = H * 0.6;
+    ctx.fillStyle = 'rgba(3, 10, 25, 0.7)'; rrect(ctx, x - 1.5, top - 1.5, bw + 3, h + 3, 2.5); ctx.fill();
+    const fillH = h * F.tension / 100;
+    const col = F.tension > 75 ? '#ef4444' : F.tension > 45 ? '#f59e0b' : '#22c55e';
+    ctx.fillStyle = F.thrash > 0 && Math.floor(time * 12) % 2 === 0 ? '#ffffff' : col;
+    if (fillH > 0.5) { rrect(ctx, x, top + h - fillH, bw, fillH, 1.6); ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillRect(x, top + h * 0.25, bw, 0.4);
+    ctx.save(); ctx.translate(x - fs(11), top + h / 2); ctx.rotate(-Math.PI / 2);
+    ctx.font = FONT(11, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText('TENSION', 0, 0); ctx.restore();
+    ctx.textAlign = 'center'; ctx.font = FONT(13, 700);
+    if (F.slack > 1.6) { ctx.fillStyle = '#93c5fd'; ctx.fillText('REEL!', hook.x, SY(hook.y) - fs(18)); }
+    if (F.thrash > 0) { ctx.fillStyle = '#ff6b6b'; ctx.fillText('!!', hook.x + fs(18), SY(hook.y) - fs(8)); }
+  }
+  function drawLanding() {
+    if (!landing) return;
+    const t = landing.t / 0.9, bx = boatX();
+    const x = lerp(hook.x, bx + 2, t), y = SY(-Math.sin(t * Math.PI) * 26 - 6);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t * 20) * 0.3); drawFish(ctx, landing.f.sp, 0, 0, -1, time * 4, 1.5); ctx.restore();
+    ctx.fillStyle = '#fff6c8';
+    for (let i = 0; i < 3; i++) { const a = time * 5 + i * 2.1; ctx.beginPath(); ctx.arc(x + Math.cos(a) * 8, y + Math.sin(a) * 5, 0.6, 0, TAU); ctx.fill(); }
+  }
+  function drawPopups() {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (const p of popups) {
+      ctx.globalAlpha = Math.min(1, p.life / p.max * 2);
+      ctx.font = FONT(p.big ? 20 : 14, 700);
+      const x = clamp(p.x, fs(70), W - fs(70)), y = SY(p.y);
+      ctx.strokeStyle = 'rgba(3, 10, 25, 0.75)'; ctx.lineWidth = fs(4); ctx.strokeText(p.text, x, y);
+      ctx.fillStyle = p.color; ctx.fillText(p.text, x, y);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function draw() {
+    const sx = shake > 0 ? rand(-shake, shake) * 0.4 : 0, sy = shake > 0 ? rand(-shake, shake) * 0.4 : 0;
+    ctx.setTransform(PX * dpr, 0, 0, PX * dpr, sx * PX * dpr, sy * PX * dpr);
+    ctx.fillStyle = '#0b3a5c'; ctx.fillRect(-4, -4, W + 8, H + 8);
+    drawSky();
+    drawWater();
+    drawCreatures();
+    drawDark();
+    drawLine();
+    drawBoat();
+    drawLanding();
+    drawTension();
+    drawPopups();
+  }
+
+  // ---------- Input ----------
+  function pressLine() {
+    if (state !== 'playing') return;
+    initAudio();
+    holding = true;
+    if (phase === 'idle') cast();
+  }
+  function releaseLine() { holding = false; castLock = false; }
+  const btn = $('lineBtn');
+  btn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); try { btn.setPointerCapture(e.pointerId); } catch (err) {} pressLine(); });
+  btn.addEventListener('pointerup', releaseLine);
+  btn.addEventListener('pointercancel', releaseLine);
+  btn.addEventListener('lostpointercapture', releaseLine);
+  btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  // steer: move the mouse over the water, or drag on it
+  const toWorldX = (e) => { const r = canvas.getBoundingClientRect(); return (e.clientX - r.left) / PX; };
+  let dragId = null;
+  stage.addEventListener('pointerdown', (e) => { initAudio(); dragId = e.pointerId; hook.tx = clamp(toWorldX(e), 4, W - 4); });
+  stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' || e.pointerId === dragId) hook.tx = clamp(toWorldX(e), 4, W - 4); });
+  window.addEventListener('pointerup', (e) => { if (e.pointerId === dragId) dragId = null; });
+  window.addEventListener('keydown', (e) => {
+    keys[e.code] = true;
+    if (['Space', 'ArrowDown', 'ArrowUp', 'KeyS', 'KeyW'].includes(e.code)) {
+      e.preventDefault();
+      if (!e.repeat) { if (state === 'playing') pressLine(); else if (e.code === 'Space') startFromKey(); }
+    }
+    if (e.code === 'Enter' && !e.repeat && state !== 'playing') startFromKey();
+    if (e.code.startsWith('Arrow')) e.preventDefault();
+  });
+  window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+    if (['Space', 'ArrowDown', 'ArrowUp', 'KeyS', 'KeyW'].includes(e.code)) releaseLine();
+  });
+  window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; releaseLine(); });
+  let overReadyAt = 0;
+  function startFromKey() { if (!document.getElementById('shop').classList.contains('hidden')) return; if (state === 'menu' || (state === 'over' && performance.now() > overReadyAt)) start(); }
+
+  // Start / Fish again: only these buttons (or Space / Enter) start a game
+  for (const id of ['startCta', 'retryCta']) {
+    const b = $(id);
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); startFromKey(); });
+  }
+  const soundBtn = $('sound');
+  function refreshSound() { soundBtn.textContent = muted ? 'SOUND OFF' : 'SOUND ON'; }
+  soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  soundBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); muted = !muted; soundBtn.blur();
+    try { localStorage.setItem('deepcatchMuted', muted ? '1' : '0'); } catch (err) {}
+    refreshSound(); if (!muted) { initAudio(); sfx.bite(); }
+  });
+  refreshSound();
+
+  // ---------- Upgrades shop ----------
+  const shopEl = $('shop'), shGrid = $('shGrid');
+  function renderShop(flashId) {
+    shGrid.innerHTML = '';
+    for (const u of UPGRADES) {
+      const l = lv(u.id), maxed = l >= u.max, cost = upCost(u);
+      const d = document.createElement('div');
+      d.className = 'up' + (flashId === u.id ? ' bought' : '');
+      d.innerHTML = '<div class="ic">' + u.icon + '</div><div class="mid"><div class="nm">' + u.name + '</div><div class="ds">' + u.desc + '</div>'
+        + '<div class="pips">' + Array.from({ length: u.max }, (_, i) => '<i class="' + (i < l ? 'on' : '') + '"></i>').join('') + '</div>'
+        + (l ? '<div class="now">Now: ' + u.now(l) + '</div>' : '') + '</div>';
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'buy' + (maxed ? ' max' : '');
+      b.textContent = maxed ? 'MAX' : '🪙 ' + cost;
+      b.disabled = maxed || coins < cost;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); b.blur();
+        if (lv(u.id) >= u.max || coins < upCost(u)) return;
+        coins -= upCost(u); upg[u.id] = lv(u.id) + 1; saveCoins(); showCoins();
+        initAudio(); [660, 880, 1175].forEach((fq, i) => tone(fq, fq, 0.08, 'triangle', 0.06, i * 0.06));
+        renderShop(u.id);
+      });
+      d.appendChild(b);
+      shGrid.appendChild(d);
+    }
+  }
+  function openShop() { if (state === 'playing') return; initAudio(); renderShop(); showCoins(); shopEl.classList.remove('hidden'); }
+  function closeShop() { shopEl.classList.add('hidden'); }
+  document.querySelectorAll('[data-shop], #shopBtn').forEach((b) => {
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); openShop(); });
+  });
+  $('shClose').addEventListener('click', (e) => { e.stopPropagation(); closeShop(); });
+  shopEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === shopEl) closeShop(); });
+  window.addEventListener('keydown', (e) => { if (e.code === 'Escape' && !shopEl.classList.contains('hidden')) closeShop(); });
+  showCoins();
+
+  // ---------- Pause ----------
+  // A pause button (shown only while a round is going), a "Paused" card, P / Esc to
+  // toggle, and an automatic pause when you switch away from the game. While paused,
+  // taps and keys don't reach the game, so the tap that resumes doesn't also play.
+  const Pause = (() => {
+    const cfg = {
+      theme: 'neon',
+      top: 'calc(env(safe-area-inset-top) + 10px)', right: 'calc(env(safe-area-inset-right) + 196px)',
+      isPlaying: () => (state === 'playing'),
+      restart: () => { start(); },
+      menu: () => { toMenu(); },
+      onChange: () => { for (const k in keys) keys[k] = false; releaseLine(); },
+    };
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg>';
+    const ICON_PLAY = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>';
+    const css = document.createElement('style');
+    css.textContent = `
+      #pauseBtn { position: fixed; top: ${cfg.top}; right: ${cfg.right}; z-index: 8; display: none; place-items: center; cursor: pointer; padding: 0;
+        width: 34px; height: 34px; border-radius: 11px; border: 1px solid rgba(140,210,255,.16); background: rgba(14,40,72,.8); color: #e6f6ff; }
+      #pauseBtn.show { display: grid; }
+      #pauseBtn:active { transform: scale(.92); }
+      #pausedCard { position: fixed; inset: 0; z-index: 7; display: none; align-items: center; justify-content: center; text-align: center;
+        background: radial-gradient(ellipse at center, rgba(3,10,25,.5), rgba(3,8,20,.88)); }
+      #pausedCard.on { display: flex; }
+      #pausedCard .pc-in { color: #fff; }
+      #pausedCard .pc-t { font-family: Fredoka, system-ui, sans-serif; font-weight: 700; font-size: clamp(44px, 12vw, 72px); letter-spacing: .08em; line-height: 1;
+        text-shadow: 0 0 24px rgba(79,209,255,.6); }
+      #pausedCard .pc-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 22px auto 0; width: min(92vw, 470px); }
+      #pausedCard .pc-b { cursor: pointer; font-family: Fredoka, system-ui, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: .06em; padding: 11px 18px; white-space: nowrap;
+        border-radius: 10px; border: 2px solid rgba(126,232,255,.5); color: #fff; background: rgba(10,40,80,.85); box-shadow: 0 4px 0 #031a33; }
+      #pausedCard .pc-b[data-act="resume"] { background: linear-gradient(180deg, #ffd23f, #f59e0b); color: #3b2304; border-color: #fde68a; box-shadow: 0 4px 0 #a16207; }
+      #pausedCard .pc-b:active { transform: translateY(3px); }
+      #pausedCard .pc-k { margin-top: 12px; font-size: 11px; opacity: .55; }
+      @media (max-width: 440px) { #pausedCard .pc-b { font-size: 13px; padding: 10px 12px; } #pausedCard .pc-btns { gap: 6px; width: 96vw; } }
+    `;
+    document.head.appendChild(css);
+    const btnP = document.createElement('button');
+    btnP.id = 'pauseBtn'; btnP.type = 'button'; btnP.title = 'Pause (P)'; btnP.setAttribute('aria-label', 'Pause');
+    btnP.innerHTML = ICON_PAUSE;
+    const card = document.createElement('div');
+    card.id = 'pausedCard';
+    card.innerHTML = `<div class="pc-in"><div class="pc-t">PAUSED</div>`
+      + `<div class="pc-btns"><button type="button" class="pc-b" data-act="resume">▶ RESUME</button><button type="button" class="pc-b pc-r" data-act="retry">↻ RETRY</button><button type="button" class="pc-b pc-r" data-act="menu">☰ MENU</button></div>`
+      + `<div class="pc-k">${coarse ? 'or tap anywhere to resume' : 'P / Esc to resume · R to retry · M for menu'}</div></div>`;
+    document.body.appendChild(btnP);
+    document.body.appendChild(card);
+    card.querySelectorAll('.pc-b').forEach((b) => {
+      b.addEventListener('pointerdown', (e) => e.stopPropagation());
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); b.blur();
+        set(false);
+        if (b.dataset.act === 'retry') cfg.restart();
+        else if (b.dataset.act === 'menu') cfg.menu();
+      });
+    });
+    let paused = false;
+    function set(p) {
+      if (p && !cfg.isPlaying()) return;
+      if (p === paused) return;
+      paused = p;
+      card.classList.toggle('on', p);
+      btnP.innerHTML = p ? ICON_PLAY : ICON_PAUSE;
+      btnP.setAttribute('aria-label', p ? 'Resume' : 'Pause');
+      btnP.title = p ? 'Resume (P)' : 'Pause (P)';
+      cfg.onChange(p);
+    }
+    btnP.addEventListener('pointerdown', (e) => e.stopPropagation());
+    btnP.addEventListener('click', (e) => { e.stopPropagation(); btnP.blur(); set(!paused); });
+    window.addEventListener('pointerdown', (e) => {
+      if (!paused) return;
+      const b = e.target.closest && e.target.closest('button');
+      if (b) return;
+      e.stopImmediatePropagation();
+      set(false);
+    }, true);
+    window.addEventListener('pointermove', (e) => { if (paused) e.stopImmediatePropagation(); }, true);
+    window.addEventListener('keydown', (e) => {
+      const k = e.code;
+      const toggleKey = k === 'KeyP' || k === 'Escape';
+      if (paused) {
+        e.stopImmediatePropagation(); e.preventDefault();
+        if (!e.repeat && (toggleKey || k === 'Space' || k === 'Enter' || k === 'NumpadEnter')) set(false);
+        else if (!e.repeat && k === 'KeyR') { set(false); cfg.restart(); }
+        else if (!e.repeat && k === 'KeyM') { set(false); cfg.menu(); }
+        return;
+      }
+      if (toggleKey && !e.repeat && cfg.isPlaying()) { e.preventDefault(); e.stopImmediatePropagation(); set(true); }
+    }, true);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) set(true); });
+    window.addEventListener('blur', () => set(true));
+    return {
+      get paused() { return paused; },
+      set,
+      sync() {
+        const show = cfg.isPlaying() || paused;
+        if (btnP.classList.contains('show') !== show) btnP.classList.toggle('show', show);
+        if (paused && !cfg.isPlaying()) set(false);
+      },
+    };
+  })();
+
+  // ---------- Start ----------
+  resize();
+  reset();
+  const _endDay = endDay;
+  endDay = function () { overReadyAt = performance.now() + 900; _endDay(); };
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    Pause.sync();
+    if (!Pause.paused) { update(dt); draw(); }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  // redraw once the pixel font has loaded so canvas text uses it
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => draw());
+</script>
+</body>
+</html>
