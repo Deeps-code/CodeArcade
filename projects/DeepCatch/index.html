@@ -292,6 +292,9 @@
     .items button { flex: none !important; width: 58px; }
     .items button b { font-size: 9px !important; }
   }
+  /* the Cosmic Emperor shows off its effects even before you buy it */
+  .gr.locked canvas[data-cosmic] { filter: none; }
+  .gr:has(canvas[data-cosmic]) { border-color: rgba(232, 121, 249, 0.55); background: linear-gradient(180deg, rgba(168, 85, 247, 0.16), rgba(34, 211, 238, 0.08)); }
 </style>
 </head>
 <body>
@@ -1071,6 +1074,9 @@
     { id: 'void', name: 'Void Walker', req: 7,
       hull: ['#3b0764', '#1e0336'], trim: '#e879f9', stripe: '#c084fc', cabin: '#2e1065', roof: '#a21caf', window: '#e879f9',
       shirt: '#0b0b14', skin: '#f1c27d', hat: 'horns', hatColor: '#581c87', rod: '#e879f9', line: 'rgba(232,121,249,0.95)', lure: '#f0abfc', hook: '#e879f9', glow: '#e879f9', neon: true, bobber: ['#e879f9', '#3b0764'] },
+    { id: 'cosmic', name: 'Cosmic Emperor', req: 'buy', price: 3000000, cosmic: true,
+      hull: ['#6d28d9', '#1e1b4b'], trim: '#f0abfc', stripe: '#ffffff', cabin: '#1e1b4b', roof: '#a855f7', window: '#67e8f9',
+      shirt: '#312e81', skin: '#f1c27d', hat: 'crown', hatColor: '#fde68a', rod: '#f0abfc', line: 'rgba(240,171,252,0.95)', lure: '#ffffff', hook: '#e9d5ff', glow: '#e879f9', bobber: ['#a855f7', '#67e8f9'], sparkle: true, flag: '#e879f9', neon: true },
     { id: 'legend', name: 'Golden Legend', req: 'all',
       hull: ['#fde68a', '#b45309'], trim: '#fff7d6', stripe: '#ffffff', cabin: '#fffbeb', roof: '#f59e0b', window: '#fde68a',
       shirt: '#7c3aed', skin: '#f1c27d', hat: 'crown', hatColor: '#ffd23f', rod: '#ffd23f', line: 'rgba(255,215,90,0.95)', lure: '#ffd23f', hook: '#ffe680', glow: '#ffe680', bobber: ['#ffd23f', '#ffffff'], sparkle: true, flag: '#ffd23f' },
@@ -1081,12 +1087,21 @@
   try { gearAnnouncedLoad = JSON.parse(localStorage.getItem('deepcatchGearSeen') || '[]'); } catch (e) {}
   // what you need for a set, and how close you are
   function gearNeeds(gs) {
-    if (gs.req === null) return [];
+    if (gs.req === null || gs.req === 'buy') return [];
     return SPECIES.filter((sp) => gs.req === 'all' || sp.zone === gs.req);
   }
   const gearHave = (gs) => gearNeeds(gs).filter((sp) => seen.has(sp.id)).length;
-  const gearComplete = (gs) => gearHave(gs) >= gearNeeds(gs).length;
+  const gearComplete = (gs) => gs.req !== 'buy' && gearHave(gs) >= gearNeeds(gs).length;
   const gearUnlocked = (gs) => gs.req === null || gearAnnounced.has(gs.id) || gearComplete(gs);
+  const hsl = (h, sat = 90, l = 62) => 'hsl(' + ((h % 360) + 360) % 360 + ', ' + sat + '%, ' + l + '%)';
+  function cosmicLook(G, t) {
+    const h = t * 60;
+    return Object.assign({}, G, {
+      hull: [hsl(h + 260, 75, 45), hsl(h + 220, 80, 16)], trim: hsl(h + 300, 95, 75), roof: hsl(h + 280, 85, 58), window: hsl(h + 180, 95, 72),
+      shirt: hsl(h + 240, 70, 35), rod: hsl(h * 2, 95, 72), line: hsl(h * 2 + 40, 95, 75), lure: hsl(h * 3, 95, 80), hook: hsl(h + 200, 90, 85),
+      glow: '#e879f9', bobber: [hsl(h + 280), hsl(h + 180)], flag: hsl(h + 320, 95, 65),
+    });
+  }
   function gear() {
     const g0 = GEAR.find((x) => x.id === gearId);
     return g0 && gearUnlocked(g0) ? g0 : GEAR[0];
@@ -1495,6 +1510,18 @@
     noise(0.5, 0.25, 7000, 800); tone(1400, 200, 0.4, 'sawtooth', 0.07); tone(2000, 600, 0.25, 'square', 0.04, 0.1);
     shake = 4;
   }
+  let stardust = [];
+  function drawStardust() {
+    for (const p of stardust) {
+      const y = SY(p.y); if (y < -5 || y > H + 5) continue;
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = hsl(p.h, 95, 78);
+      const r = 0.5 + p.life;
+      ctx.beginPath(); ctx.moveTo(p.x, y - r * 1.6); ctx.lineTo(p.x + r * 0.4, y); ctx.lineTo(p.x, y + r * 1.6); ctx.lineTo(p.x - r * 0.4, y); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(p.x - r * 1.6, y); ctx.lineTo(p.x, y + r * 0.4); ctx.lineTo(p.x + r * 1.6, y); ctx.lineTo(p.x, y - r * 0.4); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   function drawZaps() {
     for (const z of zaps) {
       const y = SY(z.y); if (y < -15 || y > H + 15) continue;
@@ -1706,6 +1733,9 @@
     if (zapConfirm > 0) zapConfirm -= dt;
     if (lureConfirm > 0) lureConfirm -= dt;
     for (const z of zaps) z.t -= dt;
+    if (gear().cosmic && playing && (phase === 'line' || phase === 'fight') && Math.random() < dt * 30) stardust.push({ x: hook.x + rand(-2, 2), y: hook.y + rand(-3, 1), vx: rand(-6, 6), vy: rand(-14, -4), life: rand(0.6, 1.1), max: 1.1, h: time * 120 + rand(0, 90) });
+    for (const p of stardust) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+    stardust = stardust.filter((p) => p.life > 0);
     zaps = zaps.filter((z) => z.t > 0);
     // bubbles & plankton
     if (Math.random() < dt * 3) bubbles.push({ x: rand(0, W), y: camY + H + 2, vy: rand(-14, -6), life: 4 });
@@ -1921,6 +1951,15 @@
   }
   // The boat, the fisher and the rod, in any gear set. (x, y) = where the hull meets the water.
   function drawBoatAt(g, G, x, y, t, tipX, tipY, bend = 0) {
+    if (G.cosmic) {
+      G = cosmicLook(G, t);
+      // a shifting aura behind the whole boat
+      const au = g.createRadialGradient(x, y - 8, 2, x, y - 8, 34);
+      au.addColorStop(0, hsl(t * 60 + 280, 95, 70).replace('hsl', 'hsla').replace('%)', '%, 0.45)'));
+      au.addColorStop(0.5, hsl(t * 60 + 200, 95, 60).replace('hsl', 'hsla').replace('%)', '%, 0.18)'));
+      au.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = au; g.beginPath(); g.arc(x, y - 8, 34, 0, TAU); g.fill();
+    }
     const tilt = Math.sin(t * 1.6) * 0.03;
     g.save(); g.translate(x, y); g.rotate(tilt);
     if (G.flag) {   // a little pennant on a mast
@@ -1955,6 +1994,20 @@
     if (G.neon || G.sparkle) { g.shadowColor = G.rod; g.shadowBlur = 5; }
     g.beginPath(); g.moveTo(x + 7.5, y - 9.5); g.quadraticCurveTo(x + 13, y - 13 + bend * 0.4, tipX, tipY); g.stroke();
     g.shadowBlur = 0;
+    if (G.cosmic) {
+      // a glowing halo above the crown
+      g.save(); g.strokeStyle = hsl(t * 90, 95, 80); g.lineWidth = 0.6; g.shadowColor = g.strokeStyle; g.shadowBlur = 6;
+      g.beginPath(); g.ellipse(x + 5.6, y - 19.5 + Math.sin(t * 3) * 0.4, 3, 0.8, 0, 0, TAU); g.stroke(); g.restore();
+      // stars orbiting the boat
+      for (let i = 0; i < 5; i++) {
+        const a = t * 1.3 + i * (TAU / 5), ox = x + Math.cos(a) * 24, oy = y - 9 + Math.sin(a) * 9, r = 1 + Math.sin(t * 4 + i) * 0.3;
+        if (Math.sin(a) < 0) g.globalAlpha = 0.55;
+        g.fillStyle = hsl(t * 80 + i * 72, 95, 78); g.shadowColor = g.fillStyle; g.shadowBlur = 5;
+        g.beginPath();
+        for (let k = 0; k < 10; k++) { const aa = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r * 1.3; g.lineTo(ox + Math.cos(aa) * rr, oy + Math.sin(aa) * rr); }
+        g.closePath(); g.fill(); g.shadowBlur = 0; g.globalAlpha = 1;
+      }
+    }
     if (G.sparkle) {   // the golden set glitters
       g.fillStyle = '#fff6c8';
       for (let i = 0; i < 6; i++) {
@@ -1992,7 +2045,7 @@
     const tip = rodTip(), bob = Math.sin(time * 2) * 0.8;
     const bend = phase === 'fight' ? 3 + Math.sin(time * 12) * 0.8 : 0;
     const tx = tip.x, ty = SY(tip.y) + bob + bend;
-    const G = gear();
+    const G = gear().cosmic ? cosmicLook(gear(), time) : gear();
     ctx.lineWidth = G.neon || G.sparkle ? 0.55 : 0.45;
     if (state !== 'playing' || phase === 'idle' || phase === 'landing') {
       const bx = tip.x + 4, by = SY(0) + Math.sin(time * 3) * 0.5;
@@ -2045,7 +2098,7 @@
     }
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(darkCv, 0, 0); ctx.restore();
     // a glowing lure shines in the dark too
-    const Gl = gear();
+    const Gl = gear().cosmic ? cosmicLook(gear(), time) : gear();
     if (Gl.glow && state === 'playing' && phase === 'line') {
       const hx = hook.x, hy = SY(hook.y) - 1, lg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 9);
       lg.addColorStop(0, Gl.glow + 'cc'); lg.addColorStop(1, Gl.glow + '00');
@@ -2145,6 +2198,7 @@
     drawCreatures();
     drawZaps();
     drawDark();
+    drawStardust();
     drawHelper();
     drawLine();
     drawBoat();
@@ -2271,6 +2325,7 @@
   // The shop can be opened any time; while it's open, the game waits.
   const shopOpen = () => !shopEl.classList.contains('hidden');
   // reward gear cards: a little picture of the boat in each set
+  let gearBuyConfirm = null;
   function renderGear() {
     const grid = $('gearGrid'); grid.innerHTML = '';
     const found = SPECIES.filter((sp) => seen.has(sp.id)).length;
@@ -2280,24 +2335,51 @@
       const d = document.createElement('div');
       d.className = 'gr' + (on ? ' on' : '') + (open ? '' : ' locked');
       const cv = document.createElement('canvas'); cv.width = 240; cv.height = 128;
+      if (gs.cosmic) cv.dataset.cosmic = '1';
       const g = cv.getContext('2d'); g.scale(4.4, 4.4); g.translate(27, 22);
       g.fillStyle = 'rgba(42, 167, 201, 0.55)'; g.fillRect(-40, 0, 80, 10);
       drawBoatAt(g, gs, 0, 0, 0.6, 16, -17);
       g.strokeStyle = gs.line; g.lineWidth = 0.45; g.beginPath(); g.moveTo(16, -17); g.quadraticCurveTo(19, -10, 20, -1.5); g.stroke();
       g.fillStyle = gs.bobber[0]; g.beginPath(); g.arc(20, -1, 1.5, Math.PI, TAU); g.fill(); g.fillStyle = gs.bobber[1]; g.beginPath(); g.arc(20, -1, 1.5, 0, Math.PI); g.fill();
       d.appendChild(cv);
-      const zoneName = gs.req === null ? '' : gs.req === 'all' ? 'every species' : 'all ' + ZONES[gs.req].name.toLowerCase().replace(/^the /, '').replace(' zone', '') + ' fish';
+      const zoneName = gs.req === null || gs.req === 'buy' ? '' : gs.req === 'all' ? 'every species' : 'all ' + ZONES[gs.req].name.toLowerCase().replace(/^the /, '').replace(' zone', '') + ' fish';
       d.insertAdjacentHTML('beforeend', '<div class="nm">' + gs.name + '</div>'
-        + '<div class="rq">' + (gs.req === null ? 'Your starting gear' : open ? 'Unlocked!' : 'Catch ' + zoneName + ' (' + have + '/' + need.length + ')') + '</div>'
-        + (gs.req === null ? '<div class="bar" style="visibility:hidden"></div>' : '<div class="bar"><i style="width:' + Math.round(100 * have / Math.max(1, need.length)) + '%"></i></div>'));
+        + '<div class="rq">' + (gs.req === null ? 'Your starting gear' : open ? (gs.req === 'buy' ? 'Yours! ✨' : 'Unlocked!') : gs.req === 'buy' ? '✨ Amazing effects · 🪙 ' + gs.price.toLocaleString() : 'Catch ' + zoneName + ' (' + have + '/' + need.length + ')') + '</div>'
+        + (gs.req === null ? '<div class="bar" style="visibility:hidden"></div>' : '<div class="bar"><i style="width:' + Math.round(100 * (gs.req === 'buy' ? (open ? 1 : Math.min(1, coins / gs.price)) : have / Math.max(1, need.length))) + '%"></i></div>'));
       const b = document.createElement('button'); b.type = 'button';
-      b.textContent = on ? 'EQUIPPED' : open ? 'EQUIP' : '🔒 LOCKED';
-      b.disabled = !open || on;
-      b.addEventListener('click', (e) => { e.stopPropagation(); b.blur(); equipGear(gs.id); initAudio(); tone(880, 1320, 0.1, 'triangle', 0.06); renderGear(); });
+      const buyable = gs.req === 'buy' && !open;
+      b.textContent = on ? 'EQUIPPED' : open ? 'EQUIP' : buyable ? (gearBuyConfirm === gs.id ? 'TAP TO CONFIRM' : 'BUY 🪙 ' + (gs.price >= 1e6 ? gs.price / 1e6 + 'M' : gs.price)) : '🔒 LOCKED';
+      b.disabled = on || (!open && !buyable) || (buyable && coins < gs.price);
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); b.blur(); initAudio();
+        if (buyable) {
+          if (gearBuyConfirm !== gs.id) { gearBuyConfirm = gs.id; renderGear(); setTimeout(() => { if (gearBuyConfirm === gs.id) { gearBuyConfirm = null; renderGear(); } }, 3000); return; }
+          gearBuyConfirm = null;
+          if (coins < gs.price) return;
+          coins -= gs.price; saveCoins(); showCoins();
+          gearAnnounced.add(gs.id); try { localStorage.setItem('deepcatchGearSeen', JSON.stringify([...gearAnnounced])); } catch (err) {}
+          equipGear(gs.id); celebrate = 2.5;
+          [523, 659, 784, 1047, 1319, 1568, 2093].forEach((fq, i) => tone(fq, fq, 0.18, 'triangle', 0.07, i * 0.09));
+          renderGear(); renderShop();
+          return;
+        }
+        equipGear(gs.id); tone(880, 1320, 0.1, 'triangle', 0.06); renderGear();
+      });
       d.appendChild(b);
       grid.appendChild(d);
     }
   }
+  // keep the Cosmic Emperor card shimmering while the shop is open
+  (function animateCosmicCard() {
+    requestAnimationFrame(animateCosmicCard);
+    if (!shopOpen()) return;
+    const cv = document.querySelector('#gearGrid canvas[data-cosmic]'); if (!cv) return;
+    const g = cv.getContext('2d'), gs = GEAR.find((x) => x.id === 'cosmic'), t = performance.now() / 1000;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
+    g.scale(4.4, 4.4); g.translate(27, 22);
+    g.fillStyle = 'rgba(42, 167, 201, 0.55)'; g.fillRect(-40, 0, 80, 10);
+    drawBoatAt(g, gs, 0, 0, t, 16, -17);
+  })();
   function openShop() { initAudio(); renderGear(); holding = false; renderShop(); showCoins(); shopEl.classList.remove('hidden'); }
   function closeShop() { shopEl.classList.add('hidden'); }
   document.querySelectorAll('[data-shop], #shopBtn').forEach((b) => {
