@@ -296,6 +296,17 @@
   /* the Cosmic Emperor shows off its effects even before you buy it */
   .gr.locked canvas[data-cosmic] { filter: none; }
   .gr:has(canvas[data-cosmic]) { border-color: rgba(232, 121, 249, 0.55); background: linear-gradient(180deg, rgba(168, 85, 247, 0.16), rgba(34, 211, 238, 0.08)); }
+
+  /* phones: fixed-size buttons so changing labels never resize the ocean (that made it flicker) */
+  @media (max-width: 720px) {
+    .btnbox { height: 76px; box-sizing: border-box; }
+    #lineBtn { min-height: 0 !important; height: 100%; font-size: 17px !important; white-space: nowrap; overflow: hidden; }
+    #lineBtn small { white-space: nowrap; }
+    .items button { height: 100%; overflow: hidden; }
+    .items button b, .items button small { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .collbox { height: 92px; box-sizing: border-box; }
+    .stats .st .v { height: 1.25em; }
+  }
 </style>
 </head>
 <body>
@@ -981,15 +992,22 @@
   const stage = $('stage'), canvas = $('c'), ctx = canvas.getContext('2d');
   const darkCv = document.createElement('canvas'), dctx = darkCv.getContext('2d');
   let W = 240, H = 180, PX = 3, dpr = 1;
+  let lastSize = '';
   function resize() {
     const r = stage.getBoundingClientRect();
     if (!r.width || !r.height) return;
+    // resizing a canvas wipes it, so skip it unless the size actually changed
+    const key = Math.round(r.width) + 'x' + Math.round(r.height) + '@' + Math.min(window.devicePixelRatio || 1, 2);
+    if (key === lastSize) return;
+    lastSize = key;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     PX = clamp(Math.min(r.width / 250, r.height / 175), 2, 5);
     W = r.width / PX; H = r.height / PX;
     canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
     canvas.style.width = r.width + 'px'; canvas.style.height = r.height + 'px';
     darkCv.width = canvas.width; darkCv.height = canvas.height;
+    // paint the new size right away so there's no blank frame
+    try { draw(); } catch (e) {}
   }
   new ResizeObserver(() => resize()).observe(stage);
   window.addEventListener('resize', resize);
@@ -1387,18 +1405,21 @@
   let predator = null, eaterName = '';
   function pickPredator(prey) {
     const z = prey.sp.zone;
-    const list = SPECIES.filter((p) => (p.zone === z || p.zone === z + 1) && p.pts > prey.sp.pts * 1.3 && p.w > prey.sp.w
+    const area = (q) => q.w * q.h;
+    const list = SPECIES.filter((p) => (p.zone === z || p.zone === z + 1) && p.pts > prey.sp.pts * 1.3 && p.w > prey.sp.w * 1.15 && area(p) > area(prey.sp) * 1.4
       && !p.boss && !p.gift && !p.big && p.id !== 'mermaid' && ['fish', 'shark', 'sword', 'eel', 'angler'].includes(p.shape));
     return list.length ? list[Math.floor(Math.random() * list.length)] : null;
   }
   function updatePredator(dt) {
-    const fighting = phase === 'fight' && fight && fight.f.sp.zone !== undefined && !fight.f.sp.boss && fight.f.sp.id !== 'mermaid' && !fight.f.isPredator;
+    // the big, rare and monster fish are never someone's lunch
+    const fighting = phase === 'fight' && fight && fight.f.sp.zone !== undefined && !fight.f.sp.boss && !fight.f.sp.big && fight.f.sp.id !== 'mermaid' && !fight.f.isPredator
+      && !['epic', 'legendary', 'mythic'].includes(fight.f.sp.rarity);
     // a chance each second, once the fight has gone on a moment (rarer with divers around)
     if (!predator && fighting && (fight.age || 0) > 1.5 && hook.y > 12 * M && Math.random() < dt * 0.045 / (helpers.length ? 2 : 1)) {
       const sp = pickPredator(fight.f);
       if (sp) {
         const dir = Math.random() < 0.5 ? 1 : -1;
-        predator = { sp, x: dir > 0 ? -sp.w : W + sp.w, y: hook.y + rand(-14, 14), dir, speed: 55 + sp.zone * 4, t: 0 };
+        predator = { prey: fight.f, sp, x: dir > 0 ? -sp.w : W + sp.w, y: hook.y + rand(-14, 14), dir, speed: 55 + sp.zone * 4, t: 0 };
         showHint('⚠ A BIGGER ' + sp.name.toUpperCase() + ' IS COMING FOR YOUR CATCH! REEL IT IN!', 3);
         tone(180, 120, 0.4, 'sawtooth', 0.06); tone(170, 110, 0.4, 'sawtooth', 0.05, 0.25);
       }
@@ -1406,12 +1427,14 @@
     if (!predator) return;
     const p = predator;
     p.t += dt;
-    if (!fighting) {
-      // nothing left to chase: it swims off
+    if (!fighting || p.prey !== fight.f) {
+      // its fish is gone (landed, escaped, or a new one is on the line): it swims off and never comes back
+      p.leaving = true;
       p.x += p.dir * p.speed * 1.4 * dt;
       if (p.x < -p.sp.w * 2 || p.x > W + p.sp.w * 2) predator = null;
       return;
     }
+    if (p.leaving) return;
     // chase the fish on your line
     const tx = hook.x, ty = hook.y + fight.f.sp.h / 2;
     const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
@@ -1447,7 +1470,7 @@
     drawFish(ctx, p.sp, p.x, y, p.dir, time * 2.5, 1.6);
   }
   function drawPredatorWarning() {
-    const p = predator; if (!p || phase !== 'fight') return;
+    const p = predator; if (!p || phase !== 'fight' || p.leaving) return;
     const y = SY(p.y), blink = Math.floor(time * 6) % 2 === 0;
     ctx.font = FONT(14, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if (p.x < 0 || p.x > W || y < 0 || y > H) {
@@ -1458,7 +1481,7 @@
   }
   function landFish() {
     const f = fight.f, sp = f.sp;
-    if (predator) { popup(boatX(), -50, 'ESCAPED THE ' + predator.sp.name.toUpperCase() + '!', '#5dffb0'); }
+    if (predator && !predator.leaving && predator.prey === f) { popup(boatX(), -50, 'ESCAPED THE ' + predator.sp.name.toUpperCase() + '!', '#5dffb0'); }
     const isFish = SPECIES.includes(sp);
     const mult = isFish ? combo : 1;
     const pts = sp.pts * mult;
