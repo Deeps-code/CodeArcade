@@ -288,7 +288,7 @@
       <div class="mini">
         <div>CASTS<b id="mCasts">0</b></div><div>HOOKED<b id="mHooked">0</b></div><div>DEEPEST<b id="mDeep">0m</b></div>
       </div>
-      <button id="mermaidBtn" type="button" title="Summon the Mermaid: she catches fish for you for 30 seconds and holds your line. You pay every time."><span class="mi">🧜‍♀️</span><span class="mt"><b id="mbMain">SUMMON MERMAID</b><small id="mbSub">🪙 3000 · 30s helper</small></span></button>
+      <button id="mermaidBtn" type="button" title="Summon a Mermaid (up to 5 at once): each catches fish for you for 30 seconds and they hold your line. You pay every time."><span class="mi">🧜‍♀️</span><span class="mt"><b id="mbMain">SUMMON MERMAID</b><small id="mbSub">🪙 3000 · up to 5</small></span></button>
     </div>
     <div class="box collbox"><h3>TODAY'S CATCH <span id="collProg" style="float:right;color:var(--dim);font-weight:600"></span></h3><div id="coll"></div></div>
     <div class="box upbox"><h3>UPGRADES <span class="upcoins">🪙 <b class="coinNum">0</b></span></h3><div id="upList"></div></div>
@@ -452,6 +452,11 @@
   const LEVIATHAN = { id: 'leviathan', name: 'The Leviathan', zone: 5, rarity: 'mythic', pts: 2500, str: 2.6, speed: [7, 10], w: 64, h: 15, shape: 'eel', boss: true, glow: '#ff3b5c',
     col: { top: '#0b2a2a', body: '#14524a', belly: '#4fa58a', fin: '#0f3d38', pat: '#ff3b5c' }, crest: true, fangs: true, horns: true };
   SPECIES.push(LEVIATHAN);
+  // a gentle giant: touch it with your hook and it sings you a blessing
+  const WHALE = { id: 'whale', name: 'Blue Whale', zone: 2, rarity: 'legendary', pts: 1500, str: 0, speed: [6, 9], w: 70, h: 22, shape: 'whale', gift: true, big: true,
+    giftText: '🐋 WHALE SONG! THE BLUE WHALE BLESSED YOUR CATCH', giftLog: 'It sang you a blessing!',
+    col: { top: '#1e3a8a', body: '#3b82f6', belly: '#bfdbfe', fin: '#1e40af' } };
+  SPECIES.push(WHALE);
   // ...and two more, even deeper
   const MEGALODON = { id: 'megalodon', name: 'The Megalodon', zone: 6, rarity: 'mythic', pts: 4000, str: 2.8, speed: [12, 16], w: 60, h: 20, shape: 'shark', boss: true, glow: '#ff3b5c',
     col: { top: '#1f2937', body: '#4b5563', belly: '#d1d5db', fin: '#374151', eye: '#0b0b14' }, fangs: true, warn: 'A GIANT SHADOW IS CIRCLING…' };
@@ -461,6 +466,7 @@
   SPECIES.push(MEGALODON, KRAKEN);
   // where each monster lurks, and how often it shows up
   const BOSSES = [
+    { sp: WHALE, chance: 0.55, from: 62, to: 80 },
     { sp: LEVIATHAN, chance: 0.7, from: 212, to: 248 },
     { sp: MEGALODON, chance: 0.65, from: 272, to: 320 },
     { sp: KRAKEN, chance: 0.6, from: 345, to: 388 },
@@ -472,7 +478,7 @@
   ];
   const CHEST = { id: 'chest', name: 'Treasure Chest', pts: 250, str: 0.5, w: 10, h: 7, item: 'chest' };
   const ALL = [...SPECIES, ...JUNK, CHEST];
-  for (const sp of SPECIES) if (!sp.boss) { sp.w *= 1.25; sp.h *= 1.25; }   // a touch bigger so they read well
+  for (const sp of SPECIES) if (!sp.boss && !sp.big) { sp.w *= 1.25; sp.h *= 1.25; }   // a touch bigger so they read well
   for (const sp of ALL) sp.spr = { w: sp.w, h: sp.h };
 
   function rrect(g, x, y, w, h, r) {
@@ -648,6 +654,28 @@
       g.fillStyle = 'rgba(160, 40, 80, 0.35)';
       for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(L * (0.04 + i * 0.07), h * (((i * 41) % 10) / 10 - 0.5) * 0.4, h * 0.045, 0, TAU); g.fill(); }
       eye(g, -L * 0.06, -h * 0.06, Math.max(0.6, h * 0.14));
+    } else if (sp.shape === 'whale') {
+      const fl = Math.sin(t * 1.4) * 0.22;
+      g.save(); g.translate(-L * 0.42, -h * 0.02); g.rotate(fl);
+      g.fillStyle = c.fin;
+      g.beginPath(); g.moveTo(0, 0);
+      g.quadraticCurveTo(-L * 0.06, -h * 0.4, -L * 0.13, -h * 0.55); g.quadraticCurveTo(-L * 0.07, -h * 0.12, -L * 0.03, 0);
+      g.quadraticCurveTo(-L * 0.07, h * 0.12, -L * 0.13, h * 0.55); g.quadraticCurveTo(-L * 0.06, h * 0.4, 0, 0); g.fill();
+      g.restore();
+      const body = () => { g.beginPath(); g.moveTo(L * 0.5, h * 0.06); g.bezierCurveTo(L * 0.48, -h * 0.52, L * 0.02, -h * 0.5, -L * 0.43, -h * 0.07); g.lineTo(-L * 0.43, h * 0.05); g.bezierCurveTo(-L * 0.1, h * 0.42, L * 0.3, h * 0.52, L * 0.5, h * 0.06); g.closePath(); };
+      g.fillStyle = bodyGrad(g, c, h); body(); g.fill();
+      g.save(); body(); g.clip();
+      g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = h * 0.02;
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(L * 0.46, h * (0.12 + i * 0.045)); g.quadraticCurveTo(L * 0.25, h * (0.28 + i * 0.03), L * 0.02, h * (0.24 + i * 0.03)); g.stroke(); }
+      g.fillStyle = 'rgba(255,255,255,0.12)';
+      for (let i = 0; i < 12; i++) { g.beginPath(); g.ellipse(L * (0.3 - (i * 37 % 100) / 140), -h * (0.05 + (i * 53 % 100) / 400), h * 0.05, h * 0.03, 0, 0, TAU); g.fill(); }
+      g.restore();
+      g.fillStyle = c.fin; g.beginPath(); g.ellipse(L * 0.18, h * 0.24, L * 0.11, h * 0.06, 0.55 + fl * 0.6, 0, TAU); g.fill();
+      g.fillStyle = c.fin; g.beginPath(); g.moveTo(-L * 0.18, -h * 0.33); g.quadraticCurveTo(-L * 0.22, -h * 0.45, -L * 0.26, -h * 0.4); g.lineTo(-L * 0.24, -h * 0.3); g.fill();
+      g.strokeStyle = 'rgba(15, 23, 42, 0.5)'; g.lineWidth = h * 0.02;
+      g.beginPath(); g.moveTo(L * 0.49, h * 0.07); g.quadraticCurveTo(L * 0.4, h * 0.1, L * 0.3, h * 0.07); g.stroke();
+      g.fillStyle = '#0b0b14'; g.beginPath(); g.arc(L * 0.31, h * 0.0, h * 0.035, 0, TAU); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(L * 0.315, -h * 0.01, h * 0.012, 0, TAU); g.fill();
     } else if (sp.shape === 'turtle') {
       const pad = Math.sin(t * 4) * 0.5;
       g.fillStyle = c.fin;
@@ -919,6 +947,41 @@
     const g = actx.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     s.connect(fl).connect(g).connect(master); s.start(t0); s.stop(t0 + dur + 0.03);
   }
+  // Background: waves (and the odd gull) near the surface, a deep rumble and distant whale calls below.
+  let amb = null;
+  function startAmbient() {
+    if (amb || !actx || !noiseBuf) return;
+    const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 800; lp.Q.value = 0.4;
+    const swell = actx.createGain(); swell.gain.value = 1;          // slow wave swells
+    const lfo = actx.createOscillator(); lfo.frequency.value = 0.12;
+    const lfoAmt = actx.createGain(); lfoAmt.gain.value = 0.45;
+    lfo.connect(lfoAmt).connect(swell.gain);
+    const vol = actx.createGain(); vol.gain.value = 0;              // overall level (0 when muted or paused)
+    src.connect(lp).connect(swell).connect(vol).connect(master);
+    const hum = actx.createOscillator(); hum.type = 'sine'; hum.frequency.value = 52;
+    const humVol = actx.createGain(); humVol.gain.value = 0;
+    hum.connect(humVol).connect(master);
+    src.start(); lfo.start(); hum.start();
+    amb = { lp, vol, hum, humVol, next: 6 };
+  }
+  function updateAmbient(dt, quiet) {
+    if (actx && !amb) startAmbient();
+    if (!amb) return;
+    const depth = clamp((camY + H * 0.5) / M, 0, MAX_DEPTH);
+    const k = clamp(depth / 160, 0, 1), on = muted || quiet ? 0 : 1, t = actx.currentTime;
+    amb.lp.frequency.setTargetAtTime(lerp(850, 150, k), t, 0.6);
+    amb.vol.gain.setTargetAtTime(on * lerp(0.08, 0.05, k), t, 0.4);
+    amb.humVol.gain.setTargetAtTime(on * 0.07 * clamp((depth - 50) / 220, 0, 1), t, 0.8);
+    amb.hum.frequency.setTargetAtTime(lerp(56, 36, clamp(depth / MAX_DEPTH, 0, 1)), t, 1.5);
+    if (!on) return;
+    amb.next -= dt;
+    if (amb.next <= 0) {
+      amb.next = rand(7, 14);
+      if (depth < 8) { const p = rand(1500, 1900); tone(p, p * 0.75, 0.14, 'sine', 0.025); tone(p * 1.05, p * 0.7, 0.16, 'sine', 0.02, 0.2); }   // a gull
+      else if (depth > 50) { const p = rand(150, 260); tone(p, p * 0.7, 2.2, 'sine', 0.03); tone(p * 1.5, p * 1.2, 1.6, 'sine', 0.012, 0.4); }   // a distant whale call
+    }
+  }
   const sfx = {
     start: () => [392, 523, 659].forEach((f, i) => tone(f, f, 0.1, 'square', 0.05, i * 0.08)),
     cast: () => { noise(0.25, 0.12, 4000, 800); tone(900, 300, 0.25, 'triangle', 0.05); },
@@ -1046,7 +1109,7 @@
   const keys = {};
 
   function pickSpecies(zone) {
-    const list = SPECIES.filter((s) => s.zone === zone);
+    const list = SPECIES.filter((s) => s.zone === zone && !s.big);
     const wt = (s) => RARITY[s.rarity].w * baitMul(s.rarity);
     let tot = 0; for (const s of list) tot += wt(s);
     let r = Math.random() * tot;
@@ -1079,7 +1142,7 @@
     phase = 'idle'; holding = false; castLock = false;
     score = 0; combo = 1; caught = 0; casts = 0; hooked = 0; deepest = 0; timeLeft = dayLength(); bestCatch = null;
     today = {}; log = [];
-    fight = null; landing = null; popups = []; hint = ''; helper = null; mbConfirm = 0;
+    fight = null; landing = null; popups = []; hint = ''; helpers = []; mbConfirm = 0;
     hook.x = hook.tx = W * 0.5 + 18; hook.y = 0;
     populate();
     renderColl(); renderLog(); updateHud();
@@ -1214,9 +1277,10 @@
     seen.add(sp.id); try { localStorage.setItem('deepcatchSeen', JSON.stringify([...seen])); } catch (e) {}
     renderColl(sp.id);
     popup(hook.x, hook.y - 10, '♥ +' + pts, '#fbcfe8', true);
-    showHint(first ? 'A MERMAID! SHE LEFT YOU A PEARL' : 'THE MERMAID LEFT YOU ANOTHER PEARL', 3.5);
-    addLog({ name: 'Mermaid' + (first ? ' ★ NEW' : ''), detail: Math.round(hook.y / M) + 'm · She left you a pearl!', pts: '+' + pts, icon: sp.icon, rarity: sp.rarity });
-    [784, 988, 1175, 1568].forEach((fq, i) => tone(fq, fq, 0.16, 'sine', 0.06, i * 0.09));
+    showHint(sp.giftText || (first ? 'A MERMAID! SHE LEFT YOU A PEARL' : 'THE MERMAID LEFT YOU ANOTHER PEARL'), 3.5);
+    addLog({ name: sp.name + (first ? ' ★ NEW' : ''), detail: Math.round(hook.y / M) + 'm · ' + (sp.giftLog || 'She left you a pearl!'), pts: '+' + pts, icon: sp.icon, rarity: sp.rarity });
+    if (sp.shape === 'whale') { tone(220, 160, 1.4, 'sine', 0.09); tone(330, 440, 1.2, 'sine', 0.06, 0.5); tone(180, 120, 1.8, 'sine', 0.07, 1.1); }
+    else [784, 988, 1175, 1568].forEach((fq, i) => tone(fq, fq, 0.16, 'sine', 0.06, i * 0.09));
     for (let i = 0; i < 8; i++) bubbles.push({ x: f.x + rand(-6, 6), y: f.y + rand(-4, 4), vy: rand(-26, -12), life: 1.6 });
     if (!bestCatch || pts > bestCatch.pts) bestCatch = { name: sp.name, pts, rarity: sp.rarity };
     if (first) checkGearUnlocks();
@@ -1293,16 +1357,23 @@
   // ---------- The Mermaid helper (you pay for her every time) ----------
   // For 30 seconds she swims near your hook, grabs fish and carries them up to your boat,
   // and while she's around your line can't snap.
-  const MERMAID_COST = 3000, MERMAID_TIME = 30;
-  let helper = null, mbConfirm = 0;
+  const MERMAID_COST = 3000, MERMAID_TIME = 30, MERMAID_MAX = 5;
+  let helpers = [], mbConfirm = 0;
+  const HAIR = [['#f472b6', '#a78bfa'], ['#fde047', '#34d399'], ['#fb923c', '#60a5fa'], ['#c084fc', '#f472b6'], ['#7dd3fc', '#fbbf24']];
   const mermaidSp = () => SPECIES.find((x) => x.id === 'mermaid');
   function summonMermaid() {
-    if (state !== 'playing' || helper || coins < MERMAID_COST) return;
+    if (state !== 'playing' || helpers.length >= MERMAID_MAX || coins < MERMAID_COST) return;
     coins -= MERMAID_COST; saveCoins(); showCoins();
-    helper = { t: MERMAID_TIME, x: boatX() - 22, y: 6, dir: 1, carry: null, target: null, cd: 0.6 };
-    showHint('🧜‍♀️ THE MERMAID IS HERE! SHE CATCHES FISH FOR YOU AND HOLDS YOUR LINE', 4);
+    // each one has her own hair and tail colors
+    const used = helpers.map((m) => m.look);
+    const look = [0, 1, 2, 3, 4].find((i) => !used.includes(i)) ?? 0;
+    const base = mermaidSp();
+    const sp = Object.assign({}, base, { col: Object.assign({}, base.col, { hair: HAIR[look][0], fin: HAIR[look][1] }) });
+    const m = { t: MERMAID_TIME, x: boatX() - 22, y: 6, dir: 1, carry: null, target: null, cd: 0.6, look, sp, slot: helpers.length };
+    helpers.push(m);
+    showHint(helpers.length === 1 ? '🧜‍♀️ A MERMAID IS HERE! SHE CATCHES FISH FOR YOU AND HOLDS YOUR LINE' : '🧜‍♀️ ' + helpers.length + ' MERMAIDS ARE HELPING YOU!', 3.5);
     [523, 659, 784, 1047, 1319].forEach((fq, i) => tone(fq, fq, 0.16, 'sine', 0.06, i * 0.08));
-    for (let i = 0; i < 12; i++) bubbles.push({ x: helper.x + rand(-6, 6), y: rand(2, 12), vy: rand(-26, -10), life: 1.5 });
+    for (let i = 0; i < 12; i++) bubbles.push({ x: m.x + rand(-6, 6), y: rand(2, 12), vy: rand(-26, -10), life: 1.5 });
   }
   function helperCatch(fi) {
     const sp = fi.sp, pts = sp.pts * combo, R = RARITY[sp.rarity];
@@ -1320,22 +1391,29 @@
     if (first) checkGearUnlocks();
   }
   function updateHelper(dt) {
-    const m = helper; if (!m) return;
+    for (const m of helpers.slice()) updateOneMermaid(m, dt);
+  }
+  function updateOneMermaid(m, dt) {
     m.t -= dt; m.cd -= dt;
     let tx, ty, spd = 75;
-    if (m.carry) { tx = boatX() + 6; ty = 4; spd = 170; }
+    if (m.carry) { tx = boatX() + 6; ty = 4; spd = 280; }
     else {
       // look for a fish to grab near her (never the monsters)
       if ((!m.target || !fishes.includes(m.target)) && m.cd <= 0 && m.t > 0) {
         let best = null, bd = 110;
-        for (const q of fishes) { if (q.sp.boss || q.sp.gift) continue; const d = Math.hypot(q.x - m.x, q.y - m.y); if (d < bd) { bd = d; best = q; } }
+        for (const q of fishes) {
+          if (q.sp.boss || q.sp.gift || helpers.some((o) => o !== m && o.target === q)) continue;   // don't chase the same fish as a sister
+          const d = Math.hypot(q.x - m.x, q.y - m.y); if (d < bd) { bd = d; best = q; }
+        }
         m.target = best;
       }
       if (m.target && fishes.includes(m.target)) { tx = m.target.x; ty = m.target.y; spd = 130; }
       else {
         m.target = null;
         const out = phase === 'line' || phase === 'fight';
-        tx = out ? hook.x - 16 * m.dir : boatX() - 24; ty = out ? hook.y + 6 : 9;
+        const a = m.slot * 1.26 + time * 0.7;
+        tx = out ? hook.x + Math.cos(a) * 18 : boatX() - 24 - m.slot * 6; ty = out ? hook.y + 6 + Math.sin(a) * 10 : 9;
+        spd = Math.max(160, Math.hypot(tx - m.x, ty - m.y) * 2.5);   // keeps up with the hook, even sinking to the bottom
       }
     }
     const dx = tx - m.x, dy = ty - m.y, d = Math.hypot(dx, dy) || 1, st = Math.min(d, spd * dt);
@@ -1351,11 +1429,11 @@
     }
     // hand it over at the boat
     if (m.carry && m.y < 9 && Math.abs(m.x - (boatX() + 6)) < 9) { helperCatch(m.carry); m.carry = null; m.cd = 0.4; }
-    if (m.t <= 0 && !m.carry) { popup(m.x, m.y - 10, 'BYE! ♥', '#fbcfe8'); helper = null; }
+    if (m.t <= 0 && !m.carry) { popup(m.x, m.y - 10, 'BYE! ♥', '#fbcfe8'); helpers.splice(helpers.indexOf(m), 1); helpers.forEach((o, i) => { o.slot = i; }); }
   }
-  function drawHelper() {
-    const m = helper; if (!m) return;
-    const sp = mermaidSp(), y = SY(m.y);
+  function drawHelper() { for (const m of helpers) drawOneMermaid(m); }
+  function drawOneMermaid(m) {
+    const sp = m.sp, y = SY(m.y);
     if (y > H + 8 || y < -8) {   // off screen: a little marker at the edge pointing to her
       const ay = y > H ? H - 5 : 5;
       ctx.fillStyle = '#f9a8d4';
@@ -1377,9 +1455,11 @@
   let mbKey = '';
   function refreshMermaidBtn() {
     let main, sub, cls = '', dis = false;
-    if (helper) { main = 'MERMAID HELPING'; sub = Math.ceil(Math.max(0, helper.t)) + 's left'; cls = 'active'; dis = true; }
-    else if (mbConfirm > 0) { main = 'TAP AGAIN'; sub = 'to pay 🪙 ' + MERMAID_COST; cls = 'confirm'; }
-    else { main = 'SUMMON MERMAID'; sub = '🪙 ' + MERMAID_COST + ' · ' + MERMAID_TIME + 's helper'; dis = state !== 'playing' || coins < MERMAID_COST; }
+    const n = helpers.length;
+    if (mbConfirm > 0) { main = 'TAP AGAIN'; sub = 'to pay 🪙 ' + MERMAID_COST; cls = 'confirm'; }
+    else if (n >= MERMAID_MAX) { main = MERMAID_MAX + ' MERMAIDS (MAX)'; sub = Math.ceil(Math.min(...helpers.map((m) => Math.max(0, m.t)))) + 's until one leaves'; cls = 'active'; dis = true; }
+    else if (n > 0) { main = 'MERMAIDS ' + n + '/' + MERMAID_MAX; sub = '+1 for 🪙 ' + MERMAID_COST; cls = 'active'; dis = state !== 'playing' || coins < MERMAID_COST; }
+    else { main = 'SUMMON MERMAID'; sub = '🪙 ' + MERMAID_COST + ' · up to ' + MERMAID_MAX; dis = state !== 'playing' || coins < MERMAID_COST; }
     const k = main + sub + cls + dis;
     if (k === mbKey) return;
     mbKey = k; mbMain.textContent = main; mbSub.textContent = sub; mbEl.className = cls; mbEl.disabled = dis;
@@ -1387,7 +1467,7 @@
   mbEl.addEventListener('pointerdown', (e) => e.stopPropagation());
   mbEl.addEventListener('click', (e) => {
     e.stopPropagation(); mbEl.blur(); initAudio();
-    if (helper || state !== 'playing') return;
+    if (helpers.length >= MERMAID_MAX || state !== 'playing') return;
     if (mbConfirm > 0) { mbConfirm = 0; summonMermaid(); }
     else if (coins >= MERMAID_COST) { mbConfirm = 2.5; tone(700, 900, 0.06, 'triangle', 0.04); }
     refreshMermaidBtn();
@@ -1477,7 +1557,7 @@
       hook.y = Math.min(FLOOR - 4, hook.y);
       F.tension = clamp(F.tension, 0, 100);
       if (Math.random() < dt * 6) bubbles.push({ x: hook.x + rand(-4, 4), y: hook.y, vy: rand(-20, -10), life: 1.2 });
-      if (F.tension >= 100 && helper) { F.tension = 86; if (!F.held) { F.held = true; popup(hook.x, hook.y - 8, '🧜‍♀️ SHE HELD THE LINE!', '#fbcfe8'); } }
+      if (F.tension >= 100 && helpers.length) { F.tension = 86; if (!F.held) { F.held = true; popup(hook.x, hook.y - 8, '🧜‍♀️ SHE HELD THE LINE!', '#fbcfe8'); } }
       if (F.tension >= 100) loseFish('snap');
       else if (F.slack > 3.2 + lv('grip') || timeLeft < -20) loseFish('escape');
       else if (hook.y <= 2) landFish();
@@ -2240,6 +2320,7 @@
     last = now;
     Pause.sync();
     if (!Pause.paused && !shopOpen()) update(dt);
+    updateAmbient(dt, Pause.paused || document.hidden);
     if (!Pause.paused) draw();
     refreshUpgrades();
     requestAnimationFrame(loop);
