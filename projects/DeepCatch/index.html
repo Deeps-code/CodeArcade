@@ -279,7 +279,7 @@
     <div class="shopgrid" id="shGrid"></div>
     <div class="gearhead"><div class="kick">REWARD GEAR</div><div class="gprog" id="gProg"></div></div>
     <div class="geargrid" id="gearGrid"></div>
-    <p class="shopnote">Every catch earns coins (its points), saved between days. Catch every kind of fish in a zone to unlock its gear, and all of them for the Golden Legend set. The game waits while this is open.</p>
+    <p class="shopnote">Upgrades are pricey and every level costs more, so save up! Every catch earns coins, saved between days. Catch every kind of fish in a zone to unlock its gear, and all of them for the Golden Legend set. The game waits while this is open.</p>
   </div>
 </div>
 
@@ -757,17 +757,24 @@
   // ---------- Upgrades ----------
   // Coins come from every catch and are kept between days. Spend them to fish better.
   const UPGRADES = [
-    { id: 'line', icon: '🧵', name: 'Strong Line', desc: 'Tension builds up slower, so it snaps less.', max: 5, base: 120, now: (l) => '−' + l * 10 + '% tension' },
-    { id: 'reel', icon: '⚙️', name: 'Fast Reel', desc: 'Pull fish (and your empty hook) up faster.', max: 5, base: 100, now: (l) => '+' + l * 12 + '% reel speed' },
-    { id: 'sinker', icon: '⚓', name: 'Heavy Sinker', desc: 'Your hook drops to the deep faster.', max: 4, base: 80, now: (l) => '+' + l * 20 + '% sink speed' },
-    { id: 'lantern', icon: '💡', name: 'Lantern', desc: 'A bigger light around your hook in the dark.', max: 4, base: 90, now: (l) => '+' + l * 30 + '% light' },
-    { id: 'bait', icon: '🪱', name: 'Lucky Bait', desc: 'Rare, epic and legendary fish show up more.', max: 5, base: 150, now: (l) => '+' + l * 50 + '% rare fish' },
-    { id: 'day', icon: '☀️', name: 'Long Day', desc: 'More daylight to fish in.', max: 3, base: 200, now: (l) => '+' + l * 10 + 's per day' },
+    { id: 'line', icon: '🧵', name: 'Strong Line', desc: 'Tension builds up slower, so it snaps less.', max: 5, base: 400, now: (l) => '−' + l * 10 + '% tension' },
+    { id: 'reel', icon: '⚙️', name: 'Fast Reel', desc: 'Pull fish (and your empty hook) up faster.', max: 5, base: 350, now: (l) => '+' + l * 12 + '% reel speed' },
+    { id: 'sinker', icon: '⚓', name: 'Heavy Sinker', desc: 'Your hook drops to the deep faster.', max: 4, base: 250, now: (l) => '+' + l * 20 + '% sink speed' },
+    { id: 'hook', icon: '🪝', name: 'Big Hook', desc: 'A bigger hook: fish bite from a little farther away.', max: 4, base: 300, now: (l) => '+' + l * 30 + '% bite range' },
+    { id: 'grip', icon: '✊', name: 'Steady Grip', desc: 'A slack line holds the fish longer before it gets away.', max: 3, base: 350, now: (l) => '+' + l + 's before it escapes' },
+    { id: 'lantern', icon: '💡', name: 'Lantern', desc: 'A bigger light around your hook in the dark.', max: 4, base: 300, now: (l) => '+' + l * 30 + '% light' },
+    { id: 'jelly', icon: '🧤', name: 'Jelly Guard', desc: 'Thick gloves: shrug off jellyfish stings.', max: 3, base: 450, now: (l) => 'blocks ' + l + ' sting' + (l > 1 ? 's' : '') + ' a day' },
+    { id: 'calm', icon: '🌊', name: 'Calm Waters', desc: 'Hooked fish thrash less often.', max: 4, base: 500, now: (l) => '−' + l * 12 + '% thrashing' },
+    { id: 'bait', icon: '🪱', name: 'Lucky Bait', desc: 'Rare, epic and legendary fish show up more.', max: 5, base: 600, now: (l) => '+' + l * 50 + '% rare fish' },
+    { id: 'finder', icon: '📡', name: 'Fish Finder', desc: 'Sonar marks valuable fish, even ones below the screen.', max: 3, base: 700, now: (l) => ['', 'marks rare+ fish', 'marks uncommon+ fish, farther', 'marks every fish, farthest'][l] },
+    { id: 'combo', icon: '🔥', name: 'Combo Charm', desc: 'Your catch combo can climb higher.', max: 4, base: 800, now: (l) => 'max combo ×' + (5 + l) },
+    { id: 'day', icon: '☀️', name: 'Long Day', desc: 'More daylight to fish in.', max: 3, base: 900, now: (l) => '+' + l * 10 + 's per day' },
+    { id: 'market', icon: '💰', name: 'Fish Market', desc: 'Sell your catch for more coins.', max: 5, base: 1000, now: (l) => '+' + l * 10 + '% coins' },
   ];
   let coins = 0, upg = {};
   try { coins = Number(localStorage.getItem('deepcatchCoins')) || 0; upg = JSON.parse(localStorage.getItem('deepcatchUpg') || '{}') || {}; } catch (e) {}
   const lv = (id) => upg[id] || 0;
-  const upCost = (u) => Math.round(u.base * Math.pow(1.7, lv(u.id)) / 10) * 10;
+  const upCost = (u) => Math.round(u.base * Math.pow(1.85, lv(u.id)) / 10) * 10;   // each level costs a lot more than the last
   const lineMul = () => 1 - 0.1 * lv('line');
   const reelMul = () => 1 + 0.12 * lv('reel');
   const sinkMul = () => 1 + 0.2 * lv('sinker');
@@ -874,6 +881,7 @@
     // the sea monster: lurks in the trench on most days
     if (Math.random() < 0.7) { const m = spawnFish(5, true); m.sp = LEVIATHAN; m.speed = rand(7, 10); m.baseY = m.y = rand(212, 245) * M; m.curious = true; fishes.push(m); }
     trenchWarned = false;
+    guardsLeft = lv('jelly');
   }
 
   function reset() {
@@ -1018,6 +1026,16 @@
     [523, 659, 784, 1047, 1319].forEach((fq, i) => tone(fq, fq, 0.16, 'triangle', 0.07, 0.4 + i * 0.1));
     celebrate = 2.5;
   }
+  // Jelly Guard: blocks a sting (and that jellyfish drifts off for a moment)
+  let guardsLeft = 0;
+  function jellyBlocked(j) {
+    if (j.cool > 0) return true;
+    if (guardsLeft <= 0) return false;
+    guardsLeft--; j.cool = 1.5;
+    popup(hook.x, hook.y - 8, 'BLOCKED! (' + guardsLeft + ' left)', '#93c5fd');
+    tone(600, 900, 0.1, 'triangle', 0.05);
+    return true;
+  }
   function loseFish(reason) {
     const f = fight.f;
     if (reason === 'snap') { sfx.snap(); shake = 6; popup(hook.x, hook.y - 8, 'SNAP!', '#ff6b6b', true); }
@@ -1035,7 +1053,7 @@
     const mult = isFish ? combo : 1;
     const pts = sp.pts * mult;
     score += pts;
-    coins += pts; saveCoins(); showCoins();
+    coins += Math.round(pts * (1 + 0.1 * lv('market'))); saveCoins(); showCoins();
     landing = { f, t: 0 };
     phase = 'landing'; fight = null;
     const depth = Math.round(f.depth || 0);
@@ -1050,7 +1068,7 @@
       popup(boatX(), -40, (first ? 'NEW! ' : '') + sp.name.toUpperCase(), R.color);
       addLog({ name: sp.name + (first ? ' ★ NEW' : ''), detail: depth + 'm · ' + R.label, pts: '+' + pts + (mult > 1 ? ' ×' + mult : ''), icon: sp.icon, rarity: sp.rarity });
       if (!bestCatch || pts > bestCatch.pts) bestCatch = { name: sp.name, pts, rarity: sp.rarity };
-      combo = Math.min(5, combo + 1);
+      combo = Math.min(5 + lv('combo'), combo + 1);
       renderColl(sp.id);
       if (first) checkGearUnlocks();
     } else {
@@ -1094,8 +1112,9 @@
       if (!trenchWarned && hook.y > 200 * M) { trenchWarned = true; showHint(fishes.some((q) => q.sp.boss) ? 'THE TRENCH… SOMETHING HUGE IS DOWN HERE' : 'THE TRENCH: THE DEEPEST WATER', 3.5); }
       for (const f of fishes) {
         const s = f.sp.spr;
-        const hx = f.sp.boss ? f.x + f.dir * s.w * 0.4 : f.x, bw = f.sp.boss ? 7 : s.w / 2 + 2;
-        if (Math.abs(hx - hook.x) < bw && Math.abs(f.y - hook.y) < s.h / 2 + 2 && !f.spooked) {
+        const reach = 1 + 0.3 * lv('hook');
+        const hx = f.sp.boss ? f.x + f.dir * s.w * 0.4 : f.x, bw = (f.sp.boss ? 7 : s.w / 2 + 2) * reach;
+        if (Math.abs(hx - hook.x) < bw && Math.abs(f.y - hook.y) < (s.h / 2 + 2) * reach && !f.spooked) {
           fishes.splice(fishes.indexOf(f), 1);
           f.depth = hook.y / M;
           fishes.push(spawnFish(f.sp.zone));       // a new fish swims in to replace it
@@ -1115,14 +1134,14 @@
         hookFish({ sp: c.sp, x: c.x, y: c.y, depth: hook.y / M });
       }
       if (phase === 'line') for (const j of jellies) {
-        if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6) { sfx.sting(); popup(hook.x, hook.y - 8, 'ZAP!', '#f0abfc'); phase = 'return'; shake = 3; break; }
+        if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6 && !jellyBlocked(j)) { sfx.sting(); popup(hook.x, hook.y - 8, 'ZAP!', '#f0abfc'); phase = 'return'; shake = 3; break; }
       }
     } else if (playing && phase === 'fight') {
       const F = fight;
       F.age = (F.age || 0) + dt;
       const s = F.f.sp.str * Math.max(0.55, 1 - F.age / 30);   // fish tire out the longer they fight
       F.nextThrash -= dt;
-      if (F.nextThrash <= 0 && F.thrash <= 0) { F.thrash = rand(0.55, 0.85); F.nextThrash = rand(1.1, 2.6) / (0.6 + 0.4 * s); sfx.thrash(); shake = 2; }
+      if (F.nextThrash <= 0 && F.thrash <= 0) { F.thrash = rand(0.55, 0.85); F.nextThrash = rand(1.1, 2.6) / (0.6 + 0.4 * s) / (1 - 0.12 * lv('calm')); sfx.thrash(); shake = 2; }
       if (F.thrash > 0) F.thrash -= dt;
       const reeling = holding && !castLock;
       if (reeling) {
@@ -1141,9 +1160,9 @@
       F.tension = clamp(F.tension, 0, 100);
       if (Math.random() < dt * 6) bubbles.push({ x: hook.x + rand(-4, 4), y: hook.y, vy: rand(-20, -10), life: 1.2 });
       if (F.tension >= 100) loseFish('snap');
-      else if (F.slack > 3.2 || timeLeft < -20) loseFish('escape');
+      else if (F.slack > 3.2 + lv('grip') || timeLeft < -20) loseFish('escape');
       else if (hook.y <= 2) landFish();
-      else for (const j of jellies) if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6) { loseFish('sting'); break; }
+      else for (const j of jellies) if (Math.hypot(j.x - hook.x, j.y - hook.y) < 6 && !jellyBlocked(j)) { loseFish('sting'); break; }
     } else if (playing && phase === 'return') {
       hook.y -= 220 * dt;
       hook.x = lerp(hook.x, rodTip().x + 4, Math.min(1, dt * 2));
@@ -1178,6 +1197,7 @@
     }
     for (const j of jellies) {
       j.ph += dt;
+      if (j.cool > 0) j.cool -= dt;
       j.y += Math.sin(j.ph * 1.3) * 6 * dt;
       j.x += j.vx * dt; if (j.x < 6 || j.x > W - 6) j.vx *= -1;
     }
@@ -1551,6 +1571,31 @@
       ctx.globalAlpha = 1;
     }
   }
+  // Fish Finder: rings around valuable fish on screen, arrows for ones below (or above) it
+  function drawFinder() {
+    const l = lv('finder');
+    if (!l || state !== 'playing' || phase === 'idle' || phase === 'landing') return;
+    const show = (r) => r === 'mythic' || r === 'legendary' || r === 'epic' || r === 'rare' || (l >= 2 && r === 'uncommon') || l >= 3;
+    const ping = (time * 1.5) % 1;
+    ctx.font = FONT(10, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of fishes) {
+      const r = f.sp.rarity; if (!show(r)) continue;
+      const col = RARITY[r].color, y = SY(f.y);
+      if (y > 4 && y < H - 4) {
+        ctx.strokeStyle = col; ctx.lineWidth = 0.45; ctx.globalAlpha = 0.75 * (1 - ping);
+        ctx.beginPath(); ctx.arc(f.x, y, Math.max(f.sp.w, f.sp.h) * 0.55 + ping * 4, 0, TAU); ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else {
+        const below = y >= H - 4, ay = below ? H - 4 : 4, dm = Math.round(Math.abs(f.y - hook.y) / M);
+        if (dm > 40 + l * 25 || r === 'common') continue;   // arrows only for the fish worth chasing
+        const ax = clamp(f.x, 6, W - 6);
+        ctx.fillStyle = col; ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.moveTo(ax - 2, ay + (below ? -2 : 2)); ctx.lineTo(ax + 2, ay + (below ? -2 : 2)); ctx.lineTo(ax, ay + (below ? 1.2 : -1.2)); ctx.fill();
+        ctx.fillText(dm + 'm', ax, ay + (below ? -5 : 5.5));
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
   function drawTension() {
     if (!fight) return;
     const F = fight, bw = 4, x = W - bw - 5, top = H * 0.16, h = H * 0.6;
@@ -1597,6 +1642,7 @@
     drawLine();
     drawBoat();
     drawLanding();
+    drawFinder();
     drawTension();
     drawPopups();
   }
