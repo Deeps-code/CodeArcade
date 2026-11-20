@@ -71,7 +71,7 @@
   .ur.bought { animation: flash 0.8s; }
   @media (max-width: 1180px) { #panel .upbox { display: none; } }
   @media (max-width: 1180px) and (min-width: 721px) and (min-height: 521px) { #panel { grid-template-columns: 240px 1fr 1fr !important; } }
-  #panel { grid-area: panel; display: grid; grid-template-columns: 240px 1.25fr 1fr 1fr; gap: 10px; padding: 10px 14px 12px; height: 188px; box-sizing: border-box; }
+  #panel { grid-area: panel; display: grid; grid-template-columns: 240px 1.25fr 1fr 1fr; gap: 10px; padding: 10px 14px 12px; height: 214px; box-sizing: border-box; }
   .box { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 10px; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
   .box h3 { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; color: var(--gold); }
   #lineBtn { flex: 1; min-height: 58px; border-radius: 16px; border: 0; cursor: pointer; color: #fff;
@@ -239,6 +239,22 @@
     .overlay .zones { display: none; }
     .overlay p { font-size: 14px; }
   }
+
+  /* ----- the Mermaid helper button ----- */
+  #mermaidBtn { margin-top: 8px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 12px; cursor: pointer; text-align: left;
+    border: 1px solid rgba(244, 114, 182, 0.55); background: linear-gradient(180deg, rgba(244, 114, 182, 0.22), rgba(167, 139, 250, 0.18)); color: #fff; font-family: var(--f); }
+  #mermaidBtn .mi { font-size: 22px; line-height: 1; }
+  #mermaidBtn b { display: block; font-size: 12px; letter-spacing: 0.08em; font-weight: 700; }
+  #mermaidBtn small { display: block; font-size: 10.5px; color: #fbcfe8; font-weight: 600; margin-top: 1px; }
+  #mermaidBtn:disabled { opacity: 0.45; cursor: default; }
+  #mermaidBtn.confirm { border-color: #ffd23f; background: rgba(255, 210, 63, 0.22); animation: blink 0.6s steps(2) infinite; }
+  #mermaidBtn.active { opacity: 1; border-color: #5dffb0; background: rgba(93, 255, 176, 0.14); }
+  #mermaidBtn:active:not(:disabled) { transform: scale(0.97); }
+  @media (max-width: 720px) {
+    #mermaidBtn { margin: 0; flex-direction: column; justify-content: center; gap: 2px; padding: 5px 6px; width: 78px; flex-shrink: 0; text-align: center; }
+    #mermaidBtn b { display: none; }
+    #mermaidBtn small { font-size: 10px; }
+  }
 </style>
 </head>
 <body>
@@ -272,6 +288,7 @@
       <div class="mini">
         <div>CASTS<b id="mCasts">0</b></div><div>HOOKED<b id="mHooked">0</b></div><div>DEEPEST<b id="mDeep">0m</b></div>
       </div>
+      <button id="mermaidBtn" type="button" title="Summon the Mermaid: she catches fish for you for 30 seconds and holds your line. You pay every time."><span class="mi">🧜‍♀️</span><span class="mt"><b id="mbMain">SUMMON MERMAID</b><small id="mbSub">🪙 3000 · 30s helper</small></span></button>
     </div>
     <div class="box collbox"><h3>TODAY'S CATCH <span id="collProg" style="float:right;color:var(--dim);font-weight:600"></span></h3><div id="coll"></div></div>
     <div class="box upbox"><h3>UPGRADES <span class="upcoins">🪙 <b class="coinNum">0</b></span></h3><div id="upList"></div></div>
@@ -1062,7 +1079,7 @@
     phase = 'idle'; holding = false; castLock = false;
     score = 0; combo = 1; caught = 0; casts = 0; hooked = 0; deepest = 0; timeLeft = dayLength(); bestCatch = null;
     today = {}; log = [];
-    fight = null; landing = null; popups = []; hint = '';
+    fight = null; landing = null; popups = []; hint = ''; helper = null; mbConfirm = 0;
     hook.x = hook.tx = W * 0.5 + 18; hook.y = 0;
     populate();
     renderColl(); renderLog(); updateHud();
@@ -1126,6 +1143,7 @@
     if (el.lbSub.textContent !== sub) el.lbSub.textContent = sub;
     const want = cls + (holding ? ' down' : '');
     if (el.btn.className !== want) el.btn.className = want;
+    refreshMermaidBtn();
   }
   // Today's catch: every species, with how many you caught today ('???' until you've ever caught one)
   const collEl = $('coll'), slotEls = {};
@@ -1272,6 +1290,109 @@
     }
   }
 
+  // ---------- The Mermaid helper (you pay for her every time) ----------
+  // For 30 seconds she swims near your hook, grabs fish and carries them up to your boat,
+  // and while she's around your line can't snap.
+  const MERMAID_COST = 3000, MERMAID_TIME = 30;
+  let helper = null, mbConfirm = 0;
+  const mermaidSp = () => SPECIES.find((x) => x.id === 'mermaid');
+  function summonMermaid() {
+    if (state !== 'playing' || helper || coins < MERMAID_COST) return;
+    coins -= MERMAID_COST; saveCoins(); showCoins();
+    helper = { t: MERMAID_TIME, x: boatX() - 22, y: 6, dir: 1, carry: null, target: null, cd: 0.6 };
+    showHint('🧜‍♀️ THE MERMAID IS HERE! SHE CATCHES FISH FOR YOU AND HOLDS YOUR LINE', 4);
+    [523, 659, 784, 1047, 1319].forEach((fq, i) => tone(fq, fq, 0.16, 'sine', 0.06, i * 0.08));
+    for (let i = 0; i < 12; i++) bubbles.push({ x: helper.x + rand(-6, 6), y: rand(2, 12), vy: rand(-26, -10), life: 1.5 });
+  }
+  function helperCatch(fi) {
+    const sp = fi.sp, pts = sp.pts * combo, R = RARITY[sp.rarity];
+    score += pts; coins += Math.round(pts * (1 + 0.1 * lv('market'))); saveCoins(); showCoins();
+    caught++; today[sp.id] = (today[sp.id] || 0) + 1;
+    const first = !seen.has(sp.id);
+    seen.add(sp.id); try { localStorage.setItem('deepcatchSeen', JSON.stringify([...seen])); } catch (e) {}
+    sfx.catch(R.w < 15);
+    popup(boatX(), -30, '+' + pts + (combo > 1 ? ' ×' + combo : ''), R.color, true);
+    popup(boatX(), -40, '🧜‍♀️ ' + (first ? 'NEW! ' : '') + sp.name.toUpperCase(), R.color);
+    addLog({ name: sp.name + (first ? ' ★ NEW' : ''), detail: Math.round(fi.depth || 0) + 'm · ' + R.label + ' · caught by the Mermaid', pts: '+' + pts + (combo > 1 ? ' ×' + combo : ''), icon: sp.icon, rarity: sp.rarity });
+    if (!bestCatch || pts > bestCatch.pts) bestCatch = { name: sp.name, pts, rarity: sp.rarity };
+    combo = Math.min(5 + lv('combo'), combo + 1);
+    renderColl(sp.id);
+    if (first) checkGearUnlocks();
+  }
+  function updateHelper(dt) {
+    const m = helper; if (!m) return;
+    m.t -= dt; m.cd -= dt;
+    let tx, ty, spd = 75;
+    if (m.carry) { tx = boatX() + 6; ty = 4; spd = 170; }
+    else {
+      // look for a fish to grab near her (never the monsters)
+      if ((!m.target || !fishes.includes(m.target)) && m.cd <= 0 && m.t > 0) {
+        let best = null, bd = 110;
+        for (const q of fishes) { if (q.sp.boss || q.sp.gift) continue; const d = Math.hypot(q.x - m.x, q.y - m.y); if (d < bd) { bd = d; best = q; } }
+        m.target = best;
+      }
+      if (m.target && fishes.includes(m.target)) { tx = m.target.x; ty = m.target.y; spd = 130; }
+      else {
+        m.target = null;
+        const out = phase === 'line' || phase === 'fight';
+        tx = out ? hook.x - 16 * m.dir : boatX() - 24; ty = out ? hook.y + 6 : 9;
+      }
+    }
+    const dx = tx - m.x, dy = ty - m.y, d = Math.hypot(dx, dy) || 1, st = Math.min(d, spd * dt);
+    m.x = clamp(m.x + dx / d * st, 4, W - 4); m.y = Math.max(3, m.y + dy / d * st);
+    if (Math.abs(dx) > 1.5) m.dir = dx > 0 ? 1 : -1;
+    if (Math.random() < dt * 5) bubbles.push({ x: m.x - m.dir * 6, y: m.y, vy: rand(-18, -8), life: 1 });
+    // grab it
+    if (!m.carry && m.target && Math.hypot(m.target.x - m.x, m.target.y - m.y) < 7) {
+      const q = m.target;
+      fishes.splice(fishes.indexOf(q), 1); fishes.push(spawnFish(q.sp.zone));
+      q.depth = q.y / M; m.carry = q; m.target = null;
+      tone(880, 1320, 0.08, 'triangle', 0.05);
+    }
+    // hand it over at the boat
+    if (m.carry && m.y < 9 && Math.abs(m.x - (boatX() + 6)) < 9) { helperCatch(m.carry); m.carry = null; m.cd = 0.4; }
+    if (m.t <= 0 && !m.carry) { popup(m.x, m.y - 10, 'BYE! ♥', '#fbcfe8'); helper = null; }
+  }
+  function drawHelper() {
+    const m = helper; if (!m) return;
+    const sp = mermaidSp(), y = SY(m.y);
+    if (y > H + 8 || y < -8) {   // off screen: a little marker at the edge pointing to her
+      const ay = y > H ? H - 5 : 5;
+      ctx.fillStyle = '#f9a8d4';
+      ctx.beginPath(); ctx.moveTo(m.x - 2.5, ay + (y > H ? -2 : 2)); ctx.lineTo(m.x + 2.5, ay + (y > H ? -2 : 2)); ctx.lineTo(m.x, ay + (y > H ? 1.5 : -1.5)); ctx.fill();
+      ctx.font = FONT(10, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🧜‍♀️ ' + Math.ceil(Math.max(0, m.t)) + 's', m.x, ay + (y > H ? -7 : 7));
+      return;
+    }
+    const gl = ctx.createRadialGradient(m.x, y, 0, m.x, y, 18);
+    gl.addColorStop(0, 'rgba(251, 207, 232, 0.4)'); gl.addColorStop(1, 'rgba(251, 207, 232, 0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(m.x, y, 18, 0, TAU); ctx.fill();
+    drawFish(ctx, sp, m.x, y, m.dir, time * 1.5);
+    if (m.carry) { ctx.save(); ctx.translate(m.x + m.dir * sp.w * 0.42, y + sp.h * 0.15); ctx.scale(0.7, 0.7); drawFish(ctx, m.carry.sp, 0, 0, m.dir, time * 4, 1.4); ctx.restore(); }
+    ctx.font = FONT(11, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = m.t < 5 ? '#ff8fb3' : '#fbcfe8';
+    ctx.fillText(m.t > 0 ? Math.ceil(m.t) + 's' : '♥', m.x, y - sp.h * 0.85);
+  }
+  // the button: tap once to get "tap again", tap again to pay and summon
+  const mbEl = $('mermaidBtn'), mbMain = $('mbMain'), mbSub = $('mbSub');
+  let mbKey = '';
+  function refreshMermaidBtn() {
+    let main, sub, cls = '', dis = false;
+    if (helper) { main = 'MERMAID HELPING'; sub = Math.ceil(Math.max(0, helper.t)) + 's left'; cls = 'active'; dis = true; }
+    else if (mbConfirm > 0) { main = 'TAP AGAIN'; sub = 'to pay 🪙 ' + MERMAID_COST; cls = 'confirm'; }
+    else { main = 'SUMMON MERMAID'; sub = '🪙 ' + MERMAID_COST + ' · ' + MERMAID_TIME + 's helper'; dis = state !== 'playing' || coins < MERMAID_COST; }
+    const k = main + sub + cls + dis;
+    if (k === mbKey) return;
+    mbKey = k; mbMain.textContent = main; mbSub.textContent = sub; mbEl.className = cls; mbEl.disabled = dis;
+  }
+  mbEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+  mbEl.addEventListener('click', (e) => {
+    e.stopPropagation(); mbEl.blur(); initAudio();
+    if (helper || state !== 'playing') return;
+    if (mbConfirm > 0) { mbConfirm = 0; summonMermaid(); }
+    else if (coins >= MERMAID_COST) { mbConfirm = 2.5; tone(700, 900, 0.06, 'triangle', 0.04); }
+    refreshMermaidBtn();
+  });
+
   // ---------- Update ----------
   function update(dt) {
     time += dt;
@@ -1356,6 +1477,7 @@
       hook.y = Math.min(FLOOR - 4, hook.y);
       F.tension = clamp(F.tension, 0, 100);
       if (Math.random() < dt * 6) bubbles.push({ x: hook.x + rand(-4, 4), y: hook.y, vy: rand(-20, -10), life: 1.2 });
+      if (F.tension >= 100 && helper) { F.tension = 86; if (!F.held) { F.held = true; popup(hook.x, hook.y - 8, '🧜‍♀️ SHE HELD THE LINE!', '#fbcfe8'); } }
       if (F.tension >= 100) loseFish('snap');
       else if (F.slack > 3.2 + lv('grip') || timeLeft < -20) loseFish('escape');
       else if (hook.y <= 2) landFish();
@@ -1399,6 +1521,8 @@
       j.x += j.vx * dt; if (j.x < 6 || j.x > W - 6) j.vx *= -1;
     }
     for (const j of junk) { j.ph += dt; }
+    if (playing) updateHelper(dt);
+    if (mbConfirm > 0) mbConfirm -= dt;
     // bubbles & plankton
     if (Math.random() < dt * 3) bubbles.push({ x: rand(0, W), y: camY + H + 2, vy: rand(-14, -6), life: 4 });
     for (const b of bubbles) { b.y += b.vy * dt; b.x += Math.sin(time * 3 + b.y) * 4 * dt; b.life -= dt; }
@@ -1836,6 +1960,7 @@
     drawWater();
     drawCreatures();
     drawDark();
+    drawHelper();
     drawLine();
     drawBoat();
     drawLanding();
