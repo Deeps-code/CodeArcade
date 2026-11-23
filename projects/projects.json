@@ -5,7 +5,11 @@
     "description": "Steer a glowing orb through a neon storm of dots. Grab stars, catch shields, and chase close calls.",
     "folder": "DodgeTheDots",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "arcade", "canvas"]
+    "tags": [
+      "game",
+      "arcade",
+      "canvas"
+    ]
   },
   {
     "id": "bottle-flip",
@@ -13,7 +17,11 @@
     "description": "Time your tap to land the flip. Sloshing liquid, real tip-over physics, and it gets harder every time.",
     "folder": "BottleFlip",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "timing", "canvas"]
+    "tags": [
+      "game",
+      "timing",
+      "canvas"
+    ]
   },
   {
     "id": "rope-swing",
@@ -21,7 +29,11 @@
     "description": "Hold to grapple, let go to fling. Swing hook to hook over a lake of lava, and watch out for the ones that crumble.",
     "folder": "RopeSwing",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "physics", "canvas"]
+    "tags": [
+      "game",
+      "physics",
+      "canvas"
+    ]
   },
   {
     "id": "brick-storm",
@@ -29,7 +41,11 @@
     "description": "Brick breaker where the wall keeps sinking toward you. Smash it with Blaster, Tesla, Nova and multiball before it lands.",
     "folder": "BrickStorm",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "arcade", "canvas"]
+    "tags": [
+      "game",
+      "arcade",
+      "canvas"
+    ]
   },
   {
     "id": "wild-wings",
@@ -37,7 +53,11 @@
     "description": "Fly a little bird in 3D, right behind it, over the ocean, forest, city and snowy peaks. Dodge swordfish, hawks, planes and icicles, grab power-ups, or steer by tilting your phone.",
     "folder": "WildWings",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "flying", "3d"]
+    "tags": [
+      "game",
+      "flying",
+      "3d"
+    ]
   },
   {
     "id": "neon-hoops",
@@ -45,7 +65,11 @@
     "description": "Slingshot shots at a neon hoop against the clock. Swish for bonus time, catch fire on a streak, and sink a buzzer beater.",
     "folder": "NeonHoops",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "sports", "canvas"]
+    "tags": [
+      "game",
+      "sports",
+      "canvas"
+    ]
   },
   {
     "id": "deep-catch",
@@ -53,6 +77,35 @@
     "description": "Fishing from sunrise to sunset. Drop your line 400 m through eight ocean zones, fight each catch without snapping the line, spend your coins on upgrades, face the Leviathan, the Megalodon and the Kraken in the deep, and catch every species to unlock new boats and gear.",
     "folder": "DeepCatch",
     "thumbnail": "thumb.svg",
-    "tags": ["game", "fishing", "canvas"]
+    "tags": [
+      "game",
+      "fishing",
+      "canvas"
+    ]
+  },
+  {
+    "id": "hill-racer",
+    "title": "Hill Racer",
+    "description": "Climb hills in a jeep, motorbike, quad bike and rally car across four areas. Collect coins and fuel, land flips and big air, grab power-ups, and upgrade every ride to level 10.",
+    "folder": "HillRacer",
+    "thumbnail": "thumb.svg",
+    "tags": [
+      "game",
+      "racing",
+      "physics",
+      "canvas"
+    ]
+  },
+  {
+    "id": "chess",
+    "title": "Chess",
+    "description": "Full chess against a computer with three difficulty levels, or pass and play with a friend. Castling, en passant, promotion, hints and undo included.",
+    "folder": "Chess",
+    "thumbnail": "thumb.svg",
+    "tags": [
+      "game",
+      "board",
+      "strategy"
+    ]
   }
 ]
