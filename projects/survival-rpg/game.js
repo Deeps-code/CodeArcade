@@ -2134,6 +2134,8 @@
   // ===================================================================
   const $ = (id) => document.getElementById(id);
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  // a skill's drawn icon (icons.js) followed by its name
+  const skillLabel = (sk) => '<img alt="" src="' + SkillIcons.url(sk.id, 48) + '">' + sk.name;
   const UI = {
     selected: 'warrior',
     el: {
@@ -2182,7 +2184,7 @@
       });
       $('cdIcon').innerHTML = '<img alt="" src="' + heroImg(c.id, 128) + '">'; $('cdIcon').style.borderColor = c.color;
       $('cdName').textContent = c.name; $('cdRole').textContent = c.role; $('cdDesc').textContent = c.desc;
-      $('cdSkills').innerHTML = '<div class="cd-label">SKILLS</div>' + c.abilities.map((sk, i) => '<div class="sk-row"><span class="sk-ic">' + sk.icon + '</span><div><div class="sk-nm">' + sk.name + ' <span class="sk-key">' + SKILL_KEYS[i] + '</span><span class="sk-cd">' + sk.cd + 's</span></div><div class="cd-small">' + sk.desc + '</div></div></div>').join('');
+      $('cdSkills').innerHTML = '<div class="cd-label">SKILLS</div>' + c.abilities.map((sk, i) => '<div class="sk-row"><span class="sk-ic"><img alt="" src="' + SkillIcons.url(sk.id, 64) + '"></span><div><div class="sk-nm">' + sk.name + ' <span class="sk-key">' + SKILL_KEYS[i] + '</span><span class="sk-cd">' + sk.cd + 's</span></div><div class="cd-small">' + sk.desc + '</div></div></div>').join('');
       $('cdPassive').textContent = c.passive.text; $('cdBest').textContent = this.bestFor(id);
       // rough 0..1 ratings for the stat bars
       const dps = c.attack.kind === 'deploy' ? 26 : (s.damage / s.cooldown) * (1 + s.crit * (s.critMult - 1));
@@ -2236,10 +2238,10 @@
       try { const all = JSON.parse(localStorage.getItem('survivalAutoCast') || '{}'); all[game.cls.id] = game.autoCast.slice(); localStorage.setItem('survivalAutoCast', JSON.stringify(all)); } catch (e) { /* ignore */ }
       const b = this.abBtns && this.abBtns[i]; if (b) b.el.classList.toggle('auto', game.autoCast[i]);
       const sk = game.cls.abilities[i];
-      this.el.abName.textContent = sk.icon + ' ' + sk.name + (game.autoCast[i] ? ': AUTO ON' : ': AUTO OFF');
+      this.el.abName.innerHTML = skillLabel(sk) + (game.autoCast[i] ? ': AUTO ON' : ': AUTO OFF');
       this.el.abName.classList.remove('hidden'); clearTimeout(this.abT); this.abT = setTimeout(() => this.el.abName.classList.add('hidden'), 1400);
     },
-    flashAbility(sk) { if (sk) this.el.abName.textContent = sk.icon + ' ' + sk.name; this.el.abName.classList.remove('hidden'); clearTimeout(this.abT); this.abT = setTimeout(() => this.el.abName.classList.add('hidden'), 1200); },
+    flashAbility(sk) { if (sk) this.el.abName.innerHTML = skillLabel(sk); this.el.abName.classList.remove('hidden'); clearTimeout(this.abT); this.abT = setTimeout(() => this.el.abName.classList.add('hidden'), 1200); },
     hideAll() { for (const k of ['menu', 'pause', 'over', 'levelUp']) this.el[k].classList.add('hidden'); },
     showMenu() { this.hideAll(); this.selectClass(this.selected); this.el.menu.classList.remove('hidden'); this.el.hud.classList.add('hidden'); this.el.ab.classList.add('hidden'); this.el.abName.classList.add('hidden'); },
     showPlaying() {
@@ -2253,7 +2255,7 @@
       c.abilities.forEach((sk, i) => {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'ab-btn' + (i === 0 ? ' main' : ''); b.title = sk.name + ' (' + SKILL_KEYS[i] + '): ' + sk.desc;
-        b.innerHTML = '<span class="ab-ring"></span><span class="ab-icon">' + sk.icon + '</span><span class="ab-cd"></span><span class="ab-key">' + (isTouch ? sk.name.split(' ')[0].toUpperCase() : (i === 0 ? 'Q / SPC' : SKILL_KEYS[i])) + '</span>'
+        b.innerHTML = '<span class="ab-ring"></span><span class="ab-icon"><img alt="" src="' + SkillIcons.url(sk.id, 128) + '"></span><span class="ab-cd"></span><span class="ab-key">' + (isTouch ? sk.name.split(' ')[0].toUpperCase() : (i === 0 ? 'Q / SPC' : SKILL_KEYS[i])) + '</span>'
           + '<span class="ab-auto" title="Auto-cast this skill' + (isTouch ? '' : ' (Shift+' + SKILL_KEYS[i] + ')') + '">AUTO</span>';
         // Tap = cast with auto-aim. Drag away from the button = aim it; release to cast that way.
         b.addEventListener('pointerdown', (e) => {

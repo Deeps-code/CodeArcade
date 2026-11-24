@@ -307,3 +307,9 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
 #portraitIcon { display: grid; place-items: center; width: 100%; height: 100%; }
 #portraitIcon img { width: 112%; height: 112%; object-fit: contain; margin-top: -4px; }
 @media (max-width: 760px) { .cc .ic img { width: 42px; height: 42px; } }
+
+/* drawn skill icons */
+.ab-icon { display: grid; place-items: center; width: 100%; height: 100%; }
+.ab-icon img { width: 82%; height: 82%; pointer-events: none; }
+.sk-ic img { width: 30px; height: 30px; display: block; }
+#abName img { width: 20px; height: 20px; vertical-align: -5px; margin-right: 5px; }
