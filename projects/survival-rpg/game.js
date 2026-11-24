@@ -7,7 +7,8 @@
      3. UPGRADES        level-up choices
      4. SPRITES         optional images (everything falls back to shapes)
      5. Canvas/helpers
-     6. Input           keyboard (WASD / arrows, Space = ability) + touch joystick
+     6. Input           keyboard (WASD / arrows, Q/E/R = skills), hold mouse to aim,
+                        touch: left side = move stick, right side = aim stick
      7. Entities        Player, Enemy, Projectile, Minion, Gem, Particle
      8. Combat          damage, crits, status effects, melee / thrust / area
      9. ABILITIES       one function per class ability
@@ -347,6 +348,21 @@
   const Input = {
     keys: new Set(),
     touch: { id: null, ox: 0, oy: 0, x: 0, y: 0 },
+    // Manual aim. Auto-aim (nearest enemy) is used whenever neither of these is active.
+    mouse: { down: false, x: 0, y: 0 },                  // hold the mouse button to aim at the cursor
+    aimTouch: { id: null, ox: 0, oy: 0, x: 0, y: 0 },   // second stick on the right side of a phone
+    // Angle the player is aiming by hand, or null for auto-aim.
+    aimAngle(p) {
+      if (this.mouse.down) {
+        const dx = this.mouse.x - p.x, dy = this.mouse.y - p.y;
+        return dx || dy ? Math.atan2(dy, dx) : p.aim;
+      }
+      if (this.aimTouch.id !== null) {
+        const dx = this.aimTouch.x - this.aimTouch.ox, dy = this.aimTouch.y - this.aimTouch.oy;
+        return Math.hypot(dx, dy) > 10 ? Math.atan2(dy, dx) : null;
+      }
+      return null;
+    },
     moveVector() {
       let x = 0, y = 0;
       if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) x -= 1;
@@ -360,7 +376,7 @@
       const len = Math.hypot(x, y);
       return len > 1 ? { x: x / len, y: y / len } : { x, y };
     },
-    clear() { this.keys.clear(); this.touch.id = null; UI.hideStick(); },
+    clear() { this.keys.clear(); this.touch.id = null; this.aimTouch.id = null; this.mouse.down = false; UI.hideStick(); UI.hideStick(true); },
   };
   const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
   window.addEventListener('keydown', (e) => {
@@ -378,16 +394,31 @@
   window.addEventListener('blur', () => { Input.clear(); if (game.state === 'playing') pause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && game.state === 'playing') pause(); });
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse' || game.state !== 'playing' || Input.touch.id !== null) return;
-    Object.assign(Input.touch, { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY });
-    UI.showStick(e.clientX, e.clientY);
+    if (game.state !== 'playing') return;
+    if (e.pointerType === 'mouse') {
+      if (e.button === 0) { Input.mouse.down = true; Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; }
+      return;
+    }
+    // Phones: a touch on the left half moves, a touch on the right half aims.
+    const aimSide = e.clientX > view.w / 2;
+    const stick = aimSide ? Input.aimTouch : Input.touch;
+    if (stick.id !== null) return;
+    Object.assign(stick, { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY });
+    UI.showStick(e.clientX, e.clientY, aimSide);
   });
   window.addEventListener('pointermove', (e) => {
-    if (e.pointerId !== Input.touch.id) return;
-    Input.touch.x = e.clientX; Input.touch.y = e.clientY;
-    UI.moveKnob(e.clientX - Input.touch.ox, e.clientY - Input.touch.oy);
+    if (e.pointerType === 'mouse') { Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; return; }
+    for (const [stick, aimSide] of [[Input.touch, false], [Input.aimTouch, true]]) {
+      if (e.pointerId !== stick.id) continue;
+      stick.x = e.clientX; stick.y = e.clientY;
+      UI.moveKnob(e.clientX - stick.ox, e.clientY - stick.oy, aimSide);
+    }
   });
-  const endTouch = (e) => { if (e.pointerId === Input.touch.id) { Input.touch.id = null; UI.hideStick(); } };
+  const endTouch = (e) => {
+    if (e.pointerType === 'mouse') { Input.mouse.down = false; return; }
+    if (e.pointerId === Input.touch.id) { Input.touch.id = null; UI.hideStick(); }
+    if (e.pointerId === Input.aimTouch.id) { Input.aimTouch.id = null; UI.hideStick(true); }
+  };
   window.addEventListener('pointerup', endTouch);
   window.addEventListener('pointercancel', endTouch);
 
@@ -428,6 +459,8 @@
     }
     update(dt) {
       const mv = Input.moveVector();
+      const manual = Input.aimAngle(this);
+      if (manual !== null) this.aim = manual;
       this.x += mv.x * this.stats.speed * dt; this.y += mv.y * this.stats.speed * dt;
       this.clampTo(view);
       this.hurtTimer = Math.max(0, this.hurtTimer - dt);
@@ -453,9 +486,13 @@
         return;
       }
       const melee = a.kind === 'melee' || a.kind === 'thrust';
-      const target = game.nearestEnemy(this, melee ? this.stats.range * 1.25 + 14 : this.stats.range);
-      if (!target) { this.attackTimer = 0.05; return; }
-      this.aim = Math.atan2(target.y - this.y, target.x - this.x);
+      const manual = Input.aimAngle(this);
+      if (manual !== null) this.aim = manual;     // aiming by hand: attack that way, enemy or not
+      else {
+        const target = game.nearestEnemy(this, melee ? this.stats.range * 1.25 + 14 : this.stats.range);
+        if (!target) { this.attackTimer = 0.05; return; }
+        this.aim = Math.atan2(target.y - this.y, target.x - this.x);
+      }
       this.hits++;
       const P = this.cls.passive, dmg = this.stats.damage;
       if (a.kind === 'melee') {
@@ -539,6 +576,12 @@
         const col = this.buffs.divine > 0 ? '253,230,138' : this.buffs.smoke > 0 ? '148,163,184' : this.buffs.fortify > 0 ? '96,165,250' : bear ? '180,120,70' : '255,255,255';
         ctx.fillStyle = 'rgba(' + col + ',0.16)'; ctx.strokeStyle = 'rgba(' + col + ',0.85)'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(this.x, this.y, r + 10 + Math.sin(game.time * 6) * 1.5, 0, TAU); ctx.fill(); ctx.stroke();
+      }
+      if (Input.aimAngle(this) !== null) {   // manual-aim guide line
+        const ax = Math.cos(this.aim), ay = Math.sin(this.aim), len = Math.min(this.stats.range || 200, 220);
+        ctx.strokeStyle = 'rgba(245,215,122,0.45)'; ctx.lineWidth = 2; ctx.setLineDash([6, 8]);
+        ctx.beginPath(); ctx.moveTo(this.x + ax * (r + 12), this.y + ay * (r + 12)); ctx.lineTo(this.x + ax * len, this.y + ay * len); ctx.stroke();
+        ctx.setLineDash([]);
       }
       ctx.globalAlpha = (this.buffs.smoke > 0 ? 0.45 : 1) * (blink ? 0.35 : 1);
       if (drawSprite(ctx, c.id, this.x, this.y, r, this.aim)) { ctx.globalAlpha = 1; return; }
@@ -929,6 +972,8 @@
     }
     return best ? { x: best.x, y: best.y } : null;
   }
+  // Direction for an aimed skill: where the player is aiming by hand, else at the target.
+  const aimFor = (p, t) => { const m = Input.aimAngle(p); return m !== null ? m : t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim; };
   const zone = (z) => game.zones.push(Object.assign({ tick: 0, every: 0.3, opts: { knock: 0, quiet: true } }, z));
   const nearest = (p, n, range) => game.enemies.filter((e) => !e.dead && dist2(e, p) < range * range).sort((a, b) => dist2(a, p) - dist2(b, p)).slice(0, n);
   const ABILITIES = {
@@ -939,7 +984,7 @@
       game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 400, dmg: p.stats.damage * 4, size: 13, color: '#f97316', range: 640, explode: { r: 120, mult: 1, burn: { dps: p.stats.damage * 0.8, t: 3 } } }));
     },
     volley(p) {
-      const t = game.nearestEnemy(p, 700); const base = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      const t = game.nearestEnemy(p, 700); const base = aimFor(p, t);
       for (let i = 0; i < 11; i++) game.projectiles.push(new Projectile(p.x, p.y, base + (i - 5) * 0.11, { speed: 860, dmg: p.stats.damage * 1.4, size: 4, color: '#fde68a', shape: 'arrow', pierce: 2, range: p.stats.range }));
     },
     shieldslam(p) { Combat.area(p.x, p.y, 160, p.stats.damage * 1.6, { stun: 1.6, knock: 4 }); ring(p.x, p.y, 160, '#60a5fa'); game.shake = 9; },
@@ -963,7 +1008,7 @@
     entangle(p) { Combat.area(p.x, p.y, 175, p.stats.damage * 1.2, { root: 3 }); ring(p.x, p.y, 175, '#4ade80', 0.55); game.minions.push(new Minion('wolf', p.x, p.y, { life: 12 })); },
     minefield(p) { for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; game.minions.push(new Minion('mine', p.x + Math.cos(a) * 60, p.y + Math.sin(a) * 60, { life: 30 })); } },
     lance(p) {
-      const t = game.nearestEnemy(p, 900); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      const t = game.nearestEnemy(p, 900); const a = aimFor(p, t);
       Combat.thrust(p.x, p.y, a, 520, 38, p.stats.damage * 3, { color: '#67e8f9' }); game.shake = 6;
     },
     // --- warrior ---
@@ -982,7 +1027,7 @@
     // --- guardian ---
     fortify(p) { p.buffs.fortify = 4; p.heal(p.stats.maxHp * 0.15); ring(p.x, p.y, 80, '#60a5fa', 0.5); },
     shieldthrow(p) {
-      const t = game.nearestEnemy(p, 600); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      const t = game.nearestEnemy(p, 600); const a = aimFor(p, t);
       game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 620, dmg: p.stats.damage * 2.2, size: 11, color: '#93c5fd', pierce: 99, range: 560, fx: { stun: 1.2 } }));
     },
     // --- assassin ---
@@ -1014,17 +1059,17 @@
     // --- paladin ---
     consecrate(p) { zone({ x: p.x, y: p.y, r: 135, t: 5, every: 0.4, dmg: p.stats.damage * 0.7, heal: 0.02, color: '#fcd34d' }); },
     judgment(p) {
-      const t = game.nearestEnemy(p, 600); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      const t = game.nearestEnemy(p, 600); const a = aimFor(p, t);
       game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 560, dmg: p.stats.damage * 3, size: 10, color: '#fbbf24', pierce: 2, range: 560, fx: { stun: 1.3 } }));
     },
     // --- necromancer ---
     bonespear(p) {
-      const t = game.nearestEnemy(p, 700); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      const t = game.nearestEnemy(p, 700); const a = aimFor(p, t);
       game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 760, dmg: p.stats.damage * 3, size: 6, color: '#e7e5e4', shape: 'arrow', pierce: 99, range: 700 }));
     },
     soulsiphon(p) { if (!game.nearestEnemy(p, 210)) return false; Combat.area(p.x, p.y, 210, p.stats.damage * 1.5, { drain: 0.5, knock: 0 }); ring(p.x, p.y, 210, '#a3e635', 0.55); },
     // --- monk ---
-    palmstrike(p) { const t = game.nearestEnemy(p, 200); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim; Combat.thrust(p.x, p.y, a, 100, 80, p.stats.damage * 4, { color: '#fdba74', hit: { stun: 1.1, knock: 6 } }); game.shake = 5; },
+    palmstrike(p) { const t = game.nearestEnemy(p, 200); const a = aimFor(p, t); Combat.thrust(p.x, p.y, a, 100, 80, p.stats.damage * 4, { color: '#fdba74', hit: { stun: 1.1, knock: 6 } }); game.shake = 5; },
     innerpeace(p) { p.heal(p.stats.maxHp * 0.3); p.buffs.inner = 3; ring(p.x, p.y, 90, '#ffffff', 0.6); },
     // --- pyromancer ---
     meteor(p) {
@@ -1035,7 +1080,7 @@
     firetrail(p) { p.buffs.firetrail = 5; },
     // --- gunner ---
     grenade(p) {
-      const t = game.nearestEnemy(p, 520); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim, d = t ? Math.sqrt(dist2(t, p)) : 260;
+      const t = game.nearestEnemy(p, 520); const a = aimFor(p, t), d = t ? Math.sqrt(dist2(t, p)) : 260;
       game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 440, dmg: p.stats.damage * 6, size: 7, color: '#84cc16', range: d - 10, explode: { r: 115, mult: 1, color: '#a3e635' } }));
     },
     overdrive(p) { p.buffs.overdrive = 5; ring(p.x, p.y, 70, '#e2e8f0'); },
@@ -1051,10 +1096,10 @@
     },
     // --- spearman ---
     sweep(p) { Combat.melee(p.x, p.y, 0, p.stats.range * 1.15, TAU, p.stats.damage * 1.9, { knock: 3.5, color: '#67e8f9' }); },
-    vault(p) { const t = game.nearestEnemy(p, 500); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim; dash(p, a, 230, { dmg: p.stats.damage * 2, width: 42, color: '#67e8f9', invuln: 0.5 }); },
+    vault(p) { const t = game.nearestEnemy(p, 500); const a = aimFor(p, t); dash(p, a, 230, { dmg: p.stats.damage * 2, width: 42, color: '#67e8f9', invuln: 0.5 }); },
     // --- ice mage ---
     iceshards(p) {
-      const t = game.nearestEnemy(p, 600); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      const t = game.nearestEnemy(p, 600); const a = aimFor(p, t);
       for (let i = 0; i < 7; i++) game.projectiles.push(new Projectile(p.x, p.y, a + (i - 3) * 0.14, { speed: 620, dmg: p.stats.damage * 1.6, size: 5, color: '#e0f2fe', pierce: 1, range: 460, fx: { slow: { k: 0.65, t: 3 } } }));
     },
     blizzard(p) { const c = crowdSpot(p) || { x: p.x, y: p.y }; zone({ x: c.x, y: c.y, r: 150, t: 5, every: 0.35, dmg: p.stats.damage * 0.55, opts: { slow: { k: 0.6, t: 1 }, knock: 0, quiet: true }, color: '#bae6fd', snow: true }); },
@@ -1439,7 +1484,7 @@
       hud: $('hud'), portraitIcon: $('portraitIcon'), lvl: $('lvlText'), heroName: $('heroName'), hpFill: $('hpFill'), hpText: $('hpText'), xpFill: $('xpFill'), buffs: $('buffs'),
       wave: $('waveText'), enemies: $('enemiesText'), kills: $('killsText'), banner: $('banner'),
       menu: $('menu'), pause: $('pauseMenu'), over: $('gameOver'), overStats: $('overStats'), newBest: $('newBest'), levelUp: $('levelUp'),
-      ab: $('abilities'), abName: $('abName'), stick: $('stick'), knob: $('knob'),
+      ab: $('abilities'), abName: $('abName'), stick: $('stick'), knob: $('knob'), aimStick: $('aimStick'), aimKnob: $('aimKnob'),
     },
     last: '',
     init() {
@@ -1455,8 +1500,8 @@
         grid.appendChild(b);
       }
       $('howto').innerHTML = isTouch
-        ? '<b>Drag anywhere</b> to move. You attack automatically. Tap the <b>skill buttons</b> for your special moves. Collect <b>XP gems</b> to level up.'
-        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack automatically. Use your three skills with <b>Q</b> (or Space), <b>E</b> and <b>R</b>. Collect <b>XP gems</b> to level up and choose upgrades.';
+        ? '<b>Drag on the left</b> to move. You aim automatically, or <b>drag on the right</b> to aim yourself. Tap the <b>skill buttons</b> for your special moves. Collect <b>XP gems</b> to level up.'
+        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Use your three skills with <b>Q</b> (or Space), <b>E</b> and <b>R</b>. Collect <b>XP gems</b> to level up and choose upgrades.';
       this.selectClass(this.selected);
       $('startBtn').addEventListener('click', startGame);
       $('restartBtn').addEventListener('click', startGame);
@@ -1607,9 +1652,9 @@
       this.el.ab.classList.add('hidden');
       setTimeout(() => { if (game.state === 'over') this.el.over.classList.remove('hidden'); }, 800);
     },
-    showStick(x, y) { this.el.stick.style.left = x + 'px'; this.el.stick.style.top = y + 'px'; this.el.stick.classList.remove('hidden'); this.moveKnob(0, 0); },
-    moveKnob(dx, dy) { const l = Math.hypot(dx, dy), k = l > 50 ? 50 / l : 1; this.el.knob.style.transform = 'translate(' + dx * k + 'px,' + dy * k + 'px)'; },
-    hideStick() { if (this.el) this.el.stick.classList.add('hidden'); },
+    showStick(x, y, aim = false) { const st = aim ? this.el.aimStick : this.el.stick; st.style.left = x + 'px'; st.style.top = y + 'px'; st.classList.remove('hidden'); this.moveKnob(0, 0, aim); },
+    moveKnob(dx, dy, aim = false) { const l = Math.hypot(dx, dy), k = l > 50 ? 50 / l : 1; (aim ? this.el.aimKnob : this.el.knob).style.transform = 'translate(' + dx * k + 'px,' + dy * k + 'px)'; },
+    hideStick(aim = false) { if (this.el) (aim ? this.el.aimStick : this.el.stick).classList.add('hidden'); },
   };
 
   // ===================================================================
