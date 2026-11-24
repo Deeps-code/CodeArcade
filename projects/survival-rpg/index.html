@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Wave Survivor</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- In-game HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="hp">
+        <div class="hp-label">HP <span id="hpText">100 / 100</span></div>
+        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+      </div>
+    </div>
+    <div class="hud-mid">
+      <div class="label">WAVE</div>
+      <div class="wave" id="waveText">1</div>
+      <div class="sub" id="enemiesText">0 left</div>
+    </div>
+    <div class="hud-right">
+      <div class="label">KILLS</div>
+      <div class="kills" id="killsText">0</div>
+      <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause">❚❚</button>
+    </div>
+  </div>
+
+  <!-- Big center message: "Wave 3", "Wave cleared!" -->
+  <div id="banner"></div>
+
+  <!-- Start screen -->
+  <div class="overlay" id="menu">
+    <div class="card">
+      <div class="kicker">TOP-DOWN SURVIVAL</div>
+      <h1>WAVE<br /><span>SURVIVOR</span></h1>
+      <p id="howto">Move with <b>WASD</b> or the <b>arrow keys</b>. You attack the nearest enemy automatically. Clear each wave to face a harder one. How long can you last?</p>
+      <button type="button" class="btn primary" id="startBtn">▶ START</button>
+      <div class="best">Best: wave <b id="bestText">0</b></div>
+    </div>
+  </div>
+
+  <!-- Paused -->
+  <div class="overlay hidden" id="pauseMenu">
+    <div class="card">
+      <h2>PAUSED</h2>
+      <div class="btn-row">
+        <button type="button" class="btn primary" data-act="resume">▶ RESUME</button>
+        <button type="button" class="btn" data-act="restart">↻ RESTART</button>
+        <button type="button" class="btn" data-act="menu">☰ MENU</button>
+      </div>
+      <div class="hint">P / Esc to resume</div>
+    </div>
+  </div>
+
+  <!-- Game over -->
+  <div class="overlay hidden" id="gameOver">
+    <div class="card">
+      <div class="kicker danger">YOU FELL</div>
+      <h2>GAME OVER</h2>
+      <p class="stats" id="overStats"></p>
+      <div class="newbest hidden" id="newBest">★ NEW BEST ★</div>
+      <button type="button" class="btn primary" id="restartBtn">↻ PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <!-- Touch joystick (phones) -->
+  <div id="stick" class="hidden"><div id="knob"></div></div>
+
+  <script src="game.js"></script>
+</body>
+</html>

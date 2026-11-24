@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <defs>
+    <radialGradient id="vg" cx="0.5" cy="0.5" r="0.7"><stop offset="0.45" stop-color="#121821"/><stop offset="1" stop-color="#05080d"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2.5"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="320" height="200" fill="url(#vg)"/>
+  <g stroke="#ffffff" stroke-opacity="0.05">
+    <path d="M40 0V200M80 0V200M120 0V200M160 0V200M200 0V200M240 0V200M280 0V200M0 40H320M0 80H320M0 120H320M0 160H320"/>
+  </g>
+  <!-- shots -->
+  <g fill="#bbf7d0" filter="url(#glow)">
+    <circle cx="196" cy="88" r="4"/><circle cx="220" cy="78" r="4"/><circle cx="128" cy="124" r="4"/><circle cx="182" cy="136" r="4"/>
+  </g>
+  <!-- the hero -->
+  <ellipse cx="160" cy="116" rx="15" ry="5" fill="#000" opacity="0.3"/>
+  <circle cx="160" cy="102" r="16" fill="#58d68d" stroke="#0b3d1f" stroke-width="3"/>
+  <rect x="166" y="92" width="15" height="6" fill="#d1fae5" transform="rotate(-25 166 95)"/>
+  <!-- enemies closing in -->
+  <g>
+    <circle cx="250" cy="62" r="14" fill="#ef4444"/><circle cx="246" cy="60" r="2.4" fill="#111"/><circle cx="244" cy="66" r="2.4" fill="#111"/>
+    <circle cx="276" cy="110" r="14" fill="#ef4444"/><circle cx="268" cy="108" r="2.4" fill="#111"/><circle cx="268" cy="114" r="2.4" fill="#111"/>
+    <circle cx="64" cy="70" r="10" fill="#f97316"/><circle cx="70" cy="70" r="1.8" fill="#111"/><circle cx="68" cy="74" r="1.8" fill="#111"/>
+    <circle cx="96" cy="160" r="10" fill="#f97316"/><circle cx="102" cy="156" r="1.8" fill="#111"/><circle cx="100" cy="152" r="1.8" fill="#111"/>
+    <rect x="200" y="140" width="46" height="46" rx="12" fill="#a855f7"/><circle cx="212" cy="152" r="3.5" fill="#111"/><circle cx="220" cy="148" r="3.5" fill="#111"/>
+    <circle cx="44" cy="128" r="13" fill="#eab308"/><circle cx="52" cy="124" r="2.2" fill="#111"/><circle cx="52" cy="130" r="2.2" fill="#111"/>
+    <circle cx="138" cy="32" r="14" fill="#ef4444"/><circle cx="140" cy="40" r="2.4" fill="#111"/><circle cx="146" cy="38" r="2.4" fill="#111"/>
+  </g>
+  <rect x="234" y="44" width="30" height="4" fill="#000" opacity="0.5"/><rect x="234" y="44" width="14" height="4" fill="#f87171"/>
+  <!-- HUD -->
+  <rect x="14" y="12" width="90" height="8" rx="4" fill="#ffffff" fill-opacity="0.12"/><rect x="14" y="12" width="64" height="8" rx="4" fill="#22c55e"/>
+  <text x="160" y="22" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="900" font-size="14" fill="#e6edf3">WAVE 7</text>
+</svg>

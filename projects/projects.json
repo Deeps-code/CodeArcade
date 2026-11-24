@@ -107,5 +107,17 @@
       "board",
       "strategy"
     ]
+  },
+  {
+    "id": "survival-rpg",
+    "title": "Wave Survivor",
+    "description": "Top-down wave survival. Move to dodge, auto-attack the nearest enemy, and clear endless waves that keep getting bigger, faster and tougher.",
+    "folder": "survival-rpg",
+    "thumbnail": "thumb.svg",
+    "tags": [
+      "game",
+      "survival",
+      "canvas"
+    ]
   }
 ]
