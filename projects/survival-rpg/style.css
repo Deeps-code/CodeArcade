@@ -331,3 +331,7 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
 /* boss treasure picks: a golden glow around the card screen */
 #levelUp.bonus .card { border-color: #fde047; box-shadow: 0 0 0 2px #000, 0 0 40px rgba(253, 224, 71, 0.45), inset 0 0 30px rgba(253, 224, 71, 0.12); }
 #levelUp.bonus .kicker { color: #fde047; text-shadow: 0 0 12px rgba(253, 224, 71, 0.7); }
+
+/* sound toggle in the HUD */
+#muteBtn { display: grid; place-items: center; }
+.hud-btns { display: flex; gap: 8px; }

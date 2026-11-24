@@ -30,7 +30,10 @@
     </div>
     <div class="hud-right">
       <div class="kills-box">☠ <b id="killsText">0</b></div>
-      <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause">❚❚</button>
+      <div class="hud-btns">
+        <button id="muteBtn" class="icon-btn" type="button" aria-label="Sound on/off"></button>
+        <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause">❚❚</button>
+      </div>
     </div>
   </div>
 
@@ -117,6 +120,7 @@
   <div id="stick" class="hidden"><div id="knob"></div></div>
   <div id="aimStick" class="hidden"><div id="aimKnob"></div></div>
 
+  <script src="sound.js"></script>
   <script src="heroes.js"></script>
   <script src="icons.js"></script>
   <script src="game.js"></script>

@@ -418,6 +418,7 @@
   window.addEventListener('keydown', (e) => {
     if (MOVE_KEYS.includes(e.code)) { e.preventDefault(); Input.keys.add(e.code); }
     if (e.repeat) return;
+    if (e.code === 'KeyM') UI.toggleSound();
     if (e.code === 'KeyP' || e.code === 'Escape') { if (game.state === 'playing') pause(); else if (game.state === 'paused') resume(); }
     if (game.state === 'playing') {
       const slot = e.code === 'Space' || e.code === 'KeyQ' ? 0 : e.code === 'KeyE' ? 1 : e.code === 'KeyR' ? 2 : -1;
@@ -546,7 +547,7 @@
         if (game.minions.filter((m) => m.kind === 'turret').length < max) {
           const ang = rand(0, TAU);
           game.minions.push(new Minion('turret', this.x + Math.cos(ang) * 26, this.y + Math.sin(ang) * 26, { life: 22 }));
-          game.burst(this.x, this.y, '#7dd3fc', 8);
+          game.burst(this.x, this.y, '#7dd3fc', 8); SFX.play('build');
           this.attackTimer = this.attackCooldown;
         } else this.attackTimer = 0.3;
         return;
@@ -580,6 +581,7 @@
         FX.muzzle(this.x + Math.cos(this.aim) * 30, this.y + Math.sin(this.aim) * 30 + 2, a.color);
       }
       this.swing = this.swingMax = melee ? 0.18 : 0.1; this.swingArc = Math.min(2.4, a.arc || 1.4); this.swingKind = a.kind;
+      SFX.play(melee ? 'swing' : this.cls.id === 'gunner' ? 'gun' : a.shape === 'arrow' ? 'arrow' : 'magic', { vol: melee ? 1 : 0.8 });
       this.attackTimer = this.attackCooldown;
     }
     // aim: { a: angle, x, y: aimed point } to cast toward, or null for auto-aim. Returns true if it was cast.
@@ -593,7 +595,7 @@
       try { ok = fn(this) !== false; } finally { castAim = null; }   // the skill can refuse (e.g. no target)
       if (!ok) return false;
       this.aim = aim ? aim.a : this.aim;
-      this.castT = 0.45; FX.cast(this, sk, i);
+      this.castT = 0.45; FX.cast(this, sk, i); SFX.play(sk.cd ? 'cast' : 'dash');
       this.abilityTimers[i] = this.abilityCooldown(i);
       UI.flashAbility(sk);
       return true;
@@ -644,7 +646,7 @@
       const armor = clamp(s.armor + (this.buffs.cry > 0 ? 0.2 : 0) + (this.buffs.bear > 0 ? 0.4 : 0), -0.5, 0.85);
       const dmg = Math.max(1, Math.round(amount * (1 - armor) * (this.buffs.fortify > 0 ? 0.3 : 1)));
       this.hp = Math.max(0, this.hp - dmg);
-      this.hurtTimer = CONFIG.player.hurtCooldown; this.hurtFlash = 0.18;
+      this.hurtTimer = CONFIG.player.hurtCooldown; this.hurtFlash = 0.18; SFX.play('hurt');
       game.shake = 7;
       game.floatText(this.x, this.y - 26, '-' + dmg, '#f87171');
       if (this.hp <= 0) { this.alive = false; game.onPlayerDied(); }
@@ -891,7 +893,7 @@
       e.walk(ux, uy, 1, dt);
       if (e.bt.a <= 0 && e.entered && d < 620) {
         e.bt.a = Math.max(2.2, 3.8 - e.tier * 0.3); const a = Math.atan2(uy, ux);
-        e.charge = { phase: 'wind', t: 0.8, a };
+        e.charge = { phase: 'wind', t: 0.8, a }; SFX.play('charge');
         FX.add({ type: 'warnline', x: e.x, y: e.y, angle: a, len: 780 * 0.62, w: e.radius * 2, t: 0.8, max: 0.8, ground: true });
       }
       if (e.bt.c <= 0) {
@@ -1058,7 +1060,7 @@
           this.x += this.vx * dt; this.y += this.vy * dt; this.vx *= Math.pow(0.02, dt); this.vy *= Math.pow(0.02, dt);
           return;
         }
-        if (d < this.radius + player.radius + 34 && this.stun <= 0) this.fuse = 0.8;
+        if (d < this.radius + player.radius + 34 && this.stun <= 0) { this.fuse = 0.8; SFX.play('fuse'); }
       }
       if (D.healer) {   // patches up everything around it
         this.healT -= dt;
@@ -1101,7 +1103,7 @@
       if (this.entered) { this.x = clamp(this.x, m, view.w - m); this.y = clamp(this.y, m, view.h - m); }
     }
     walk(ux, uy, dir, dt) { const sp = this.speed * this.moveFactor * dir; this.x += ux * sp * dt; this.y += uy * sp * dt; }
-    bossShot(a, speed, size = 7) { game.enemyShots.push(new Projectile(this.x, this.y, a, { hostile: true, speed, dmg: Math.round(this.damage * 0.6), size, color: '#fb923c', life: 4 })); }
+    bossShot(a, speed, size = 7) { SFX.play('enemyShot'); game.enemyShots.push(new Projectile(this.x, this.y, a, { hostile: true, speed, dmg: Math.round(this.damage * 0.6), size, color: '#fb923c', life: 4 })); }
     draw(ctx, player) {
       if (this.boss) { drawBoss(this, player); return; }
       if (this.x < -50 || this.y < -50 || this.x > view.w + 50 || this.y > view.h + 50) return;   // off screen
@@ -1473,7 +1475,12 @@
         this.x += (dx / d) * st; this.y += (dy / d) * st;
       } else { this.x += this.vx * dt; this.y += this.vy * dt; }
       dx = p.x - this.x; dy = p.y - this.y; d = Math.hypot(dx, dy);
-      if (d < p.radius + 8) { this.dead = true; p.gainXp(this.value); }
+      if (d < p.radius + 8) {
+        this.dead = true; p.gainXp(this.value);
+        // chimes climb in pitch while you keep collecting
+        game.gemCombo = game.time - (game.gemAt || -9) < 0.4 ? (game.gemCombo || 0) + 1 : 0; game.gemAt = game.time;
+        SFX.play('gem', { combo: game.gemCombo });
+      }
     }
     draw(ctx) {
       const big = this.value >= 4, y = this.y + Math.sin(this.t * 5) * 1.5;
@@ -1514,6 +1521,7 @@
       e.hp -= dmg; e.flash = 0.08;
       if (!o.quiet) game.floatText(e.x, e.y - e.radius - 6, String(dmg), o.color || (crit ? '#fde047' : '#ffffff'), crit, e);
       if (crit && !o.quiet) FX.spark(e.x, e.y, '#fde047', 30);   // crits get a big golden burst
+      if (!o.quiet && !o.raw) SFX.play(crit ? 'crit' : 'hit', { vol: 0.8 });
       const steal = (o.raw ? 0 : p.lifesteal) + (o.drain || 0);
       if (steal > 0) p.heal(dmg * steal, true);
       if (o.knockFrom || o.knockAngle !== undefined) {
@@ -1567,7 +1575,7 @@
       if (self && p && dist2(e, p) < (95 + p.radius) ** 2) p.takeDamage(e.damage);
       this.area(e.x, e.y, 95, 30 + game.waves.wave * 2, { raw: true, knock: 3, quiet: true });
       FX.shock(e.x, e.y, 100, '#f97316', { scorch: true }); FX.add({ type: 'boom', x: e.x, y: e.y, r: 95, color: '#f97316', t: 0.4, max: 0.4 });
-      FX.embers(e.x, e.y, '#fdba74', 12, 260); game.shake = Math.max(game.shake, 8);
+      FX.embers(e.x, e.y, '#fdba74', 12, 260); game.shake = Math.max(game.shake, 8); SFX.play('boom');
     },
     explode(b) {
       const ex = b.explode;
@@ -1575,6 +1583,7 @@
       game.fx.push({ type: 'boom', x: b.x, y: b.y, r: ex.r, color: ex.color || '#f97316', t: 0.4, max: 0.4 });
       game.shake = Math.max(game.shake, 6);
       if (b.onBoom) b.onBoom(b);
+      SFX.play('boom', { vol: 0.8 });
     },
     // lightning that jumps from enemy to enemy
     chain(from, count, range, dmg) {
@@ -1611,7 +1620,7 @@
           while (d < L) { d += rand(10, 20); a += rand(-0.35, 0.35); pts.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d }); }
           cracks.push(pts);
         }
-        FX.embers(x, y, '#a8a29e', 8, r * 2);
+        FX.embers(x, y, '#a8a29e', 8, r * 2); SFX.play('slam', { vol: Math.min(1, r / 150) });
       }
       const t = o.noCracks ? 0.45 : 1.2;
       FX.add({ type: 'shock', x, y, r, color, cracks, scorch: o.scorch, t, max: t, ground: true });
@@ -2053,7 +2062,7 @@
     constructor() { this.wave = 0; this.queue = 0; this.spawnTimer = 0; this.breakTimer = 0; this.phase = 'idle'; this.scale = null; }
     startWave(n) {
       this.wave = n; this.scale = waveScaling(n); this.queue = this.scale.count;
-      this.spawnTimer = 0.4; this.phase = 'spawning'; this.bossTimer = 0;
+      this.spawnTimer = 0.4; this.phase = 'spawning'; this.bossTimer = 0; SFX.play('wave');
       if (n % BOSS_EVERY === 0) {   // boss wave: fewer regular enemies, and the boss walks in shortly after
         this.queue = Math.ceil(this.scale.count * 0.4); this.bossTimer = 1.6;
         UI.banner('BOSS WAVE ' + n);
@@ -2064,7 +2073,7 @@
       const b = new Enemy(type, view.w / 2, -60, this.scale, tier);
       game.enemies.push(b); game.boss = b;
       UI.banner(b.def.name.toUpperCase() + (tier > 1 ? ' ' + 'I'.repeat(Math.min(tier, 3)) : ''));
-      FX.flash(b.def.color, 0.3); game.shake = 14; FX.slow(0.2);
+      FX.flash(b.def.color, 0.3); game.shake = 14; FX.slow(0.2); SFX.play('bossRoar');
     }
     spawnAt(key, x, y) { game.enemies.push(new Enemy(key, x, y, this.scale)); }
     get remaining() { return this.queue + game.enemies.length + (this.bossTimer > 0 ? 1 : 0); }
@@ -2075,7 +2084,7 @@
         if (this.bossTimer > 0) { this.bossTimer -= dt; if (this.bossTimer <= 0) this.spawnBoss(); }
         if (this.queue === 0 && this.bossTimer <= 0 && game.enemies.length === 0) {
           this.phase = 'break'; this.breakTimer = CONFIG.wave.breakTime;
-          UI.banner('WAVE ' + this.wave + ' CLEARED!', true);
+          UI.banner('WAVE ' + this.wave + ' CLEARED!', true); SFX.play('clear');
           game.onWaveCleared(this.wave);
         }
       } else if (this.phase === 'break') {
@@ -2148,6 +2157,7 @@
     // ----- events: hook drops, upgrades and achievements in here -----
     onEnemyKilled(e) {
       this.kills++;
+      SFX.play(e.boss ? 'bossDie' : 'pop');
       if (e.boss) {   // a boss falls: big explosion, a shower of XP, and a heal
         if (this.boss === e) this.boss = null;
         FX.shock(e.x, e.y, 200, e.def.color); FX.embers(e.x, e.y, e.def.color, 40, 420); FX.embers(e.x, e.y, '#fde68a', 20, 300);
@@ -2177,7 +2187,7 @@
       for (const g of this.gems) { g.vx = (this.player.x - g.x) * 3; g.vy = (this.player.y - g.y) * 3; }   // pull in leftover XP
     },
     onPlayerDied() {
-      this.state = 'over'; Input.clear();
+      this.state = 'over'; Input.clear(); SFX.play('gameover');
       const wave = this.waves.wave, key = 'survivalBest_' + this.cls.id;
       let best = 0; try { best = Number(localStorage.getItem(key)) || 0; } catch (e) { /* storage blocked */ }
       const isBest = wave > best;
@@ -2662,11 +2672,13 @@
       }
       $('howto').innerHTML = isTouch
         ? '<b>Drag on the left</b> to move. You aim automatically, or <b>drag on the right</b> to aim yourself. <b>Tap a skill</b> to cast it, or <b>drag from it</b> to aim it. Tap <b>AUTO</b> on a skill to have it cast itself. Collect <b>XP gems</b> to level up.'
-        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Skills (<b>Q</b> or Space, <b>E</b>, <b>R</b>) fire toward your <b>cursor</b>; <b>Shift+Q/E/R</b> or the <b>AUTO</b> tag makes a skill cast itself. Collect <b>XP gems</b> to level up and choose upgrades.';
+        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Skills (<b>Q</b> or Space, <b>E</b>, <b>R</b>) fire toward your <b>cursor</b>; <b>Shift+Q/E/R</b> or the <b>AUTO</b> tag makes a skill cast itself. Collect <b>XP gems</b> to level up and choose upgrades. <b>M</b> turns sound on or off.';
       this.selectClass(this.selected);
       $('startBtn').addEventListener('click', startGame);
       $('restartBtn').addEventListener('click', startGame);
       $('heroesBtn').addEventListener('click', toMenu);
+      $('muteBtn').addEventListener('click', () => this.toggleSound());
+      this.showSound();
       $('pauseBtn').addEventListener('click', () => (game.state === 'paused' ? resume() : pause()));
       $('pauseMenu').addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
@@ -2678,6 +2690,7 @@
     },
     bestFor(id) { try { return Number(localStorage.getItem('survivalBest_' + id)) || 0; } catch (e) { return 0; } },
     selectClass(id) {
+      if (this.selected !== id) SFX.play('click');
       this.selected = id;
       try { localStorage.setItem('survivalClass', id); } catch (e) { /* ignore */ }
       const c = classById(id), s = Object.assign({}, BASE_STATS, c.stats);
@@ -2796,6 +2809,15 @@
       });
       this.el.hud.classList.remove('hidden'); this.el.ab.classList.remove('hidden');
     },
+    // sound on / off (the M key or the speaker button)
+    toggleSound() { SFX.toggle(); this.showSound(); },
+    showSound() {
+      const off = SFX.muted, b = $('muteBtn');
+      b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 9h4l5-4v14l-5-4H3z"/>'
+        + (off ? '<path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+               : '<path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>') + '</svg>';
+      b.setAttribute('aria-label', off ? 'Turn sound on (M)' : 'Turn sound off (M)'); b.title = off ? 'Sound off (M)' : 'Sound on (M)';
+    },
     showPause(on) { this.el.pause.classList.toggle('hidden', !on); },
     // level up: pause and offer 3 upgrades
     choices: [], dealing: false,
@@ -2809,6 +2831,7 @@
       $('luKicker').textContent = bonus ? 'TREASURE CHEST!' : 'LEVEL UP!';
       $('luTitle').textContent = bonus ? 'Boss Reward' : 'Level ' + (p.level - p.pendingLevels + 1);
       this.el.levelUp.classList.toggle('bonus', bonus);
+      SFX.play(bonus ? 'chest' : 'levelup');
       const box = $('luChoices'); box.innerHTML = '';
       this.choices.forEach(({ u, r }, i) => {
         const b = document.createElement('button');
@@ -2842,7 +2865,7 @@
     pickLevelUp(i) {
       const c = this.choices[i]; if (!c || game.state !== 'levelup' || this.dealing || this.picking) return;
       const box = $('luChoices');
-      this.picking = true;
+      this.picking = true; SFX.play('pick');
       [...box.children].forEach((el, j) => el.classList.add(j === i ? 'picked' : 'dropped'));
       setTimeout(() => {
         this.picking = false;
