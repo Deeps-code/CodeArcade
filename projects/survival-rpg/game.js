@@ -32,7 +32,7 @@
   const CONFIG = {
     player: { radius: 16, hurtCooldown: 0.5 },
     wave: { breakTime: 2.4, baseCount: 5, countPerWave: 2, spawnInterval: 0.6, minSpawnInterval: 0.12 },
-    xp: { magnet: 120 },
+    xp: { magnet: 150 },   // gems within this distance lock on and fly to the hero
   };
   const ENEMY_TYPES = {
     grunt:   { name: 'Grunt',   radius: 14, hp: 24, speed: 85,  damage: 10, color: '#dc2626', fromWave: 1, weight: 6, xp: 1 },
@@ -874,10 +874,17 @@
     update(dt) {
       const p = game.player; this.t += dt;
       this.vx *= Math.pow(0.05, dt); this.vy *= Math.pow(0.05, dt);
-      const dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
-      if (d < CONFIG.xp.magnet) { const pull = 900 * (1 - d / CONFIG.xp.magnet) + 200; this.vx += (dx / d) * pull * dt; this.vy += (dy / d) * pull * dt; }
-      this.x += this.vx * dt; this.y += this.vy * dt;
-      if (d < p.radius + 6) { this.dead = true; p.gainXp(this.value); }
+      let dx = p.x - this.x, dy = p.y - this.y, d = Math.hypot(dx, dy) || 1;
+      // Once the hero comes in range the gem locks on for good and flies straight at them,
+      // speeding up until it's always faster than the hero, so it can't be outrun.
+      if (!this.homing && d < CONFIG.xp.magnet) { this.homing = true; this.speed = Math.hypot(this.vx, this.vy) + 200; }
+      if (this.homing) {
+        this.speed = Math.max(this.speed + 2400 * dt, p.stats.speed * 1.3);
+        const st = Math.min(d, this.speed * dt);
+        this.x += (dx / d) * st; this.y += (dy / d) * st;
+      } else { this.x += this.vx * dt; this.y += this.vy * dt; }
+      dx = p.x - this.x; dy = p.y - this.y; d = Math.hypot(dx, dy);
+      if (d < p.radius + 8) { this.dead = true; p.gainXp(this.value); }
     }
     draw(ctx) {
       const big = this.value >= 4, y = this.y + Math.sin(this.t * 5) * 1.5;
