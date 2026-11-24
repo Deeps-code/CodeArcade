@@ -203,20 +203,28 @@
   // ===================================================================
   // 3. UPGRADES (level-up choices)
   // ===================================================================
+  const pct = (v) => Math.round(v * 100) + '%';
   const UPGRADES = [
-    { id: 'might', icon: '💪', name: 'Might', desc: '+15% damage', apply: (s) => { s.damage *= 1.15; } },
-    { id: 'haste', icon: '⚡', name: 'Haste', desc: 'Attack 10% faster', apply: (s) => { s.cooldown *= 0.9; } },
-    { id: 'vigor', icon: '❤️', name: 'Vigor', desc: '+25 max HP and heal 25', apply: (s, p) => { s.maxHp += 25; p.heal(25); } },
-    { id: 'swift', icon: '👟', name: 'Swiftness', desc: '+8% move speed', apply: (s) => { s.speed *= 1.08; } },
-    { id: 'keen', icon: '🎯', name: 'Keen Eye', desc: '+6% crit chance', apply: (s) => { s.crit = Math.min(0.9, s.crit + 0.06); } },
-    { id: 'brutal', icon: '💥', name: 'Brutality', desc: '+30% crit damage', apply: (s) => { s.critMult += 0.3; } },
-    { id: 'focus', icon: '⏳', name: 'Focus', desc: 'Ability recharges 12% faster', apply: (s) => { s.cdr *= 0.88; } },
-    { id: 'regen', icon: '🌿', name: 'Regeneration', desc: '+1.2 HP per second', apply: (s) => { s.regen += 1.2; } },
-    { id: 'reach', icon: '📏', name: 'Reach', desc: '+12% attack range', apply: (s) => { s.range *= 1.12; } },
-    { id: 'tough', icon: '🛡️', name: 'Toughness', desc: 'Take 6% less damage', apply: (s) => { s.armor = Math.min(0.75, s.armor + 0.06); } },
-    { id: 'vamp', icon: '🩸', name: 'Vampirism', desc: '+3% life steal', apply: (s) => { s.lifesteal += 0.03; } },
-    { id: 'pack', icon: '🐾', name: 'Bigger Pack', desc: '+1 minion / turret', apply: (s) => { s.minions += 1; },
+    { id: 'might', icon: '💪', name: 'Might', desc: (k) => '+' + pct(0.15 * k) + ' damage', apply: (s, p, k) => { s.damage *= 1 + 0.15 * k; } },
+    { id: 'haste', icon: '⚡', name: 'Haste', desc: (k) => 'Attack ' + pct(0.1 * k) + ' faster', apply: (s, p, k) => { s.cooldown *= 1 - 0.1 * Math.min(k, 2.5); } },
+    { id: 'vigor', icon: '❤️', name: 'Vigor', desc: (k) => '+' + Math.round(25 * k) + ' max HP and heal it', apply: (s, p, k) => { s.maxHp += 25 * k; p.heal(25 * k); } },
+    { id: 'swift', icon: '👟', name: 'Swiftness', desc: (k) => '+' + pct(0.08 * k) + ' move speed', apply: (s, p, k) => { s.speed *= 1 + 0.08 * k; } },
+    { id: 'keen', icon: '🎯', name: 'Keen Eye', desc: (k) => '+' + pct(0.06 * k) + ' crit chance', apply: (s, p, k) => { s.crit = Math.min(0.9, s.crit + 0.06 * k); } },
+    { id: 'brutal', icon: '💥', name: 'Brutality', desc: (k) => '+' + pct(0.3 * k) + ' crit damage', apply: (s, p, k) => { s.critMult += 0.3 * k; } },
+    { id: 'focus', icon: '⏳', name: 'Focus', desc: (k) => 'Skills recharge ' + pct(0.12 * k) + ' faster', apply: (s, p, k) => { s.cdr *= 1 - 0.12 * Math.min(k, 2.5); } },
+    { id: 'regen', icon: '🌿', name: 'Regeneration', desc: (k) => '+' + (1.2 * k).toFixed(1) + ' HP per second', apply: (s, p, k) => { s.regen += 1.2 * k; } },
+    { id: 'reach', icon: '📏', name: 'Reach', desc: (k) => '+' + pct(0.12 * k) + ' attack range', apply: (s, p, k) => { s.range *= 1 + 0.12 * k; } },
+    { id: 'tough', icon: '🛡️', name: 'Toughness', desc: (k) => 'Take ' + pct(0.06 * k) + ' less damage', apply: (s, p, k) => { s.armor = Math.min(0.75, s.armor + 0.06 * k); } },
+    { id: 'vamp', icon: '🩸', name: 'Vampirism', desc: (k) => '+' + pct(0.03 * k) + ' life steal', apply: (s, p, k) => { s.lifesteal += 0.03 * k; } },
+    { id: 'pack', icon: '🐾', name: 'Bigger Pack', desc: (k) => '+' + Math.max(1, Math.floor(k)) + ' minion / turret', apply: (s, p, k) => { s.minions += Math.max(1, Math.floor(k)); },
       when: (c) => ['summoner', 'druid', 'necromancer', 'engineer'].includes(c.id) },
+  ];
+  // Each card rolls a rarity: rarer cards are stronger versions of the same upgrade
+  const RARITIES = [
+    { id: 'common', name: 'Common', k: 1, weight: 60 },
+    { id: 'rare', name: 'Rare', k: 1.5, weight: 27 },
+    { id: 'epic', name: 'Epic', k: 2, weight: 10 },
+    { id: 'legendary', name: 'Legendary', k: 3, weight: 3 },
   ];
 
   // ===================================================================
@@ -1311,33 +1319,59 @@
     },
     showPause(on) { this.el.pause.classList.toggle('hidden', !on); },
     // level up: pause and offer 3 upgrades
-    choices: [],
+    choices: [], dealing: false,
     showLevelUp() {
       const p = game.player;
       game.state = 'levelup'; Input.clear();
       const pool = UPGRADES.filter((u) => !u.when || u.when(game.cls));
-      this.choices = shuffle(pool.slice()).slice(0, 3);
+      this.choices = shuffle(pool.slice()).slice(0, 3).map((u) => ({ u, r: pickWeighted(RARITIES) }));
       $('luTitle').textContent = 'Level ' + (p.level - p.pendingLevels + 1);
       const box = $('luChoices'); box.innerHTML = '';
-      this.choices.forEach((u, i) => {
+      this.choices.forEach(({ u, r }, i) => {
         const b = document.createElement('button');
-        b.type = 'button'; b.className = 'choice';
-        b.innerHTML = '<div class="ic">' + u.icon + '</div><div class="nm">' + u.name + '</div><div class="ds">' + u.desc + '</div><div class="k">' + (i + 1) + '</div>';
+        b.type = 'button'; b.className = 'lcard r-' + r.id; b.style.setProperty('--i', i);
+        b.innerHTML = '<div class="lc-inner">'
+          + '<div class="lc-face lc-back"><div class="lc-sigil">⚜</div></div>'
+          + '<div class="lc-face lc-front">'
+          + '<div class="lc-rar">' + r.name + '</div>'
+          + '<div class="lc-art"><span>' + u.icon + '</span></div>'
+          + '<div class="lc-nm">' + u.name + '</div>'
+          + '<div class="lc-ds">' + u.desc(r.k) + '</div>'
+          + '<div class="lc-key">' + (i + 1) + '</div>'
+          + '<div class="lc-shine"></div>'
+          + '</div></div>';
         b.addEventListener('click', () => this.pickLevelUp(i));
+        // tilt toward the pointer
+        b.addEventListener('pointermove', (e) => {
+          if (this.dealing) return;
+          const rc = b.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width - 0.5, y = (e.clientY - rc.top) / rc.height - 0.5;
+          b.style.setProperty('--rx', (-y * 14).toFixed(1) + 'deg'); b.style.setProperty('--ry', (x * 16).toFixed(1) + 'deg');
+        });
+        b.addEventListener('pointerleave', () => { b.style.setProperty('--rx', '0deg'); b.style.setProperty('--ry', '0deg'); });
         box.appendChild(b);
       });
+      box.className = 'choices dealing';
+      this.dealing = true;
+      clearTimeout(this.dealT);
+      this.dealT = setTimeout(() => { this.dealing = false; box.classList.remove('dealing'); }, 1250);
       this.el.levelUp.classList.remove('hidden');
     },
     pickLevelUp(i) {
-      const u = this.choices[i]; if (!u || game.state !== 'levelup') return;
-      const p = game.player;
-      u.apply(p.stats, p);
-      p.hp = Math.min(p.hp, p.stats.maxHp);
-      p.pendingLevels--;
-      this.el.levelUp.classList.add('hidden');
-      game.state = 'playing'; this.last = '';
-      game.floatText(p.x, p.y - 30, u.icon + ' ' + u.name, '#fde68a', true);
-      if (p.pendingLevels > 0) this.showLevelUp();
+      const c = this.choices[i]; if (!c || game.state !== 'levelup' || this.dealing || this.picking) return;
+      const box = $('luChoices');
+      this.picking = true;
+      [...box.children].forEach((el, j) => el.classList.add(j === i ? 'picked' : 'dropped'));
+      setTimeout(() => {
+        this.picking = false;
+        const p = game.player, { u, r } = c;
+        u.apply(p.stats, p, r.k);
+        p.hp = Math.min(p.hp, p.stats.maxHp);
+        p.pendingLevels--;
+        this.el.levelUp.classList.add('hidden');
+        game.state = 'playing'; this.last = '';
+        game.floatText(p.x, p.y - 30, u.icon + ' ' + u.name + (r.k > 1 ? ' (' + r.name + ')' : ''), r.k >= 3 ? '#fb923c' : r.k >= 2 ? '#c084fc' : r.k > 1 ? '#60a5fa' : '#fde68a', true);
+        if (p.pendingLevels > 0) this.showLevelUp();
+      }, 650);
     },
     showGameOver(wave, kills, time, level, isBest) {
       const m = Math.floor(time / 60), s = Math.floor(time % 60);
