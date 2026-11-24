@@ -245,6 +245,11 @@
       when: (c) => ['summoner', 'druid', 'necromancer', 'engineer'].includes(c.id) },
   ];
   // Each card rolls a rarity: rarer cards are stronger versions of the same upgrade
+  // a boss treasure chest only deals Epic or Legendary cards
+  const BONUS_RARITIES = [
+    { id: 'epic', name: 'Epic', k: 2, weight: 65 },
+    { id: 'legendary', name: 'Legendary', k: 3, weight: 35 },
+  ];
   const RARITIES = [
     { id: 'common', name: 'Common', k: 1, weight: 60 },
     { id: 'rare', name: 'Rare', k: 1.5, weight: 27 },
@@ -786,6 +791,34 @@
       ctx.strokeStyle = '#fde047'; ctx.lineWidth = 1.5; ctx.beginPath();
       for (let i = 0; i < 4; i++) { const a = hash(i + Math.floor(t * 20) * 7) * TAU, d = 16 + hash(i * 5 + Math.floor(t * 20)) * 10, sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d; ctx.moveTo(sx, sy); ctx.lineTo(sx + rand(-6, 6), sy + rand(-6, 6)); }
       ctx.stroke();
+    }
+  }
+
+  // a boss treasure chest: golden, glowing, with a beam of light so you can't miss it
+  function drawChest(c) {
+    const t = game.time, s = Math.min(1, c.t / 0.35), pop = s < 1 ? s * (1 + Math.sin(s * Math.PI) * 0.5) : 1, bob = Math.sin(t * 3) * 2;
+    const x = c.x, y = c.y + bob;
+    ctx.globalCompositeOperation = 'lighter';
+    const gr = ctx.createLinearGradient(x, y - 160, x, y); gr.addColorStop(0, 'rgba(253,224,71,0)'); gr.addColorStop(1, 'rgba(253,224,71,' + (0.32 + Math.sin(t * 4) * 0.08) + ')');
+    ctx.fillStyle = gr; ctx.fillRect(x - 16, y - 160, 32, 160);
+    ctx.globalAlpha = 0.7; blit(lightSprite('#fbbf24', 'rgba(255,250,220,0.5)'), x, y, 110 * pop); ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(c.x, c.y + 14, 17 * pop, 5 * pop, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(x, y); ctx.scale(pop, pop);
+    const ink = 'rgba(18,10,4,0.9)', wood = ctx.createLinearGradient(0, -8, 0, 12); wood.addColorStop(0, '#b45309'); wood.addColorStop(1, '#6b2f0a');
+    ctx.lineWidth = 2; ctx.strokeStyle = ink; ctx.lineJoin = 'round';
+    ctx.fillStyle = wood; ctx.beginPath(); ctx.rect(-15, -5, 30, 17); ctx.fill(); ctx.stroke();
+    const lid = ctx.createLinearGradient(0, -16, 0, -5); lid.addColorStop(0, '#d97706'); lid.addColorStop(1, '#92400e');
+    ctx.fillStyle = lid; ctx.beginPath(); ctx.moveTo(-16, -5); ctx.quadraticCurveTo(-16, -17, 0, -17); ctx.quadraticCurveTo(16, -17, 16, -5); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; for (const bx of [-10, 7]) { ctx.fillRect(bx, -15.5, 3, 27); }
+    ctx.fillRect(-16, -6.5, 32, 2.6);
+    ctx.fillStyle = '#fde047'; ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.rect(-3.5, -7, 7, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#1c1917'; ctx.beginPath(); ctx.arc(0, -4, 1.2, 0, TAU); ctx.fill(); ctx.fillRect(-0.5, -4, 1, 3);
+    ctx.restore();
+    ctx.fillStyle = '#fef9c3';
+    for (let i = 0; i < 4; i++) {   // sparkles orbiting it
+      const a = t * 1.6 + (i / 4) * TAU, sx = x + Math.cos(a) * 26, sy = y - 4 + Math.sin(a) * 12, r = 2.5 + Math.sin(t * 6 + i) * 1;
+      ctx.beginPath(); for (let j = 0; j < 8; j++) { const b = (j / 8) * TAU, rr = j % 2 ? r * 0.35 : r; j ? ctx.lineTo(sx + Math.cos(b) * rr, sy + Math.sin(b) * rr) : ctx.moveTo(sx + Math.cos(b) * rr, sy + Math.sin(b) * rr); } ctx.closePath(); ctx.fill();
     }
   }
 
@@ -2089,7 +2122,8 @@
     cls: null, player: null,
     enemies: [], projectiles: [], enemyShots: [], minions: [], gems: [], particles: [], fx: [], zones: [], timers: [],
     waves: new WaveManager(), kills: 0, time: 0, shake: 0,
-    autoCast: [false, false, false],   // per skill slot: cast automatically when ready
+    autoCast: [false, false, false],
+    chests: [], bonusPicks: 0,   // boss treasure chests on the floor / free card picks waiting   // per skill slot: cast automatically when ready
 
     nearestEnemy(from, range) {
       let best = null, bd = range * range;
@@ -2121,6 +2155,8 @@
         const total = Math.round(e.def.xp * (1 + this.waves.wave * 0.04));
         for (let i = 0; i < 14; i++) this.gems.push(new Gem(e.x + rand(-30, 30), e.y + rand(-30, 30), Math.max(4, Math.round(total / 14))));
         this.player.heal(this.player.stats.maxHp * 0.3);
+        // ...and a treasure chest with free power-up picks (two from the second round of bosses on)
+        this.chests.push({ x: clamp(e.x, 50, view.w - 50), y: clamp(e.y, 60, view.h - 50), t: 0, picks: e.tier >= 2 ? 2 : 1 });
         UI.banner(e.def.name.toUpperCase() + ' DEFEATED!', true);
         return;
       }
@@ -2224,7 +2260,18 @@
       this.particles = this.particles.filter((q) => q.life > 0);
       this.fx = this.fx.filter((f) => f.t > 0);
 
-      if (p.pendingLevels > 0 && this.state === 'playing') UI.showLevelUp();
+      // treasure chests: walk into one to open it
+      for (const c of this.chests) {
+        c.t += dt;
+        if (c.t > 0.5 && dist2(c, p) < (p.radius + 26) ** 2) {
+          c.open = true; this.bonusPicks += c.picks;
+          FX.embers(c.x, c.y, '#fde047', 30, 320, true); FX.shock(c.x, c.y, 90, '#fbbf24', { noCracks: true }); FX.flash('#fde68a', 0.3);
+          this.floatText(c.x, c.y - 30, c.picks > 1 ? 'TREASURE! x' + c.picks : 'TREASURE!', '#fde047', true);
+        }
+      }
+      if (this.chests.length) this.chests = this.chests.filter((c) => !c.open);
+      if (this.bonusPicks > 0 && this.state === 'playing') UI.showLevelUp(true);
+      else if (p.pendingLevels > 0 && this.state === 'playing') UI.showLevelUp();
     },
     // push overlapping enemies apart (only checks neighbors on a grid, not every pair)
     separate() {
@@ -2251,6 +2298,7 @@
       drawZones();
       drawFx(true);
       for (const g of this.gems) g.draw(ctx);
+      for (const c of this.chests) drawChest(c);
       for (const q of this.particles) q.draw(ctx);
       ctx.globalAlpha = 1;
       for (const m of this.minions) if (m.kind === 'mine' || m.kind === 'turret') m.draw(ctx);
@@ -2575,14 +2623,14 @@
     game.state = 'playing';
     game.player = new Player(game.cls, view.w / 2, view.h / 2);
     game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.particles = []; game.fx = []; game.zones = []; game.timers = []; game.texts = [];
-    game.kills = 0; game.time = 0; game.shake = 0; game.slowT = 0; game.boss = null;
+    game.kills = 0; game.time = 0; game.shake = 0; game.slowT = 0; game.boss = null; game.chests = []; game.bonusPicks = 0;
     game.waves = new WaveManager(); game.waves.startWave(1);
     Input.clear();
     UI.showPlaying();
   }
   function pause() { if (game.state !== 'playing') return; game.state = 'paused'; Input.clear(); UI.showPause(true); }
   function resume() { if (game.state !== 'paused') return; game.state = 'playing'; UI.showPause(false); }
-  function toMenu() { game.state = 'menu'; game.player = null; game.boss = null; game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.fx = []; game.zones = []; game.timers = []; game.texts = []; UI.showMenu(); }
+  function toMenu() { game.state = 'menu'; game.player = null; game.boss = null; game.chests = []; game.bonusPicks = 0; game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.fx = []; game.zones = []; game.timers = []; game.texts = []; UI.showMenu(); }
 
   // ===================================================================
   // 12. UI
@@ -2751,12 +2799,16 @@
     showPause(on) { this.el.pause.classList.toggle('hidden', !on); },
     // level up: pause and offer 3 upgrades
     choices: [], dealing: false,
-    showLevelUp() {
+    // bonus = a free pick from a boss treasure chest (Epic / Legendary cards only)
+    showLevelUp(bonus = false) {
       const p = game.player;
       game.state = 'levelup'; Input.clear();
+      this.bonus = bonus;
       const pool = UPGRADES.filter((u) => !u.when || u.when(game.cls));
-      this.choices = shuffle(pool.slice()).slice(0, 3).map((u) => ({ u, r: pickWeighted(RARITIES) }));
-      $('luTitle').textContent = 'Level ' + (p.level - p.pendingLevels + 1);
+      this.choices = shuffle(pool.slice()).slice(0, 3).map((u) => ({ u, r: pickWeighted(bonus ? BONUS_RARITIES : RARITIES) }));
+      $('luKicker').textContent = bonus ? 'TREASURE CHEST!' : 'LEVEL UP!';
+      $('luTitle').textContent = bonus ? 'Boss Reward' : 'Level ' + (p.level - p.pendingLevels + 1);
+      this.el.levelUp.classList.toggle('bonus', bonus);
       const box = $('luChoices'); box.innerHTML = '';
       this.choices.forEach(({ u, r }, i) => {
         const b = document.createElement('button');
@@ -2797,11 +2849,12 @@
         const p = game.player, { u, r } = c;
         u.apply(p.stats, p, r.k);
         p.hp = Math.min(p.hp, p.stats.maxHp);
-        p.pendingLevels--;
+        if (this.bonus) game.bonusPicks = Math.max(0, game.bonusPicks - 1); else p.pendingLevels--;
         this.el.levelUp.classList.add('hidden');
         game.state = 'playing'; this.last = '';
         game.floatText(p.x, p.y - 30, u.name + (r.k > 1 ? ' (' + r.name + ')' : ''), r.k >= 3 ? '#fb923c' : r.k >= 2 ? '#c084fc' : r.k > 1 ? '#60a5fa' : '#fde68a', true);
-        if (p.pendingLevels > 0) this.showLevelUp();
+        if (game.bonusPicks > 0) this.showLevelUp(true);
+        else if (p.pendingLevels > 0) this.showLevelUp();
       }, 650);
     },
     showGameOver(wave, kills, time, level, isBest) {

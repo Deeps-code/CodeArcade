@@ -327,3 +327,7 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
 #bossBar .bb-bar { height: 14px; border-radius: 8px; background: rgba(0, 0, 0, 0.7); border: 2px solid var(--gold); box-shadow: 0 0 0 2px #000, 0 0 18px var(--boss, #ef4444); overflow: hidden; }
 #bossBar .bb-fill { height: 100%; width: 100%; background: linear-gradient(180deg, #fca5a5, var(--boss, #ef4444) 55%, #450a0a); transition: width 0.15s linear; }
 @media (max-width: 760px) { #bossBar { top: calc(max(8px, env(safe-area-inset-top)) + 74px); } #bossBar .bb-name { font-size: 11px; } }
+
+/* boss treasure picks: a golden glow around the card screen */
+#levelUp.bonus .card { border-color: #fde047; box-shadow: 0 0 0 2px #000, 0 0 40px rgba(253, 224, 71, 0.45), inset 0 0 30px rgba(253, 224, 71, 0.12); }
+#levelUp.bonus .kicker { color: #fde047; text-shadow: 0 0 12px rgba(253, 224, 71, 0.7); }
