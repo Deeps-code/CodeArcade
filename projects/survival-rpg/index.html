@@ -34,13 +34,8 @@
     </div>
   </div>
 
-  <!-- the class ability -->
-  <button id="abilityBtn" class="hidden" type="button" aria-label="Use ability">
-    <span class="ab-ring" id="abRing"></span>
-    <span class="ab-icon" id="abIcon">🌀</span>
-    <span class="ab-cd" id="abCd"></span>
-    <span class="ab-key">SPACE</span>
-  </button>
+  <!-- the class skills (built by game.js) -->
+  <div id="abilities" class="hidden"></div>
   <div id="abName" class="hidden">Whirlwind</div>
 
   <div id="banner"></div>
@@ -65,7 +60,7 @@
           </div>
           <p class="cd-desc" id="cdDesc"></p>
           <div class="cd-stats" id="cdStats"></div>
-          <div class="cd-box"><div class="cd-label">ABILITY · <span id="cdAbCd">8s</span></div><div class="cd-ab"><span id="cdAbIcon">🌀</span> <b id="cdAbName">Whirlwind</b></div><div class="cd-small" id="cdAbDesc"></div></div>
+          <div class="cd-box" id="cdSkills"></div>
           <div class="cd-box"><div class="cd-label">PASSIVE</div><div class="cd-small" id="cdPassive"></div></div>
           <div class="cd-best">Best with this hero: wave <b id="cdBest">0</b></div>
           <button type="button" class="btn primary" id="startBtn">⚔ BEGIN</button>

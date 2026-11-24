@@ -142,6 +142,62 @@
       attack: { kind: 'bolt', speed: 470, color: '#bae6fd', size: 6, slow: { k: 0.45, t: 2 } }, passive: { freezeEvery: 5, text: 'Frost bolts slow enemies. Every 5th one freezes solid.' },
       ability: { id: 'frostnova', name: 'Frost Nova', icon: '🧊', cd: 9, desc: 'Freeze every enemy around you for 2.5 seconds.' } },
   ];
+  // Two more skills for every class (skill 1 is the "ability" above). Keys: Q/Space, E, R.
+  const EXTRA_SKILLS = {
+    warrior: [
+      { id: 'charge', name: 'Charge', icon: '🐂', cd: 6, desc: 'Rush at the nearest enemy, trampling everything in the way.' },
+      { id: 'battlecry', name: 'Battle Cry', icon: '📯', cd: 14, desc: '+40% damage and 20% less damage taken for 6s.' }],
+    mage: [
+      { id: 'chainlightning', name: 'Chain Lightning', icon: '⚡', cd: 6, desc: 'Lightning that leaps between 7 enemies.' },
+      { id: 'blink', name: 'Blink', icon: '✨', cd: 5, desc: 'Teleport away from danger, leaving an arcane blast behind.' }],
+    archer: [
+      { id: 'arrowrain', name: 'Rain of Arrows', icon: '🌧️', cd: 9, desc: 'Arrows pour down on a crowd of enemies for 3s.' },
+      { id: 'roll', name: 'Dodge Roll', icon: '🤸', cd: 4, desc: 'Roll away; your next 3 arrows are guaranteed crits.' }],
+    guardian: [
+      { id: 'fortify', name: 'Fortify', icon: '🧱', cd: 12, desc: 'Take 70% less damage for 4s and heal 15%.' },
+      { id: 'shieldthrow', name: 'Shield Throw', icon: '🥏', cd: 6, desc: 'Hurl your shield through a whole line, stunning them.' }],
+    assassin: [
+      { id: 'fanofknives', name: 'Fan of Knives', icon: '🔪', cd: 5, desc: 'Throw 16 knives in every direction.' },
+      { id: 'smokebomb', name: 'Smoke Bomb', icon: '🌫️', cd: 12, desc: 'Vanish for 3s: untouchable, and nearby enemies stumble.' }],
+    summoner: [
+      { id: 'spiritburst', name: 'Spirit Burst', icon: '💥', cd: 7, desc: 'Every spirit unleashes a blast around itself.' },
+      { id: 'soullink', name: 'Soul Link', icon: '🔗', cd: 14, desc: 'Heal 30% and your minions deal double damage for 6s.' }],
+    healer: [
+      { id: 'smite', name: 'Smite', icon: '🌩️', cd: 5, desc: 'Holy light strikes the 3 nearest enemies and stuns them.' },
+      { id: 'divineshield', name: 'Divine Shield', icon: '🛡️', cd: 15, desc: 'Become completely invulnerable for 3s.' }],
+    berserker: [
+      { id: 'leapslam', name: 'Leap Slam', icon: '🦘', cd: 7, desc: 'Leap onto the nearest enemy and smash the ground around it.' },
+      { id: 'execute', name: 'Execute', icon: '☠️', cd: 6, desc: 'A huge spinning cleave; badly hurt enemies die instantly.' }],
+    paladin: [
+      { id: 'consecrate', name: 'Consecrate', icon: '🔆', cd: 10, desc: 'Bless the ground for 5s: burns enemies, heals you while you stand in it.' },
+      { id: 'judgment', name: 'Judgment', icon: '⚖️', cd: 6, desc: 'Throw a holy hammer that crushes and stuns.' }],
+    necromancer: [
+      { id: 'bonespear', name: 'Bone Spear', icon: '🦴', cd: 5, desc: 'A spear of bone that pierces every enemy in its path.' },
+      { id: 'soulsiphon', name: 'Soul Siphon', icon: '🌀', cd: 9, desc: 'Drain the life of every enemy around you.' }],
+    monk: [
+      { id: 'palmstrike', name: 'Palm Strike', icon: '🖐️', cd: 5, desc: 'A mighty palm that blasts enemies back and stuns them.' },
+      { id: 'innerpeace', name: 'Inner Peace', icon: '☯️', cd: 14, desc: 'Heal 30% and dodge every attack for 3s.' }],
+    pyromancer: [
+      { id: 'meteor', name: 'Meteor', icon: '☄️', cd: 10, desc: 'Call down a meteor on a crowd: huge damage and burning.' },
+      { id: 'firetrail', name: 'Fire Trail', icon: '👣', cd: 9, desc: 'Leave a trail of flames wherever you walk for 5s.' }],
+    gunner: [
+      { id: 'grenade', name: 'Grenade', icon: '💣', cd: 6, desc: 'Lob a grenade that explodes in a wide blast.' },
+      { id: 'overdrive', name: 'Overdrive', icon: '⚙️', cd: 12, desc: 'Fire twice as fast, two bullets at a time, for 5s.' }],
+    druid: [
+      { id: 'bearform', name: 'Bear Form', icon: '🐻', cd: 15, desc: 'Become a bear for 8s: +50% damage, much tougher, and heal 20%.' },
+      { id: 'swarm', name: 'Swarm', icon: '🐝', cd: 8, desc: 'Release 5 angry bees that sting your foes for 10s.' }],
+    engineer: [
+      { id: 'overclock', name: 'Overclock', icon: '🔋', cd: 12, desc: 'Your turrets fire more than twice as fast for 6s.' },
+      { id: 'rockets', name: 'Rocket Barrage', icon: '🚀', cd: 8, desc: 'Launch 8 rockets at the nearest enemies.' }],
+    spearman: [
+      { id: 'sweep', name: 'Spear Sweep', icon: '🌀', cd: 6, desc: 'Sweep your spear in a full circle, knocking everyone back.' },
+      { id: 'vault', name: 'Pole Vault', icon: '🏃', cd: 5, desc: 'Vault forward through the horde, striking everything you pass.' }],
+    icemage: [
+      { id: 'iceshards', name: 'Ice Shards', icon: '🧊', cd: 5, desc: 'A fan of 7 freezing shards that badly slow what they hit.' },
+      { id: 'blizzard', name: 'Blizzard', icon: '🌨️', cd: 12, desc: 'A raging blizzard over a crowd for 5s: slows and damages.' }],
+  };
+  for (const c of CLASSES) c.abilities = [c.ability, ...(EXTRA_SKILLS[c.id] || [])];
+  const SKILL_KEYS = ['Q', 'E', 'R'];
   const classById = (id) => CLASSES.find((c) => c.id === id) || CLASSES[0];
 
   // ===================================================================
@@ -242,7 +298,10 @@
     if (MOVE_KEYS.includes(e.code)) { e.preventDefault(); Input.keys.add(e.code); }
     if (e.repeat) return;
     if (e.code === 'KeyP' || e.code === 'Escape') { if (game.state === 'playing') pause(); else if (game.state === 'paused') resume(); }
-    if (game.state === 'playing' && (e.code === 'Space' || e.code === 'KeyQ' || e.code === 'KeyE')) { e.preventDefault(); game.player.useAbility(); }
+    if (game.state === 'playing') {
+      const slot = e.code === 'Space' || e.code === 'KeyQ' ? 0 : e.code === 'KeyE' ? 1 : e.code === 'KeyR' ? 2 : -1;
+      if (slot >= 0) { e.preventDefault(); game.player.useAbility(slot); }
+    }
     if (game.state === 'levelup' && ['Digit1', 'Digit2', 'Digit3'].includes(e.code)) UI.pickLevelUp(+e.code.slice(-1) - 1);
     if (e.code === 'Enter') { if (game.state === 'menu' || game.state === 'over') startGame(); else if (game.state === 'paused') resume(); }
   });
@@ -273,7 +332,8 @@
       this.stats = Object.assign({}, BASE_STATS, cls.stats);   // items / upgrades change these
       this.hp = this.stats.maxHp;
       this.level = 1; this.xp = 0; this.xpNext = xpFor(1); this.pendingLevels = 0;
-      this.attackTimer = 0.25; this.abilityTimer = 0;   // 0 = ready
+      this.attackTimer = 0.25; this.abilityTimers = cls.abilities.map(() => 0);   // 0 = ready
+      this.focusShots = 0; this.trailTick = 0;
       this.hurtTimer = 0; this.aim = 0; this.alive = true;
       this.hits = 0;                 // counts attacks, for "every Nth" passives
       this.buffs = {};               // name -> seconds left
@@ -282,12 +342,15 @@
     get dmgMult() {
       let m = 1;
       if (this.buffs.might > 0) m *= 1.5;
+      if (this.buffs.cry > 0) m *= 1.4;
+      if (this.buffs.bear > 0) m *= 1.5;
       if (this.cls.passive.berserk) m *= 1 + (1 - this.hp / this.stats.maxHp) * 1.6;
       return m;
     }
-    get attackCooldown() { return this.stats.cooldown * (this.buffs.rage > 0 ? 0.45 : 1); }
+    get attackCooldown() { return this.stats.cooldown * (this.buffs.rage > 0 ? 0.45 : 1) * (this.buffs.overdrive > 0 ? 0.5 : 1); }
     get lifesteal() { return this.stats.lifesteal + (this.buffs.rage > 0 ? 0.1 : 0); }
-    get abilityCooldown() { return this.cls.ability.cd * this.stats.cdr; }
+    abilityCooldown(i = 0) { return this.cls.abilities[i].cd * this.stats.cdr; }
+    get invulnerable() { return this.buffs.divine > 0 || this.buffs.smoke > 0; }
     heal(amount, quiet = false) {
       if (!this.alive || amount <= 0) return;
       const before = this.hp;
@@ -299,7 +362,8 @@
       this.x += mv.x * this.stats.speed * dt; this.y += mv.y * this.stats.speed * dt;
       this.clampTo(view);
       this.hurtTimer = Math.max(0, this.hurtTimer - dt);
-      this.abilityTimer = Math.max(0, this.abilityTimer - dt);
+      for (let i = 0; i < this.abilityTimers.length; i++) this.abilityTimers[i] = Math.max(0, this.abilityTimers[i] - dt);
+      if (this.buffs.firetrail > 0) { this.trailTick -= dt; if (this.trailTick <= 0) { this.trailTick = 0.15; game.zones.push({ x: this.x, y: this.y, r: 34, t: 2.5, every: 0.4, tick: 0, dmg: this.stats.damage * 0.5, opts: { burn: { dps: this.stats.damage * 0.8, t: 2 }, knock: 0, quiet: true }, color: '#f97316' }); } }
       if (this.stats.regen) this.heal(this.stats.regen * dt, true);
       for (const k in this.buffs) { this.buffs[k] -= dt; if (this.buffs[k] <= 0) delete this.buffs[k]; }
       this.updateAbilityEffects(dt);
@@ -335,18 +399,23 @@
         if (P.chainEvery && this.hits % P.chainEvery === 0) fx.chain = { count: 3, range: 160, mult: 0.75 };
         if (P.freezeEvery && this.hits % P.freezeEvery === 0) fx.freeze = 1.2;
         if (a.rootChance && Math.random() < a.rootChance) fx.root = 1.5;
-        const ang = this.aim + (a.spread ? rand(-a.spread, a.spread) : 0);
-        game.projectiles.push(new Projectile(this.x, this.y, ang, { speed: a.speed, dmg, size: a.size, color: a.color, shape: a.shape, pierce: a.pierce || 0, range: this.stats.range, fx }));
+        if (this.focusShots > 0) { this.focusShots--; fx.crit = true; }
+        const shots = this.buffs.overdrive > 0 ? 2 : 1;
+        for (let k = 0; k < shots; k++) {
+          const ang = this.aim + (a.spread ? rand(-a.spread, a.spread) : 0) + (shots > 1 ? (k - 0.5) * 0.12 : 0);
+          game.projectiles.push(new Projectile(this.x, this.y, ang, { speed: a.speed, dmg, size: a.size, color: a.color, shape: a.shape, pierce: a.pierce || 0, range: this.stats.range, fx }));
+        }
       }
       this.attackTimer = this.attackCooldown;
     }
-    useAbility() {
-      if (this.abilityTimer > 0 || !this.alive) return;
-      const fn = ABILITIES[this.cls.ability.id];
+    useAbility(i = 0) {
+      const sk = this.cls.abilities[i];
+      if (!sk || this.abilityTimers[i] > 0 || !this.alive) return;
+      const fn = ABILITIES[sk.id];
       if (!fn) return;
-      if (fn(this) === false) return;   // the ability can refuse (e.g. no target)
-      this.abilityTimer = this.abilityCooldown;
-      UI.flashAbility();
+      if (fn(this) === false) return;   // the skill can refuse (e.g. no target)
+      this.abilityTimers[i] = this.abilityCooldown(i);
+      UI.flashAbility(sk);
     }
     updateAbilityEffects(dt) {
       if (this.whirl > 0) {
@@ -370,9 +439,11 @@
     takeDamage(amount) {
       if (this.hurtTimer > 0 || !this.alive) return false;
       const s = this.stats;
-      if (s.evasion && Math.random() < s.evasion) { game.floatText(this.x, this.y - 26, 'DODGE', '#93c5fd'); this.hurtTimer = 0.25; return false; }
+      if (this.invulnerable) { if (Math.random() < 0.3) game.floatText(this.x, this.y - 26, 'IMMUNE', '#fde68a'); this.hurtTimer = 0.25; return false; }
+      if (this.buffs.inner > 0 || (s.evasion && Math.random() < s.evasion)) { game.floatText(this.x, this.y - 26, 'DODGE', '#93c5fd'); this.hurtTimer = 0.25; return false; }
       if (s.block && Math.random() < s.block) { game.floatText(this.x, this.y - 26, 'BLOCK', '#bfdbfe'); game.fx.push({ type: 'ring', x: this.x, y: this.y, r0: 18, r1: 30, color: '#93c5fd', t: 0.25, max: 0.25 }); this.hurtTimer = 0.3; return false; }
-      const dmg = Math.max(1, Math.round(amount * (1 - s.armor)));
+      const armor = clamp(s.armor + (this.buffs.cry > 0 ? 0.2 : 0) + (this.buffs.bear > 0 ? 0.4 : 0), -0.5, 0.85);
+      const dmg = Math.max(1, Math.round(amount * (1 - armor) * (this.buffs.fortify > 0 ? 0.3 : 1)));
       this.hp = Math.max(0, this.hp - dmg);
       this.hurtTimer = CONFIG.player.hurtCooldown;
       game.shake = 7;
@@ -398,7 +469,13 @@
         ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 4;
         for (let i = 0; i < 3; i++) { const a = game.time * 18 + i * (TAU / 3); ctx.beginPath(); ctx.arc(this.x, this.y, this.stats.range * 1.1, a, a + 0.9); ctx.stroke(); }
       }
-      if (drawSprite(ctx, c.id, this.x, this.y, r, this.aim)) return;
+      if (this.invulnerable || this.buffs.fortify > 0 || this.buffs.bear > 0 || this.buffs.inner > 0) {
+        const col = this.buffs.divine > 0 ? 'rgba(253,230,138,' : this.buffs.smoke > 0 ? 'rgba(148,163,184,' : this.buffs.fortify > 0 ? 'rgba(96,165,250,' : this.buffs.bear > 0 ? 'rgba(180,120,70,' : 'rgba(255,255,255,';
+        ctx.fillStyle = col + '0.18)'; ctx.strokeStyle = col + '0.8)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(this.x, this.y, r + 10 + Math.sin(game.time * 6) * 1.5, 0, TAU); ctx.fill(); ctx.stroke();
+      }
+      if (this.buffs.smoke > 0) ctx.globalAlpha = 0.45;
+      if (drawSprite(ctx, c.id, this.x, this.y, r, this.aim)) { ctx.globalAlpha = 1; return; }
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(this.x, this.y + r * 0.85, r, r * 0.38, 0, 0, TAU); ctx.fill();
       // weapon pointer
       ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.aim);
@@ -407,7 +484,8 @@
       ctx.fillStyle = c.color; ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, TAU); ctx.fill();
       ctx.lineWidth = 3; ctx.strokeStyle = '#d4a62a'; ctx.stroke();
       ctx.font = Math.round(r * 1.05) + 'px system-ui, "Segoe UI Emoji", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(c.icon, this.x, this.y + 1);
+      ctx.fillText(this.buffs.bear > 0 ? '🐻' : c.icon, this.x, this.y + 1);
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -512,6 +590,7 @@
     wolf:     { r: 11, speed: 215, cd: 0.55, reach: 14, mult: 0.9,  color: '#a8a29e', icon: '🐺' },
     turret:   { r: 12, speed: 0,   cd: 0.45, reach: 330, mult: 0.9, color: '#0ea5e9', icon: '' },
     mine:     { r: 6,  speed: 0,   cd: 0,    reach: 26, mult: 3,    color: '#ef4444', icon: '' },
+    bee:      { r: 5,  speed: 320, cd: 0.35, reach: 8,  mult: 0.45, color: '#facc15', icon: '' },
   };
   class Minion {
     constructor(kind, x, y, o = {}) {
@@ -530,18 +609,18 @@
       }
       if (this.kind === 'turret') {
         const e = game.nearestEnemy(this, d.reach);
-        if (e) { this.aim = Math.atan2(e.y - this.y, e.x - this.x); if (this.cd <= 0) { this.cd = d.cd; game.projectiles.push(new Projectile(this.x, this.y, this.aim, { speed: 600, dmg: p.stats.damage * d.mult, size: 4, color: '#7dd3fc', range: d.reach })); } }
+        if (e) { this.aim = Math.atan2(e.y - this.y, e.x - this.x); if (this.cd <= 0) { this.cd = d.cd * (p.buffs.overclock > 0 ? 0.45 : 1); game.projectiles.push(new Projectile(this.x, this.y, this.aim, { speed: 600, dmg: p.stats.damage * d.mult, size: 4, color: '#7dd3fc', range: d.reach })); } }
         return;
       }
       // walkers & flyers: chase the nearest enemy near you, otherwise stay close
       const e = game.nearestEnemy(p, 320) && game.nearestEnemy(this, 360);
       let tx, ty;
       if (e) { tx = e.x; ty = e.y; }
-      else { this.orbit += dt * (this.kind === 'spirit' ? 2.5 : 0.6); tx = p.x + Math.cos(this.orbit) * 44; ty = p.y + Math.sin(this.orbit) * 44; }
+      else { this.orbit += dt * (this.kind === 'spirit' || this.kind === 'bee' ? 2.5 : 0.6); tx = p.x + Math.cos(this.orbit) * 44; ty = p.y + Math.sin(this.orbit) * 44; }
       const dx = tx - this.x, dy = ty - this.y, dd = Math.hypot(dx, dy) || 1;
       if (dd > 2) { const st = Math.min(dd, d.speed * dt); this.x += (dx / dd) * st; this.y += (dy / dd) * st; this.aim = Math.atan2(dy, dx); }
       if (e && this.cd <= 0 && Math.hypot(e.x - this.x, e.y - this.y) < e.radius + d.r + d.reach) {
-        this.cd = d.cd; Combat.damage(e, p.stats.damage * d.mult, { knockFrom: this, knock: 0.6 });
+        this.cd = d.cd; Combat.damage(e, p.stats.damage * d.mult * (p.buffs.frenzy > 0 ? 2 : 1), { knockFrom: this, knock: 0.6 });
       }
     }
     draw(ctx) {
@@ -549,11 +628,12 @@
       if (drawSprite(ctx, this.kind, this.x, this.y, d.r, this.aim)) return;
       const fade = isFinite(this.life) && this.life < 2 ? 0.4 + 0.6 * (Math.floor(this.life * 8) % 2) : 1;
       ctx.globalAlpha = fade;
-      if (this.kind === 'spirit') {
+      if (this.kind === 'spirit' || this.kind === 'bee') {
         const y = this.y + Math.sin(this.bob) * 2;
         ctx.fillStyle = d.color; ctx.shadowColor = d.color; ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.arc(this.x, y, d.r, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(94,234,212,0.35)'; ctx.beginPath(); ctx.arc(this.x - Math.cos(this.aim) * 7, y - Math.sin(this.aim) * 7, d.r * 0.7, 0, TAU); ctx.fill();
+        if (this.kind === 'bee') { ctx.fillStyle = '#1c1917'; ctx.fillRect(this.x - 1.5, y - d.r, 3, d.r * 2); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.ellipse(this.x, y - d.r, 3, 2, 0, 0, TAU); ctx.fill(); }
+        else { ctx.fillStyle = 'rgba(94,234,212,0.35)'; ctx.beginPath(); ctx.arc(this.x - Math.cos(this.aim) * 7, y - Math.sin(this.aim) * 7, d.r * 0.7, 0, TAU); ctx.fill(); }
       } else if (this.kind === 'turret') {
         ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(this.x, this.y, d.r, 0, TAU); ctx.fill();
         ctx.strokeStyle = d.color; ctx.lineWidth = 2; ctx.stroke();
@@ -618,7 +698,7 @@
       const steal = (o.raw ? 0 : p.lifesteal) + (o.drain || 0);
       if (steal > 0) p.heal(dmg * steal, true);
       if (o.knockFrom || o.knockAngle !== undefined) {
-        const a = o.knockAngle ?? Math.atan2(e.y - o.knockFrom.y, e.x - o.knockFrom.x), k = (o.knock || 1) * 90 * (14 / e.radius);
+        const a = o.knockAngle ?? Math.atan2(e.y - o.knockFrom.y, e.x - o.knockFrom.x), k = (o.knock ?? 1) * 90 * (14 / e.radius);
         e.vx += Math.cos(a) * k; e.vy += Math.sin(a) * k;
       }
       if (o.burn) e.burn = { dps: Math.max(o.burn.dps, e.burn ? e.burn.dps : 0), t: Math.max(o.burn.t, e.burn ? e.burn.t : 0) };
@@ -647,7 +727,7 @@
         if (e.dead) continue;
         const dx = e.x - x, dy = e.y - y, along = dx * cx + dy * cy, side = Math.abs(-dx * cy + dy * cx);
         if (along < -e.radius || along > length + e.radius || side > width / 2 + e.radius) continue;
-        this.damage(e, dmg, { knockAngle: angle, knock: 1.2 });
+        this.damage(e, dmg, Object.assign({ knockAngle: angle, knock: 1.2 }, o.hit));
       }
       game.fx.push({ type: 'beam', x, y, angle, len: length, width, color: o.color || '#e0f2fe', t: 0.16, max: 0.16 });
     },
@@ -681,6 +761,33 @@
   // 9. ABILITIES (return false to refuse, e.g. when there's no target)
   // ===================================================================
   const ring = (x, y, r1, color, t = 0.45) => game.fx.push({ type: 'ring', x, y, r0: 10, r1, color, t, max: t });
+  // move instantly (optionally hitting everything along the way)
+  function dash(p, angle, dist, o = {}) {
+    const x0 = p.x, y0 = p.y;
+    p.x += Math.cos(angle) * dist; p.y += Math.sin(angle) * dist; p.clampTo(view);
+    game.fx.push({ type: 'trail', x1: x0, y1: y0, x2: p.x, y2: p.y, color: o.color || '#ffffff', t: 0.35, max: 0.35 });
+    if (o.dmg) Combat.thrust(x0, y0, Math.atan2(p.y - y0, p.x - x0), Math.hypot(p.x - x0, p.y - y0), o.width || 40, o.dmg, { color: o.color, hit: o.hit });
+    p.hurtTimer = Math.max(p.hurtTimer, o.invuln ?? 0.35);
+  }
+  // the direction away from the closest enemy (or a random one)
+  function awayAngle(p) {
+    const e = game.nearestEnemy(p, 600);
+    if (e) return Math.atan2(p.y - e.y, p.x - e.x);
+    const mv = Input.moveVector();
+    return mv.x || mv.y ? Math.atan2(mv.y, mv.x) : rand(0, TAU);
+  }
+  // the biggest group of enemies near the player (for meteors, blizzards, rains)
+  function crowdSpot(p, range = 520) {
+    let best = null, bestN = 0;
+    for (const e of game.enemies) {
+      if (dist2(e, p) > range * range) continue;
+      let n = 0; for (const o of game.enemies) if (dist2(o, e) < 120 * 120) n++;
+      if (n > bestN) { bestN = n; best = e; }
+    }
+    return best ? { x: best.x, y: best.y } : null;
+  }
+  const zone = (z) => game.zones.push(Object.assign({ tick: 0, every: 0.3, opts: { knock: 0, quiet: true } }, z));
+  const nearest = (p, n, range) => game.enemies.filter((e) => !e.dead && dist2(e, p) < range * range).sort((a, b) => dist2(a, p) - dist2(b, p)).slice(0, n);
   const ABILITIES = {
     whirlwind(p) { p.whirl = 2.5; p.whirlTick = 0; },
     fireball(p) {
@@ -716,6 +823,98 @@
       const t = game.nearestEnemy(p, 900); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
       Combat.thrust(p.x, p.y, a, 520, 38, p.stats.damage * 3, { color: '#67e8f9' }); game.shake = 6;
     },
+    // --- warrior ---
+    charge(p) {
+      const t = game.nearestEnemy(p, 340); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : awayAngle(p) + Math.PI;
+      dash(p, a, t ? Math.min(260, Math.sqrt(dist2(t, p))) : 200, { dmg: p.stats.damage * 1.6, width: 48, color: '#fca5a5', hit: { knock: 3 } });
+      Combat.area(p.x, p.y, 80, p.stats.damage, { knock: 2 }); game.shake = 6;
+    },
+    battlecry(p) { p.buffs.cry = 6; ring(p.x, p.y, 140, '#f87171', 0.6); },
+    // --- mage ---
+    chainlightning(p) { const t = game.nearestEnemy(p, 500); if (!t) return false; Combat.damage(t, p.stats.damage * 2, { color: '#c4b5fd' }); Combat.chain(t, 6, 210, p.stats.damage * 2); },
+    blink(p) { const x0 = p.x, y0 = p.y; dash(p, awayAngle(p), 220, { color: '#c4b5fd', invuln: 0.5 }); Combat.area(x0, y0, 95, p.stats.damage * 1.6, { knock: 2 }); game.fx.push({ type: 'boom', x: x0, y: y0, r: 95, color: '#8b5cf6', t: 0.35, max: 0.35 }); },
+    // --- archer ---
+    arrowrain(p) { const c = crowdSpot(p); if (!c) return false; zone({ x: c.x, y: c.y, r: 115, t: 3, every: 0.22, dmg: p.stats.damage * 0.7, color: '#fde68a', rain: true }); },
+    roll(p) { dash(p, awayAngle(p), 170, { color: '#86efac', invuln: 0.45 }); p.focusShots = 3; },
+    // --- guardian ---
+    fortify(p) { p.buffs.fortify = 4; p.heal(p.stats.maxHp * 0.15); ring(p.x, p.y, 80, '#60a5fa', 0.5); },
+    shieldthrow(p) {
+      const t = game.nearestEnemy(p, 600); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 620, dmg: p.stats.damage * 2.2, size: 11, color: '#93c5fd', pierce: 99, range: 560, fx: { stun: 1.2 } }));
+    },
+    // --- assassin ---
+    fanofknives(p) { for (let i = 0; i < 16; i++) game.projectiles.push(new Projectile(p.x, p.y, (i / 16) * TAU, { speed: 700, dmg: p.stats.damage * 1.3, size: 3, color: '#e5e7eb', shape: 'arrow', pierce: 1, range: 300 })); },
+    smokebomb(p) { p.buffs.smoke = 3; Combat.area(p.x, p.y, 160, 1, { slow: { k: 0.6, t: 3 }, knock: 0, quiet: true }); game.fx.push({ type: 'boom', x: p.x, y: p.y, r: 160, color: '#64748b', t: 0.6, max: 0.6 }); p.focusShots = 1; },
+    // --- summoner ---
+    spiritburst(p) {
+      const sp = game.minions.filter((m) => m.kind === 'spirit'); if (!sp.length) return false;
+      for (const m of sp) { Combat.area(m.x, m.y, 110, p.stats.damage * 2, { knock: 2 }); game.fx.push({ type: 'boom', x: m.x, y: m.y, r: 110, color: '#5eead4', t: 0.35, max: 0.35 }); }
+    },
+    soullink(p) { p.heal(p.stats.maxHp * 0.3); p.buffs.frenzy = 6; ring(p.x, p.y, 120, '#5eead4', 0.6); },
+    // --- cleric ---
+    smite(p) {
+      const list = nearest(p, 3, 520); if (!list.length) return false;
+      for (const e of list) { Combat.damage(e, p.stats.damage * 3, { stun: 0.9 }); game.fx.push({ type: 'pillar', x: e.x, y: e.y, color: '#fef08a', t: 0.35, max: 0.35 }); }
+    },
+    divineshield(p) { p.buffs.divine = 3; ring(p.x, p.y, 70, '#fde68a', 0.5); },
+    // --- berserker ---
+    leapslam(p) {
+      const t = game.nearestEnemy(p, 380); if (!t) return false;
+      const a = Math.atan2(t.y - p.y, t.x - p.x); dash(p, a, Math.max(0, Math.sqrt(dist2(t, p)) - t.radius - 10), { color: '#fca5a5', invuln: 0.4 });
+      Combat.area(p.x, p.y, 125, p.stats.damage * 2.5, { stun: 1, knock: 3 }); game.fx.push({ type: 'boom', x: p.x, y: p.y, r: 125, color: '#b91c1c', t: 0.4, max: 0.4 }); game.shake = 9;
+    },
+    execute(p) {
+      const r = p.stats.range * 1.5;
+      Combat.melee(p.x, p.y, 0, r, TAU, p.stats.damage * 3, { knock: 2, color: '#ef4444' });
+      for (const e of game.enemies) if (!e.dead && e.hp < e.maxHp * 0.25 && dist2(e, p) < (r + e.radius) ** 2) { Combat.damage(e, e.hp + 1, { raw: true, color: '#ef4444' }); game.floatText(e.x, e.y - 20, 'EXECUTED', '#ef4444', true); }
+    },
+    // --- paladin ---
+    consecrate(p) { zone({ x: p.x, y: p.y, r: 135, t: 5, every: 0.4, dmg: p.stats.damage * 0.7, heal: 0.02, color: '#fcd34d' }); },
+    judgment(p) {
+      const t = game.nearestEnemy(p, 600); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 560, dmg: p.stats.damage * 3, size: 10, color: '#fbbf24', pierce: 2, range: 560, fx: { stun: 1.3 } }));
+    },
+    // --- necromancer ---
+    bonespear(p) {
+      const t = game.nearestEnemy(p, 700); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 760, dmg: p.stats.damage * 3, size: 6, color: '#e7e5e4', shape: 'arrow', pierce: 99, range: 700 }));
+    },
+    soulsiphon(p) { if (!game.nearestEnemy(p, 210)) return false; Combat.area(p.x, p.y, 210, p.stats.damage * 1.5, { drain: 0.5, knock: 0 }); ring(p.x, p.y, 210, '#a3e635', 0.55); },
+    // --- monk ---
+    palmstrike(p) { const t = game.nearestEnemy(p, 200); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim; Combat.thrust(p.x, p.y, a, 100, 80, p.stats.damage * 4, { color: '#fdba74', hit: { stun: 1.1, knock: 6 } }); game.shake = 5; },
+    innerpeace(p) { p.heal(p.stats.maxHp * 0.3); p.buffs.inner = 3; ring(p.x, p.y, 90, '#ffffff', 0.6); },
+    // --- pyromancer ---
+    meteor(p) {
+      const c = crowdSpot(p, 600); if (!c) return false;
+      game.fx.push({ type: 'mark', x: c.x, y: c.y, r: 150, color: '#f97316', t: 0.85, max: 0.85 });
+      game.timers.push({ t: 0.85, fn: () => { Combat.area(c.x, c.y, 150, p.stats.damage * 5, { burn: { dps: p.stats.damage * 1.2, t: 4 }, knock: 3 }); game.fx.push({ type: 'boom', x: c.x, y: c.y, r: 150, color: '#ea580c', t: 0.6, max: 0.6 }); game.shake = 12; } });
+    },
+    firetrail(p) { p.buffs.firetrail = 5; },
+    // --- gunner ---
+    grenade(p) {
+      const t = game.nearestEnemy(p, 520); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim, d = t ? Math.sqrt(dist2(t, p)) : 260;
+      game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 440, dmg: p.stats.damage * 6, size: 7, color: '#84cc16', range: d - 10, explode: { r: 115, mult: 1, color: '#a3e635' } }));
+    },
+    overdrive(p) { p.buffs.overdrive = 5; ring(p.x, p.y, 70, '#e2e8f0'); },
+    // --- druid ---
+    bearform(p) { p.buffs.bear = 8; p.heal(p.stats.maxHp * 0.2); ring(p.x, p.y, 90, '#a16207', 0.5); },
+    swarm(p) { for (let i = 0; i < 5; i++) game.minions.push(new Minion('bee', p.x + rand(-15, 15), p.y + rand(-15, 15), { life: 10 })); },
+    // --- engineer ---
+    overclock(p) { if (!game.minions.some((m) => m.kind === 'turret')) return false; p.buffs.overclock = 6; for (const m of game.minions) if (m.kind === 'turret') ring(m.x, m.y, 40, '#7dd3fc', 0.4); },
+    rockets(p) {
+      const list = nearest(p, 8, 600); if (!list.length) return false;
+      for (let i = 0; i < 8; i++) { const e = list[i % list.length], a = Math.atan2(e.y - p.y, e.x - p.x) + rand(-0.08, 0.08);
+        game.projectiles.push(new Projectile(p.x, p.y, a, { speed: 520, dmg: p.stats.damage * 2.2, size: 5, color: '#fb923c', range: Math.sqrt(dist2(e, p)) + 10, explode: { r: 60, mult: 1, color: '#f97316' } })); }
+    },
+    // --- spearman ---
+    sweep(p) { Combat.melee(p.x, p.y, 0, p.stats.range * 1.15, TAU, p.stats.damage * 1.9, { knock: 3.5, color: '#67e8f9' }); },
+    vault(p) { const t = game.nearestEnemy(p, 500); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim; dash(p, a, 230, { dmg: p.stats.damage * 2, width: 42, color: '#67e8f9', invuln: 0.5 }); },
+    // --- ice mage ---
+    iceshards(p) {
+      const t = game.nearestEnemy(p, 600); const a = t ? Math.atan2(t.y - p.y, t.x - p.x) : p.aim;
+      for (let i = 0; i < 7; i++) game.projectiles.push(new Projectile(p.x, p.y, a + (i - 3) * 0.14, { speed: 620, dmg: p.stats.damage * 1.6, size: 5, color: '#e0f2fe', pierce: 1, range: 460, fx: { slow: { k: 0.65, t: 3 } } }));
+    },
+    blizzard(p) { const c = crowdSpot(p) || { x: p.x, y: p.y }; zone({ x: c.x, y: c.y, r: 150, t: 5, every: 0.35, dmg: p.stats.damage * 0.55, opts: { slow: { k: 0.6, t: 1 }, knock: 0, quiet: true }, color: '#bae6fd', snow: true }); },
     frostnova(p) { Combat.area(p.x, p.y, 190, p.stats.damage * 1.2, { freeze: 2.5 }); ring(p.x, p.y, 190, '#bae6fd', 0.55); },
   };
 
@@ -761,7 +960,7 @@
   const game = {
     state: 'menu',      // menu | playing | levelup | paused | over
     cls: null, player: null,
-    enemies: [], projectiles: [], enemyShots: [], minions: [], gems: [], particles: [], fx: [],
+    enemies: [], projectiles: [], enemyShots: [], minions: [], gems: [], particles: [], fx: [], zones: [], timers: [],
     waves: new WaveManager(), kills: 0, time: 0, shake: 0,
 
     nearestEnemy(from, range) {
@@ -821,6 +1020,18 @@
       for (const g of this.gems) g.update(dt);
       for (const q of this.particles) q.update(dt);
       for (const f of this.fx) { f.t -= dt; if (f.type === 'text') f.y -= 40 * dt; }
+      // ground effects (consecration, blizzards, rains, fire trails)
+      for (const z of this.zones) {
+        z.t -= dt; z.tick -= dt;
+        if (z.tick <= 0) {
+          z.tick = z.every;
+          if (z.dmg) Combat.area(z.x, z.y, z.r, z.dmg, Object.assign({ knock: 0 }, z.opts));
+          if (z.heal && dist2(z, p) < z.r * z.r) p.heal(p.stats.maxHp * z.heal, true);
+        }
+      }
+      this.zones = this.zones.filter((z) => z.t > 0);
+      for (const tm of this.timers) { tm.t -= dt; if (tm.t <= 0 && !tm.done) { tm.done = true; tm.fn(); } }
+      this.timers = this.timers.filter((tm) => !tm.done);
 
       // your shots
       for (const b of this.projectiles) {
@@ -869,6 +1080,7 @@
       ctx.translate(sx, sy);
       drawFloor();
       const p = this.player || { x: view.w / 2, y: view.h / 2 };
+      drawZones();
       for (const g of this.gems) g.draw(ctx);
       for (const q of this.particles) q.draw(ctx);
       for (const m of this.minions) if (m.kind === 'mine' || m.kind === 'turret') m.draw(ctx);
@@ -900,6 +1112,26 @@
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
     ctx.fillStyle = vg; ctx.fillRect(-20, -20, view.w + 40, view.h + 40);
   }
+  function drawZones() {
+    for (const z of game.zones) {
+      const k = Math.min(1, z.t / 0.5);
+      ctx.globalAlpha = 0.9 * k;
+      const g = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r);
+      g.addColorStop(0, z.color + '55'); g.addColorStop(1, z.color + '11');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.fill();
+      ctx.strokeStyle = z.color; ctx.lineWidth = 2; ctx.setLineDash([8, 6]); ctx.lineDashOffset = -game.time * 30;
+      ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      if (z.rain || z.snow) {
+        ctx.strokeStyle = z.rain ? '#fde68a' : '#f0f9ff'; ctx.lineWidth = z.rain ? 2 : 3; ctx.lineCap = 'round';
+        for (let i = 0; i < 12; i++) {
+          const a = rand(0, TAU), d = Math.sqrt(Math.random()) * z.r, x = z.x + Math.cos(a) * d, y = z.y + Math.sin(a) * d;
+          ctx.beginPath(); ctx.moveTo(x, y - (z.rain ? 14 : 2)); ctx.lineTo(x + (z.snow ? 2 : 0), y); ctx.stroke();
+        }
+        ctx.lineCap = 'butt';
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
   // visual effects: slashes, rings, explosions, lightning, damage numbers
   function drawFx() {
     for (const f of game.fx) {
@@ -926,6 +1158,16 @@
         ctx.beginPath();
         f.pts.forEach((pt, i) => { if (!i) { ctx.moveTo(pt.x, pt.y); return; } const prev = f.pts[i - 1]; for (let s = 1; s <= 4; s++) { const u = s / 4; ctx.lineTo(prev.x + (pt.x - prev.x) * u + (s < 4 ? rand(-8, 8) : 0), prev.y + (pt.y - prev.y) * u + (s < 4 ? rand(-8, 8) : 0)); } });
         ctx.stroke(); ctx.shadowBlur = 0;
+      } else if (f.type === 'pillar') {
+        const g = ctx.createLinearGradient(f.x, 0, f.x, f.y);
+        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, f.color);
+        ctx.fillStyle = g; ctx.fillRect(f.x - 9 * k, 0, 18 * k, f.y);
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(f.x, f.y, 16 * k, 0, TAU); ctx.fill();
+      } else if (f.type === 'mark') {
+        // a warning circle where a meteor is about to land
+        ctx.globalAlpha = 0.9; ctx.strokeStyle = f.color; ctx.lineWidth = 3; ctx.setLineDash([10, 8]);
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = f.color + '33'; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (1 - k), 0, TAU); ctx.fill();
       } else if (f.type === 'trail') {
         ctx.strokeStyle = f.color; ctx.lineWidth = 10 * k; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
@@ -942,7 +1184,7 @@
     game.cls = classById(UI.selected);
     game.state = 'playing';
     game.player = new Player(game.cls, view.w / 2, view.h / 2);
-    game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.particles = []; game.fx = [];
+    game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.particles = []; game.fx = []; game.zones = []; game.timers = [];
     game.kills = 0; game.time = 0; game.shake = 0;
     game.waves = new WaveManager(); game.waves.startWave(1);
     Input.clear();
@@ -950,7 +1192,7 @@
   }
   function pause() { if (game.state !== 'playing') return; game.state = 'paused'; Input.clear(); UI.showPause(true); }
   function resume() { if (game.state !== 'paused') return; game.state = 'playing'; UI.showPause(false); }
-  function toMenu() { game.state = 'menu'; game.player = null; game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.fx = []; UI.showMenu(); }
+  function toMenu() { game.state = 'menu'; game.player = null; game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.fx = []; game.zones = []; game.timers = []; UI.showMenu(); }
 
   // ===================================================================
   // 12. UI
@@ -963,7 +1205,7 @@
       hud: $('hud'), portraitIcon: $('portraitIcon'), lvl: $('lvlText'), heroName: $('heroName'), hpFill: $('hpFill'), hpText: $('hpText'), xpFill: $('xpFill'), buffs: $('buffs'),
       wave: $('waveText'), enemies: $('enemiesText'), kills: $('killsText'), banner: $('banner'),
       menu: $('menu'), pause: $('pauseMenu'), over: $('gameOver'), overStats: $('overStats'), newBest: $('newBest'), levelUp: $('levelUp'),
-      ab: $('abilityBtn'), abIcon: $('abIcon'), abCd: $('abCd'), abRing: $('abRing'), abName: $('abName'), stick: $('stick'), knob: $('knob'),
+      ab: $('abilities'), abName: $('abName'), stick: $('stick'), knob: $('knob'),
     },
     last: '',
     init() {
@@ -979,8 +1221,8 @@
         grid.appendChild(b);
       }
       $('howto').innerHTML = isTouch
-        ? '<b>Drag anywhere</b> to move. You attack automatically. Tap the <b>ability button</b> for your special move. Collect <b>XP gems</b> to level up.'
-        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack automatically. <b>Space</b> uses your special ability. Collect <b>XP gems</b> to level up and choose upgrades.';
+        ? '<b>Drag anywhere</b> to move. You attack automatically. Tap the <b>skill buttons</b> for your special moves. Collect <b>XP gems</b> to level up.'
+        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack automatically. Use your three skills with <b>Q</b> (or Space), <b>E</b> and <b>R</b>. Collect <b>XP gems</b> to level up and choose upgrades.';
       this.selectClass(this.selected);
       $('startBtn').addEventListener('click', startGame);
       $('restartBtn').addEventListener('click', startGame);
@@ -992,7 +1234,7 @@
         else if (b.dataset.act === 'restart') { this.showPause(false); startGame(); }
         else if (b.dataset.act === 'menu') toMenu();
       });
-      this.el.ab.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); if (game.state === 'playing') game.player.useAbility(); });
+
     },
     bestFor(id) { try { return Number(localStorage.getItem('survivalBest_' + id)) || 0; } catch (e) { return 0; } },
     selectClass(id) {
@@ -1005,7 +1247,7 @@
       });
       $('cdIcon').textContent = c.icon; $('cdIcon').style.borderColor = c.color;
       $('cdName').textContent = c.name; $('cdRole').textContent = c.role; $('cdDesc').textContent = c.desc;
-      $('cdAbIcon').textContent = c.ability.icon; $('cdAbName').textContent = c.ability.name; $('cdAbDesc').textContent = c.ability.desc; $('cdAbCd').textContent = c.ability.cd + 's cooldown';
+      $('cdSkills').innerHTML = '<div class="cd-label">SKILLS</div>' + c.abilities.map((sk, i) => '<div class="sk-row"><span class="sk-ic">' + sk.icon + '</span><div><div class="sk-nm">' + sk.name + ' <span class="sk-key">' + SKILL_KEYS[i] + '</span><span class="sk-cd">' + sk.cd + 's</span></div><div class="cd-small">' + sk.desc + '</div></div></div>').join('');
       $('cdPassive').textContent = c.passive.text; $('cdBest').textContent = this.bestFor(id);
       // rough 0..1 ratings for the stat bars
       const dps = c.attack.kind === 'deploy' ? 26 : (s.damage / s.cooldown) * (1 + s.crit * (s.critMult - 1));
@@ -1014,15 +1256,20 @@
     },
     update() {
       const p = game.player; if (!p) return;
-      const cd = p.abilityTimer, cdMax = p.abilityCooldown;
-      this.el.abRing.style.setProperty('--cd', (cd > 0 ? (cd / cdMax) * 100 : 0) + '%');
-      const cdText = cd > 0 ? Math.ceil(cd) : '';
-      if (this.el.abCd.textContent !== String(cdText)) this.el.abCd.textContent = cdText;
-      this.el.ab.classList.toggle('ready', cd <= 0);
+      (this.abBtns || []).forEach((b, i) => {
+        const cd = p.abilityTimers[i], cdMax = p.abilityCooldown(i);
+        b.ring.style.setProperty('--cd', (cd > 0 ? (cd / cdMax) * 100 : 0) + '%');
+        const t = cd > 0 ? String(Math.ceil(cd)) : '';
+        if (b.cd.textContent !== t) b.cd.textContent = t;
+        b.el.classList.toggle('ready', cd <= 0);
+      });
       const buffs = [];
       if (p.buffs.rage > 0) buffs.push('🩸 Rage ' + Math.ceil(p.buffs.rage) + 's');
       if (p.buffs.might > 0) buffs.push('✨ +50% dmg ' + Math.ceil(p.buffs.might) + 's');
       if (p.whirl > 0) buffs.push('🌀 Whirlwind');
+      const named = { cry: '📯 Battle Cry', fortify: '🧱 Fortify', divine: '🛡️ Divine', smoke: '🌫️ Hidden', inner: '☯️ Peace', frenzy: '🔗 Frenzy', overdrive: '⚙️ Overdrive', bear: '🐻 Bear', overclock: '🔋 Overclock', firetrail: '👣 Fire Trail' };
+      for (const k in named) if (p.buffs[k] > 0) buffs.push(named[k] + ' ' + Math.ceil(p.buffs[k]) + 's');
+      if (p.focusShots > 0) buffs.push('🎯 Crit ×' + p.focusShots);
       const pets = game.minions.length;
       if (pets) buffs.push('🐾 ' + pets);
       const key = [Math.ceil(p.hp), Math.round(p.stats.maxHp), p.level, Math.floor(p.xp), game.waves.wave, game.waves.remaining, game.kills, game.waves.phase, buffs.join()].join('|');
@@ -1042,16 +1289,25 @@
       const b = this.el.banner; b.textContent = text; b.classList.toggle('cleared', cleared);
       b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
     },
-    flashAbility() { this.el.abName.classList.remove('hidden'); clearTimeout(this.abT); this.abT = setTimeout(() => this.el.abName.classList.add('hidden'), 1200); },
+    flashAbility(sk) { if (sk) this.el.abName.textContent = sk.icon + ' ' + sk.name; this.el.abName.classList.remove('hidden'); clearTimeout(this.abT); this.abT = setTimeout(() => this.el.abName.classList.add('hidden'), 1200); },
     hideAll() { for (const k of ['menu', 'pause', 'over', 'levelUp']) this.el[k].classList.add('hidden'); },
     showMenu() { this.hideAll(); this.selectClass(this.selected); this.el.menu.classList.remove('hidden'); this.el.hud.classList.add('hidden'); this.el.ab.classList.add('hidden'); this.el.abName.classList.add('hidden'); },
     showPlaying() {
       this.hideAll(); this.last = '';
       const c = game.cls;
       this.el.portraitIcon.textContent = c.icon; this.el.portraitIcon.parentElement.style.borderColor = c.color;
-      this.el.heroName.textContent = c.name; this.el.abIcon.textContent = c.ability.icon; this.el.abName.textContent = c.ability.name;
+      this.el.heroName.textContent = c.name;
+      // one button per skill
+      this.el.ab.innerHTML = ''; this.abBtns = [];
+      c.abilities.forEach((sk, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'ab-btn' + (i === 0 ? ' main' : ''); b.title = sk.name + ' (' + SKILL_KEYS[i] + '): ' + sk.desc;
+        b.innerHTML = '<span class="ab-ring"></span><span class="ab-icon">' + sk.icon + '</span><span class="ab-cd"></span><span class="ab-key">' + (isTouch ? sk.name.split(' ')[0].toUpperCase() : (i === 0 ? 'Q / SPC' : SKILL_KEYS[i])) + '</span>';
+        b.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); if (game.state === 'playing') game.player.useAbility(i); });
+        this.el.ab.appendChild(b);
+        this.abBtns.push({ el: b, ring: b.querySelector('.ab-ring'), cd: b.querySelector('.ab-cd') });
+      });
       this.el.hud.classList.remove('hidden'); this.el.ab.classList.remove('hidden');
-      this.el.ab.querySelector('.ab-key').textContent = isTouch ? 'TAP' : 'SPACE';
     },
     showPause(on) { this.el.pause.classList.toggle('hidden', !on); },
     // level up: pause and offer 3 upgrades
