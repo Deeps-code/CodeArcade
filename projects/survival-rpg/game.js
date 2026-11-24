@@ -419,6 +419,7 @@
     if (MOVE_KEYS.includes(e.code)) { e.preventDefault(); Input.keys.add(e.code); }
     if (e.repeat) return;
     if (e.code === 'KeyM') UI.toggleSound();
+    if (e.code === 'KeyN') UI.toggleMusic();
     if (e.code === 'KeyP' || e.code === 'Escape') { if (game.state === 'playing') pause(); else if (game.state === 'paused') resume(); }
     if (game.state === 'playing') {
       const slot = e.code === 'Space' || e.code === 'KeyQ' ? 0 : e.code === 'KeyE' ? 1 : e.code === 'KeyR' ? 2 : -1;
@@ -2073,7 +2074,7 @@
       const b = new Enemy(type, view.w / 2, -60, this.scale, tier);
       game.enemies.push(b); game.boss = b;
       UI.banner(b.def.name.toUpperCase() + (tier > 1 ? ' ' + 'I'.repeat(Math.min(tier, 3)) : ''));
-      FX.flash(b.def.color, 0.3); game.shake = 14; FX.slow(0.2); SFX.play('bossRoar');
+      FX.flash(b.def.color, 0.3); game.shake = 14; FX.slow(0.2); SFX.play('bossRoar'); SFX.music('boss');
     }
     spawnAt(key, x, y) { game.enemies.push(new Enemy(key, x, y, this.scale)); }
     get remaining() { return this.queue + game.enemies.length + (this.bossTimer > 0 ? 1 : 0); }
@@ -2160,6 +2161,7 @@
       SFX.play(e.boss ? 'bossDie' : 'pop');
       if (e.boss) {   // a boss falls: big explosion, a shower of XP, and a heal
         if (this.boss === e) this.boss = null;
+        SFX.music('battle');
         FX.shock(e.x, e.y, 200, e.def.color); FX.embers(e.x, e.y, e.def.color, 40, 420); FX.embers(e.x, e.y, '#fde68a', 20, 300);
         FX.add({ type: 'boom', x: e.x, y: e.y, r: 180, color: e.def.color, t: 0.7, max: 0.7 }); FX.flash('#ffffff', 0.45); FX.slow(0.35); this.shake = 20;
         const total = Math.round(e.def.xp * (1 + this.waves.wave * 0.04));
@@ -2187,7 +2189,7 @@
       for (const g of this.gems) { g.vx = (this.player.x - g.x) * 3; g.vy = (this.player.y - g.y) * 3; }   // pull in leftover XP
     },
     onPlayerDied() {
-      this.state = 'over'; Input.clear(); SFX.play('gameover');
+      this.state = 'over'; Input.clear(); SFX.play('gameover'); SFX.music('off');
       const wave = this.waves.wave, key = 'survivalBest_' + this.cls.id;
       let best = 0; try { best = Number(localStorage.getItem(key)) || 0; } catch (e) { /* storage blocked */ }
       const isBest = wave > best;
@@ -2637,9 +2639,10 @@
     game.waves = new WaveManager(); game.waves.startWave(1);
     Input.clear();
     UI.showPlaying();
+    SFX.music('battle'); SFX.duck(false);
   }
-  function pause() { if (game.state !== 'playing') return; game.state = 'paused'; Input.clear(); UI.showPause(true); }
-  function resume() { if (game.state !== 'paused') return; game.state = 'playing'; UI.showPause(false); }
+  function pause() { if (game.state !== 'playing') return; game.state = 'paused'; Input.clear(); UI.showPause(true); SFX.duck(true); }
+  function resume() { if (game.state !== 'paused') return; game.state = 'playing'; UI.showPause(false); SFX.duck(false); }
   function toMenu() { game.state = 'menu'; game.player = null; game.boss = null; game.chests = []; game.bonusPicks = 0; game.enemies = []; game.projectiles = []; game.enemyShots = []; game.minions = []; game.gems = []; game.fx = []; game.zones = []; game.timers = []; game.texts = []; UI.showMenu(); }
 
   // ===================================================================
@@ -2672,12 +2675,14 @@
       }
       $('howto').innerHTML = isTouch
         ? '<b>Drag on the left</b> to move. You aim automatically, or <b>drag on the right</b> to aim yourself. <b>Tap a skill</b> to cast it, or <b>drag from it</b> to aim it. Tap <b>AUTO</b> on a skill to have it cast itself. Collect <b>XP gems</b> to level up.'
-        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Skills (<b>Q</b> or Space, <b>E</b>, <b>R</b>) fire toward your <b>cursor</b>; <b>Shift+Q/E/R</b> or the <b>AUTO</b> tag makes a skill cast itself. Collect <b>XP gems</b> to level up and choose upgrades. <b>M</b> turns sound on or off.';
+        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Skills (<b>Q</b> or Space, <b>E</b>, <b>R</b>) fire toward your <b>cursor</b>; <b>Shift+Q/E/R</b> or the <b>AUTO</b> tag makes a skill cast itself. Collect <b>XP gems</b> to level up and choose upgrades. <b>M</b> / <b>N</b> turn sound / music on or off.';
       this.selectClass(this.selected);
       $('startBtn').addEventListener('click', startGame);
       $('restartBtn').addEventListener('click', startGame);
       $('heroesBtn').addEventListener('click', toMenu);
       $('muteBtn').addEventListener('click', () => this.toggleSound());
+      $('musicBtn').addEventListener('click', () => this.toggleMusic());
+      $('menuMusicBtn').addEventListener('click', () => this.toggleMusic());
       this.showSound();
       $('pauseBtn').addEventListener('click', () => (game.state === 'paused' ? resume() : pause()));
       $('pauseMenu').addEventListener('click', (e) => {
@@ -2766,7 +2771,7 @@
     },
     flashAbility(sk) { if (sk) this.el.abName.innerHTML = skillLabel(sk); this.el.abName.classList.remove('hidden'); clearTimeout(this.abT); this.abT = setTimeout(() => this.el.abName.classList.add('hidden'), 1200); },
     hideAll() { for (const k of ['menu', 'pause', 'over', 'levelUp']) this.el[k].classList.add('hidden'); },
-    showMenu() { this.hideAll(); this.selectClass(this.selected); this.el.menu.classList.remove('hidden'); this.el.hud.classList.add('hidden'); this.el.ab.classList.add('hidden'); this.el.abName.classList.add('hidden'); },
+    showMenu() { SFX.music('menu'); SFX.duck(false); this.hideAll(); this.selectClass(this.selected); this.el.menu.classList.remove('hidden'); this.el.hud.classList.add('hidden'); this.el.ab.classList.add('hidden'); this.el.abName.classList.add('hidden'); },
     showPlaying() {
       this.hideAll(); this.last = '';
       const c = game.cls;
@@ -2811,7 +2816,14 @@
     },
     // sound on / off (the M key or the speaker button)
     toggleSound() { SFX.toggle(); this.showSound(); },
+    toggleMusic() { SFX.toggleMusic(); this.showSound(); },
     showSound() {
+      // music: a note, crossed out when off (HUD button + the one on the hero select screen)
+      const mOn = SFX.musicOn;
+      const note = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 17.5a3 3 0 1 1-2-2.83V5l12-2v12.5a3 3 0 1 1-2-2.83V7.3L9 8.6z"/>'
+        + (mOn ? '' : '<path d="M3 3l18 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>') + '</svg>';
+      const mb = $('musicBtn'); mb.innerHTML = note; mb.title = (mOn ? 'Music on' : 'Music off') + ' (N)'; mb.setAttribute('aria-label', mOn ? 'Turn music off (N)' : 'Turn music on (N)');
+      const mm = $('menuMusicBtn'); mm.innerHTML = note + '<span>Music: ' + (mOn ? 'on' : 'off') + '</span>'; mm.setAttribute('aria-pressed', String(mOn));
       const off = SFX.muted, b = $('muteBtn');
       b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 9h4l5-4v14l-5-4H3z"/>'
         + (off ? '<path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'

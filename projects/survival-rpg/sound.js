@@ -5,12 +5,18 @@
    SFX.play(name, { vol, combo })   play a sound (rapid repeats are thinned out)
    SFX.toggle()                     mute / unmute (remembered), returns true when muted
    SFX.muted                        current state
+   SFX.music(mode)                  background music: "menu" | "battle" | "boss" | "off"
+   SFX.toggleMusic() / SFX.duck(on) music on/off (remembered) / quieter while paused
    Browsers only allow sound after the first tap / key press; that's handled here.
    ===================================================================== */
 (() => {
   'use strict';
   let ac = null, master = null, noiseBuf = null, muted = false;
   try { muted = localStorage.getItem('survivalMute') === '1'; } catch (e) { /* storage blocked */ }
+  // background music state (the engine is further down)
+  const M = { want: 'off', mode: 'off', on: true, duck: false, gain: null, step: 0, next: 0 };
+  try { M.on = localStorage.getItem('survivalMusic') !== '0'; } catch (e) { /* storage blocked */ }
+  const musicLevel = () => (M.on ? (M.duck ? 0.18 : 0.42) : 0);
   const last = {};
   const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -23,6 +29,8 @@
       const comp = ac.createDynamicsCompressor();   // keeps many sounds at once from clipping
       comp.threshold.value = -14; comp.ratio.value = 6;
       master.connect(comp); comp.connect(ac.destination);
+      // background music has its own volume, so it can be switched off separately
+      M.gain = ac.createGain(); M.gain.gain.value = musicLevel(); M.gain.connect(comp);
       noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
       const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
@@ -38,23 +46,27 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   }
   // a pitched tone that can slide from f0 to f1
+  //   (o.at = an exact start time, o.dest = where it goes, o.lp = a lowpass filter, o.detune in cents)
   function tone(o) {
-    const t = ac.currentTime + (o.delay || 0), osc = ac.createOscillator(), g = ac.createGain();
+    const t = o.at ?? ac.currentTime + (o.delay || 0), osc = ac.createOscillator(), g = ac.createGain();
     osc.type = o.type || 'sine';
     osc.frequency.setValueAtTime(o.f0, t);
+    if (o.detune) osc.detune.value = o.detune;
     if (o.f1) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.f1), t + o.dur);
     env(g, t, o.vol, o.attack || 0.005, o.dur);
-    osc.connect(g); g.connect(master); osc.start(t); osc.stop(t + o.dur + 0.03);
+    let out = osc;
+    if (o.lp) { const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; osc.connect(f); out = f; }
+    out.connect(g); g.connect(o.dest || master); osc.start(t); osc.stop(t + o.dur + 0.03);
   }
   // filtered noise: whooshes, thuds, explosions
   function noise(o) {
-    const t = ac.currentTime + (o.delay || 0), src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    const t = o.at ?? ac.currentTime + (o.delay || 0), src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
     src.buffer = noiseBuf;
     f.type = o.filter || 'lowpass'; f.Q.value = o.q || 0.8;
     f.frequency.setValueAtTime(o.f0, t);
     if (o.f1) f.frequency.exponentialRampToValueAtTime(Math.max(20, o.f1), t + o.dur);
     env(g, t, o.vol, o.attack || 0.004, o.dur);
-    src.connect(f); f.connect(g); g.connect(master);
+    src.connect(f); f.connect(g); g.connect(o.dest || master);
     src.start(t, Math.random() * 0.5); src.stop(t + o.dur + 0.03);
   }
   // a quick run of notes
@@ -105,5 +117,66 @@
     if (!muted) { ensure(); play('click'); }
     return muted;
   }
-  window.SFX = { play, toggle, get muted() { return muted; } };
+  // ===================================================================
+  // Background music: a looping dark-fantasy track in A minor, generated live.
+  //   menu   calm pads and a slow arpeggio
+  //   battle a driving groove: bass, arpeggio, drums
+  //   boss   faster and heavier, with a darker chord change
+  // Changes of mood wait for the next bar so it never jumps mid-phrase.
+  // ===================================================================
+  const mf = (n) => 440 * Math.pow(2, (n - 69) / 12);   // MIDI note -> Hz
+  const MOODS = {
+    menu:   { bpm: 74,  chords: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]], drums: 0, bass: 0, arp: 'slow' },
+    battle: { bpm: 104, chords: [[57, 60, 64], [53, 57, 60], [50, 53, 57], [52, 56, 59]], drums: 1, bass: 1, arp: 'fast' },
+    boss:   { bpm: 132, chords: [[57, 60, 64], [58, 62, 65], [57, 60, 64], [52, 56, 59]], drums: 2, bass: 2, arp: 'fast' },
+  };
+  const has = (arr, s) => arr.indexOf(s) >= 0;
+  function playStep(md, step, t, spb) {
+    const bar = Math.floor(step / 16), s = step % 16, ch = md.chords[bar % 4], dest = M.gain;
+    // pads: a soft, slightly detuned chord held for the whole bar
+    if (s === 0) for (const n of ch) for (const dt of [-8, 8]) tone({ at: t, type: 'triangle', f0: mf(n), detune: dt, dur: spb * 16, vol: 0.022, attack: 0.5, lp: 1400, dest });
+    // bass
+    if (md.bass === 0 && s === 0) tone({ at: t, type: 'sine', f0: mf(ch[0] - 24), dur: spb * 15, vol: 0.09, attack: 0.3, dest });
+    if (md.bass === 1 && has([0, 3, 6, 8, 10, 12, 14], s)) tone({ at: t, type: 'sawtooth', f0: mf(ch[0] - (s === 6 || s === 14 ? 12 : 24)), dur: spb * 1.8, vol: 0.07, lp: 420, dest });
+    if (md.bass === 2 && s % 2 === 0) tone({ at: t, type: 'sawtooth', f0: mf(ch[0] - (s % 8 === 6 ? 12 : 24)), dur: spb * 1.6, vol: 0.08, lp: 700, dest });
+    // arpeggio over the chord
+    if (md.arp === 'slow' && s % 4 === 0) tone({ at: t, type: 'triangle', f0: mf(ch[(s / 4) % 3] + 12 + (bar % 2 ? 12 : 0)), dur: spb * 5, vol: 0.03, attack: 0.02, lp: 2200, dest });
+    if (md.arp === 'fast' && s % 2 === 0) tone({ at: t, type: 'square', f0: mf(ch[(s / 2) % 3] + 12 + (Math.floor(s / 8) % 2 ? 12 : 0)), dur: spb * 1.4, vol: 0.016, lp: 1800, dest });
+    // drums
+    if (md.drums) {
+      const kicks = md.drums === 2 ? [0, 4, 8, 12, 14] : bar % 2 ? [0, 8, 10] : [0, 8];
+      if (has(kicks, s)) tone({ at: t, type: 'sine', f0: 140, f1: 42, dur: 0.2, vol: 0.2, dest });
+      if (s === 4 || s === 12) { noise({ at: t, filter: 'bandpass', f0: 1900, q: 0.9, dur: 0.13, vol: 0.08, dest }); tone({ at: t, type: 'triangle', f0: 200, f1: 150, dur: 0.07, vol: 0.04, dest }); }
+      if (md.drums === 2 || s % 2 === 1) noise({ at: t, filter: 'highpass', f0: 7500, dur: 0.03, vol: md.drums === 2 ? 0.025 : 0.03, dest });
+      if (md.drums === 2 && step === 0) noise({ at: t, filter: 'highpass', f0: 3000, dur: 1.2, vol: 0.05, dest });   // a crash every 4 bars
+    }
+  }
+  function musicTick() {
+    if (!ac || ac.state !== 'running' || !M.gain) return;
+    if (M.mode !== M.want) {
+      // start / stop right away; switch between moods on the next bar
+      if (M.mode === 'off' || M.want === 'off') { M.mode = M.want; M.step = 0; M.next = ac.currentTime + 0.05; }
+      else if (M.step % 16 === 0) M.mode = M.want;
+    }
+    if (M.mode === 'off') return;
+    const md = MOODS[M.mode], spb = 60 / md.bpm / 4;   // seconds per 16th note
+    if (M.next < ac.currentTime) M.next = ac.currentTime + 0.05;
+    while (M.next < ac.currentTime + 0.2) {
+      try { playStep(md, M.step, M.next, spb); } catch (e) { /* never let music break the game */ }
+      M.next += spb; M.step = (M.step + 1) % 64;
+      if (M.mode !== M.want && M.step % 16 === 0) break;   // let the next tick switch moods on the bar
+    }
+  }
+  setInterval(musicTick, 40);
+  function music(mode) { M.want = MOODS[mode] ? mode : 'off'; }
+  function setMusicGain() { if (M.gain) M.gain.gain.setTargetAtTime(musicLevel(), ac.currentTime, 0.15); }
+  function toggleMusic() {
+    M.on = !M.on;
+    try { localStorage.setItem('survivalMusic', M.on ? '1' : '0'); } catch (e) { /* ignore */ }
+    ensure(); setMusicGain();
+    return M.on;
+  }
+  function duck(on) { M.duck = !!on; setMusicGain(); }   // quieter while paused
+
+  window.SFX = { play, toggle, music, toggleMusic, duck, get muted() { return muted; }, get musicOn() { return M.on; }, get musicMode() { return M.mode; } };
 })();
