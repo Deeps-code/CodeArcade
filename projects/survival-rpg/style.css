@@ -135,8 +135,10 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
 .newbest { margin-top: 8px; color: var(--gold2); font-family: var(--head); font-weight: 900; letter-spacing: 0.16em; font-size: 14px; }
 
 /* ===== hero select ===== */
-.overlay#menu { align-items: flex-start; }
-.select { width: 100%; max-width: 1060px; margin: auto; }
+/* top-aligned (not re-centered) and with the scrollbar space always reserved, so picking a hero
+   whose info panel is taller or shorter never makes the screen jump */
+.overlay#menu { align-items: flex-start; scrollbar-gutter: stable; }
+.select { width: 100%; max-width: 1060px; margin: 0 auto; padding-top: clamp(0px, 4vh, 40px); }
 .select-head { text-align: center; margin: 6px 0 14px; }
 .choose { font-family: var(--head); font-weight: 800; color: var(--gold2); letter-spacing: 0.2em; font-size: 13px; margin-top: 8px; }
 .select-body { display: grid; grid-template-columns: 1fr 330px; gap: 14px; align-items: start; }
