@@ -52,7 +52,11 @@
         <div class="choose">— CHOOSE YOUR HERO —</div>
       </header>
       <div class="select-body">
-        <div class="class-grid" id="classGrid"></div>
+        <!-- the how-to text lives under the hero grid, so the info card changing height never moves it -->
+        <div class="select-left">
+          <div class="class-grid" id="classGrid"></div>
+          <p class="howto" id="howto"></p>
+        </div>
         <aside class="class-detail panel" id="classDetail">
           <div class="cd-top">
             <div class="cd-icon" id="cdIcon">⚔️</div>
@@ -69,7 +73,6 @@
           <button type="button" class="btn primary" id="startBtn">⚔ BEGIN</button>
         </aside>
       </div>
-      <p class="howto" id="howto"></p>
     </div>
   </div>
 

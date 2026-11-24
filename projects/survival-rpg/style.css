@@ -171,7 +171,8 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
 .cd-best { margin-top: 10px; font-size: 12px; color: var(--dim); }
 .cd-best b { color: var(--gold2); }
 .class-detail .btn { width: 100%; margin-top: 12px; }
-.howto { text-align: center; color: var(--dim); font-size: 13px; margin: 14px auto 6px; max-width: 640px; line-height: 1.5; }
+.howto { text-align: center; color: var(--dim); font-size: 13px; margin: 16px auto 6px; max-width: 640px; line-height: 1.5; }
+.select-left { min-width: 0; }
 .howto b { color: var(--ink); }
 
 /* ===== level up ===== */

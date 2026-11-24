@@ -2480,8 +2480,8 @@
         grid.appendChild(b);
       }
       $('howto').innerHTML = isTouch
-        ? '<b>Drag on the left</b> to move. You aim automatically, or <b>drag on the right</b> to aim yourself. <b>Tap a skill</b> to cast it, or <b>drag from it</b> to aim it. Tap <b>AUTO</b> on a skill to have it cast itself. Tap the <b>skill buttons</b> for your special moves. Collect <b>XP gems</b> to level up.'
-        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Skills (<b>Q</b>, <b>E</b>, <b>R</b>) fire toward your <b>cursor</b>; <b>Shift+Q/E/R</b> or the <b>AUTO</b> tag makes a skill cast itself. Use your three skills with <b>Q</b> (or Space), <b>E</b> and <b>R</b>. Collect <b>XP gems</b> to level up and choose upgrades.';
+        ? '<b>Drag on the left</b> to move. You aim automatically, or <b>drag on the right</b> to aim yourself. <b>Tap a skill</b> to cast it, or <b>drag from it</b> to aim it. Tap <b>AUTO</b> on a skill to have it cast itself. Collect <b>XP gems</b> to level up.'
+        : 'Move with <b>WASD</b> or the <b>arrow keys</b>. You attack and aim automatically; <b>hold the mouse</b> to aim yourself. Skills (<b>Q</b> or Space, <b>E</b>, <b>R</b>) fire toward your <b>cursor</b>; <b>Shift+Q/E/R</b> or the <b>AUTO</b> tag makes a skill cast itself. Collect <b>XP gems</b> to level up and choose upgrades.';
       this.selectClass(this.selected);
       $('startBtn').addEventListener('click', startGame);
       $('restartBtn').addEventListener('click', startGame);
