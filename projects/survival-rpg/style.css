@@ -85,6 +85,13 @@ button { font: inherit; color: inherit; }
 .ab-cd { grid-area: 1 / 1; z-index: 3; font-family: var(--head); font-weight: 900; font-size: 22px; color: #fff; text-shadow: 0 2px 4px #000; }
 .ab-key { position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
   padding: 2px 6px; border-radius: 6px; background: #1a1205; border: 1px solid var(--gold); color: var(--gold2); z-index: 4; }
+/* AUTO tag on each skill: tap it to have the skill cast itself */
+.ab-auto { position: absolute; top: -10px; right: -12px; z-index: 5; padding: 4px 6px; border-radius: 8px; cursor: pointer;
+  font-size: 9px; font-weight: 900; letter-spacing: 0.08em; line-height: 1; touch-action: none;
+  background: #1a1205; border: 1px solid #6b5a3a; color: #8a7a5c; }
+.ab-auto:hover { color: var(--gold2); border-color: var(--gold); }
+.ab-btn.auto .ab-auto { background: #14532d; border-color: #4ade80; color: #bbf7d0; box-shadow: 0 0 10px rgba(74, 222, 128, 0.6); }
+.ab-btn.auto { border-color: #4ade80; }
 #abName { position: fixed; z-index: 3; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 90px); left: 50%; transform: translateX(-50%);
   font-family: var(--head); font-weight: 800; font-size: 12px; letter-spacing: 0.1em; color: var(--gold2); text-shadow: 0 2px 4px #000; pointer-events: none; }
 
