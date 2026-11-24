@@ -156,7 +156,9 @@ export default function Background() {
 
     function init() {
       W = window.innerWidth
-      H = window.innerHeight
+      // Use the background's own (largest-viewport) height so it covers the screen
+      // whether or not the phone's address bar is showing.
+      H = Math.max(window.innerHeight, canvas.parentElement.clientHeight)
       // Phones / small screens: a lighter background (30 fps, fewer pieces and twinkling stars).
       // It sits behind the content, so the difference is hard to see but saves a lot of work.
       lite = isTouch || W < 700
@@ -585,6 +587,11 @@ export default function Background() {
     }
     let resizeTimer = 0
     const onResize = () => {
+      // Phones fire resize when the address bar shows/hides during scrolling.
+      // Rebuilding then would re-randomize everything and flicker, so skip
+      // height-only changes that still fit inside the current canvas.
+      const h = Math.max(window.innerHeight, canvas.parentElement.clientHeight)
+      if (window.innerWidth === W && h <= H) return
       clearTimeout(resizeTimer)
       resizeTimer = setTimeout(() => { init(); start() }, 150)
     }
