@@ -501,7 +501,16 @@
       const mv = Input.moveVector();
       const manual = Input.aimAngle(this);
       if (manual !== null) this.aim = manual;
-      this.moving = !!(mv.x || mv.y);
+      this.moving = !!(mv.x || mv.y); this.mvx = mv.x;
+      this.hurtFlash = Math.max(0, (this.hurtFlash || 0) - dt);
+      if (this.moving && !this.leap) {   // little dust puffs from the feet
+        this.stepT = (this.stepT || 0) - dt;
+        if (this.stepT <= 0 && game.particles.length < 450) {
+          this.stepT = 0.2;
+          const q = new Particle(this.x + rand(-6, 6), this.y + 20, 'rgba(168,162,158,0.7)');
+          q.vx = rand(-18, 18) - mv.x * 40; q.vy = rand(-28, -8) - mv.y * 20; q.life = q.max = 0.35; q.size = rand(2.5, 4); game.particles.push(q);
+        }
+      }
       this.swing = Math.max(0, this.swing - dt); this.castT = Math.max(0, this.castT - dt); this.dashLock = Math.max(0, (this.dashLock || 0) - dt);
       const spd = this.stats.speed * (this.buffs.sakura > 0 ? 1.3 : 1);
       if (this.leap) this.updateLeap(dt);
@@ -563,6 +572,7 @@
           const ang = this.aim + (a.spread ? rand(-a.spread, a.spread) : 0) + (shots > 1 ? (k - 0.5) * 0.12 : 0);
           game.projectiles.push(new Projectile(this.x, this.y, ang, { speed: a.speed, dmg, size: a.size, color: a.color, shape: a.shape, pierce: a.pierce || 0, range: this.stats.range, fx }));
         }
+        FX.muzzle(this.x + Math.cos(this.aim) * 30, this.y + Math.sin(this.aim) * 30 + 2, a.color);
       }
       this.swing = this.swingMax = melee ? 0.18 : 0.1; this.swingArc = Math.min(2.4, a.arc || 1.4); this.swingKind = a.kind;
       this.attackTimer = this.attackCooldown;
@@ -629,7 +639,7 @@
       const armor = clamp(s.armor + (this.buffs.cry > 0 ? 0.2 : 0) + (this.buffs.bear > 0 ? 0.4 : 0), -0.5, 0.85);
       const dmg = Math.max(1, Math.round(amount * (1 - armor) * (this.buffs.fortify > 0 ? 0.3 : 1)));
       this.hp = Math.max(0, this.hp - dmg);
-      this.hurtTimer = CONFIG.player.hurtCooldown;
+      this.hurtTimer = CONFIG.player.hurtCooldown; this.hurtFlash = 0.18;
       game.shake = 7;
       game.floatText(this.x, this.y - 26, '-' + dmg, '#f87171');
       if (this.hp <= 0) { this.alive = false; game.onPlayerDied(); }
@@ -679,8 +689,8 @@
       const L = this.leap, lift = L ? Math.sin(Math.min(1, L.t / L.max) * Math.PI) * L.h : 0;
       const sh = 1 - Math.min(0.5, lift / 140);
       ctx.fillStyle = 'rgba(0,0,0,0.38)'; ctx.beginPath(); ctx.ellipse(this.x, this.y + 21, 13 * sh, 4.6 * sh, 0, 0, TAU); ctx.fill();
-      const face = Math.cos(this.aim) < 0 ? -1 : 1;
-      const bob = this.moving ? -Math.abs(Math.sin(game.time * 11)) * 2.4 : Math.sin(game.time * 2.5) * 0.7;
+      const face = Math.cos(this.aim) < 0 ? -1 : 1, t = game.time;
+      const bob = this.moving && !L ? -Math.abs(Math.sin(t * 11)) * 2.6 : 0;
       const cast = this.castT > 0 ? this.castT / 0.45 : 0;
       const sc = 1.12 * (1 + Math.sin(cast * Math.PI) * 0.14);
       const w = HeroArt.weapon(id);
@@ -693,20 +703,29 @@
       } else if (w.melee) wa -= 0.35;   // at rest the weapon is held up a little
       if (cast > 0) wa = wa * (1 - cast) - 1.3 * cast;   // raise it high while casting
       if (L) wa -= 0.8;
+      // squash & stretch: breathing when idle, a bouncy step when walking, a lunge on melee hits, a flinch when hurt
+      let sx = 1, sy = 1, lx = 0, ly = 0, lean = 0;
+      if (this.moving && !L) { const st = Math.abs(Math.sin(t * 11)) - 0.5; sy = 1 + st * 0.07; sx = 1 - st * 0.05; lean = clamp(this.mvx || 0, -1, 1) * 0.1 + Math.sin(t * 11) * 0.04; }
+      else { sy = 1 + Math.sin(t * 2.6) * 0.02; sx = 1 - Math.sin(t * 2.6) * 0.014; }
+      if (this.swing > 0 && w.melee) { const lu = Math.sin((1 - this.swing / this.swingMax) * Math.PI); lx = Math.cos(this.aim) * lu * 4.5; ly = Math.sin(this.aim) * lu * 4.5; sx *= 1 + lu * 0.06; sy *= 1 - lu * 0.05; }
+      if (this.hurtFlash > 0) { const hk = this.hurtFlash / 0.18; sx *= 1 + hk * 0.1; sy *= 1 - hk * 0.1; lx += rand(-1.5, 1.5) * hk; }
       ctx.save();
-      ctx.translate(this.x, this.y + bob - lift + 2);
-      ctx.scale(face * sc, sc);
-      if (this.moving && !L) ctx.rotate(Math.sin(game.time * 11) * 0.05);
-      const held = () => { ctx.save(); ctx.translate(10.8, 6.2); ctx.rotate(wa); ctx.translate(kick, 0); HeroArt.drawWeapon(ctx, id, game.time); ctx.restore(); };
-      const behind = Math.sin(this.aim) < -0.45 && cast === 0;
-      if (behind) held();
-      ctx.drawImage(heroSprite(id).c, -32, -40, 64, 64);
-      if (!behind) held();
+      ctx.translate(this.x + lx, this.y + 21 + bob - lift + ly);   // scale around the feet so squashes stay on the ground
+      ctx.rotate(lean);
+      ctx.scale(face * sc * sx, sc * sy);
+      ctx.translate(0, -19);
+      ctx.drawImage((this.hurtFlash > 0 ? heroHurtSprite(id) : heroSprite(id)).c, -32, -40, 64, 64);
+      // the weapon is always held in front of the body
+      ctx.save(); ctx.translate(10.8, 6.2); ctx.rotate(wa); ctx.translate(kick, 0); HeroArt.drawWeapon(ctx, id, t); ctx.restore();
       ctx.restore();
     }
   }
   // the hero's body (artwork in heroes.js), drawn once per hero: origin at (32, 40) in a 64x64 box
   function heroSprite(id) { return cached('hero2:' + id, 64, 64, (g) => { g.translate(32, 40); HeroArt.drawBody(g, id); }); }
+  // the same body tinted red, flashed for a moment when the hero gets hit
+  function heroHurtSprite(id) {
+    return cached('hero2h:' + id, 64, 64, (g) => { g.translate(32, 40); HeroArt.drawBody(g, id); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,70,70,0.6)'; g.fillRect(-32, -40, 64, 64); });
+  }
   // a portrait image (data URL) for the menus and HUD
   const heroImgs = {};
   const heroImg = (id, px) => heroImgs[id + px] || (heroImgs[id + px] = HeroArt.portrait(id, px).toDataURL());
@@ -1062,7 +1081,9 @@
       }
       if (this.phased) ctx.globalAlpha = 0.28;
       const sp = enemySprite(this.type, this.flash > 0 ? 1 : this.frozen > 0 ? 2 : 0);
-      ctx.drawImage(sp.c, this.x - sp.w / 2, this.y - sp.w / 2 + 2 + bob, sp.w, sp.h);
+      const pop = 1 + this.flash * 1.8, wob = this.moveFactor > 0 ? Math.sin(this.wobble * 1.3) * 0.04 : 0;
+      const ew = sp.w * pop * (1 + wob), eh = sp.h * pop * (1 - wob);
+      ctx.drawImage(sp.c, this.x - ew / 2, this.y - sp.h / 2 + 2 + bob + (sp.h - eh), ew, eh);
       // eyes that follow you
       const a = Math.atan2(player.y - this.y, player.x - this.x), ca = Math.cos(a), sa = Math.sin(a);
       const er = Math.max(2.2, r * 0.22), px = ca * er * 0.45, py = sa * er * 0.45 + bob;
@@ -1358,6 +1379,7 @@
       dmg = Math.max(1, Math.round(dmg));
       e.hp -= dmg; e.flash = 0.08;
       if (!o.quiet) game.floatText(e.x, e.y - e.radius - 6, String(dmg), o.color || (crit ? '#fde047' : '#ffffff'), crit, e);
+      if (crit && !o.quiet) FX.spark(e.x, e.y, '#fde047', 30);   // crits get a big golden burst
       const steal = (o.raw ? 0 : p.lifesteal) + (o.drain || 0);
       if (steal > 0) p.heal(dmg * steal, true);
       if (o.knockFrom || o.knockAngle !== undefined) {
@@ -1375,23 +1397,26 @@
     },
     // a sword-style swing: hits everything in a wedge in front of you
     melee(x, y, angle, radius, arc, dmg, o = {}) {
+      let hits = 0;
       for (const e of game.enemies) {
         if (e.dead) continue;
         const dx = e.x - x, dy = e.y - y, d = Math.hypot(dx, dy);
         if (d > radius + e.radius) continue;
         if (d > e.radius && Math.abs(angDiff(Math.atan2(dy, dx), angle)) > arc / 2) continue;
         this.damage(e, dmg, { knockAngle: Math.atan2(dy, dx), knock: o.knock || 1 });
+        if (hits++ < 4) FX.spark(e.x - (dx / (d || 1)) * e.radius * 0.6, e.y - (dy / (d || 1)) * e.radius * 0.6, o.color || '#ffffff');
       }
-      game.fx.push({ type: 'slash', x, y, angle, arc, radius, color: o.color || '#fff', t: 0.16, max: 0.16 });
+      game.fx.push({ type: 'slash', x, y, angle, arc, radius, color: o.color || '#ffffff', t: 0.2, max: 0.2 });
     },
     // a spear thrust: hits everything along a line
     thrust(x, y, angle, length, width, dmg, o = {}) {
-      const cx = Math.cos(angle), cy = Math.sin(angle);
+      const cx = Math.cos(angle), cy = Math.sin(angle); let hits = 0;
       for (const e of game.enemies) {
         if (e.dead) continue;
         const dx = e.x - x, dy = e.y - y, along = dx * cx + dy * cy, side = Math.abs(-dx * cy + dy * cx);
         if (along < -e.radius || along > length + e.radius || side > width / 2 + e.radius) continue;
         this.damage(e, dmg, Object.assign({ knockAngle: angle, knock: 1.2 }, o.hit));
+        if (hits++ < 3) FX.spark(e.x, e.y, o.color || '#e0f2fe');
       }
       game.fx.push({ type: 'beam', x, y, angle, len: length, width, color: o.color || '#e0f2fe', t: 0.16, max: 0.16 });
     },
@@ -1477,6 +1502,9 @@
     xslash(x, y, size, color) { FX.add({ type: 'xslash', x, y, size, color, t: 0.32, max: 0.32 }); },
     smoke(x, y, r) { const puffs = []; for (let i = 0; i < 16; i++) puffs.push({ a: rand(0, TAU), d: Math.sqrt(Math.random()), s: rand(26, 46) }); FX.add({ type: 'smoke', x, y, r, puffs, t: 1.6, max: 1.6 }); },
     portal(x, y, r, color) { FX.add({ type: 'portal', x, y, r, color, t: 0.85, max: 0.85, ground: true }); },
+    muzzle(x, y, color) { FX.add({ type: 'impact', x, y, color, size: 13, rot: rand(0, 1), t: 0.1, max: 0.1 }); },
+    // small bursts where hits land (skipped when the screen is already busy)
+    spark(x, y, color, size = 16) { if (game.fx.length < 200) FX.add({ type: 'impact', x, y, color, size, rot: rand(0, 1), t: 0.16, max: 0.16 }); },
     impact(x, y, color, size) { FX.add({ type: 'impact', x, y, color, size, rot: rand(0, 1), t: 0.22, max: 0.22 }); },
     skyshot(x, y, color) { FX.add({ type: 'skyshot', x, y, color, t: 0.4, max: 0.4 }); },
     pillar(x, y, color, w = 18, t = 0.45) { FX.add({ type: 'pillar', x, y, color, w, t, max: t }); },
@@ -2074,7 +2102,7 @@
             Combat.damage(e, b.dmg, Object.assign({ knockAngle: b.angle, knock: 0.6 }, b.fx));
             if (b.fx.chain) Combat.chain(e, b.fx.chain.count, b.fx.chain.range, b.dmg * b.fx.chain.mult);
             if (b.onHit) b.onHit(b, e);
-            this.burst(b.x, b.y, b.color, 3);
+            this.burst(b.x, b.y, b.color, 3); FX.spark(b.x, b.y, b.color, 12);
             if (b.pierce-- <= 0) { b.dead = true; break; }
           }
         }
@@ -2384,10 +2412,14 @@
         ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba('#67e8f9', 0.55 * k); ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.8, a - 1.8, a); ctx.stroke(); ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = Math.min(1, k * 3); ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(a); ctx.scale(sc, sc); ctx.translate(-10, 0); HeroArt.drawWeapon(ctx, 'spearman', game.time); ctx.restore();
       } else if (f.type === 'slash') {
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5 * k + 1; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.arc(f.x, f.y, f.radius * (0.75 + (1 - k) * 0.25), f.angle - f.arc / 2, f.angle + f.arc / 2); ctx.stroke();
-        ctx.strokeStyle = f.color; ctx.lineWidth = 10 * k; ctx.globalAlpha = k * 0.4;
-        ctx.beginPath(); ctx.arc(f.x, f.y, f.radius * 0.6, f.angle - f.arc / 2, f.angle + f.arc / 2); ctx.stroke();
+        const sweep = Math.min(1, u * 3.5), a0 = f.angle - f.arc / 2, a1 = a0 + f.arc * sweep, R = f.radius * (0.88 + u * 0.15), wd = Math.max(7, f.radius * 0.34);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = rgba(f.color, 0.6 * k);
+        ctx.beginPath(); ctx.arc(f.x, f.y, R, a0, a1);
+        for (let i = 14; i >= 0; i--) { const v = i / 14, aa = a0 + (a1 - a0) * v, rr = R - wd * Math.sin(v * Math.PI); ctx.lineTo(f.x + Math.cos(aa) * rr, f.y + Math.sin(aa) * rr); }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5 * k + 0.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(f.x, f.y, R, a0, a1); ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
       } else if (f.type === 'beam') {
         ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.angle);
         ctx.fillStyle = f.color; ctx.fillRect(0, -f.width / 2 * k, f.len, f.width * k);
