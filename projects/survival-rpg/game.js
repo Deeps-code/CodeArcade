@@ -2303,7 +2303,7 @@
           + '<div class="lc-face lc-back"><div class="lc-sigil">⚜</div></div>'
           + '<div class="lc-face lc-front">'
           + '<div class="lc-rar">' + r.name + '</div>'
-          + '<div class="lc-art"><span>' + u.icon + '</span></div>'
+          + '<div class="lc-art"><span><img alt="" src="' + SkillIcons.url('up_' + u.id, 128) + '"></span></div>'
           + '<div class="lc-nm">' + u.name + '</div>'
           + '<div class="lc-ds">' + u.desc(r.k) + '</div>'
           + '<div class="lc-key">' + (i + 1) + '</div>'
@@ -2338,7 +2338,7 @@
         p.pendingLevels--;
         this.el.levelUp.classList.add('hidden');
         game.state = 'playing'; this.last = '';
-        game.floatText(p.x, p.y - 30, u.icon + ' ' + u.name + (r.k > 1 ? ' (' + r.name + ')' : ''), r.k >= 3 ? '#fb923c' : r.k >= 2 ? '#c084fc' : r.k > 1 ? '#60a5fa' : '#fde68a', true);
+        game.floatText(p.x, p.y - 30, u.name + (r.k > 1 ? ' (' + r.name + ')' : ''), r.k >= 3 ? '#fb923c' : r.k >= 2 ? '#c084fc' : r.k > 1 ? '#60a5fa' : '#fde68a', true);
         if (p.pendingLevels > 0) this.showLevelUp();
       }, 650);
     },

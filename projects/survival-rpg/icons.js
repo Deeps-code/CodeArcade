@@ -365,6 +365,85 @@
       for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU - Math.PI / 2, r = i % 2 ? 20 : 28; g.save(); g.translate(32, 32); g.rotate(a); fill(g, () => { g.moveTo(r, 0); g.lineTo(6, -5); g.lineTo(6, 5); g.closePath(); }, lin(g, 0, -5, 0, 5, '#e0f2fe', 0.5, -0.15), '#0369a1', 1.5); g.restore(); }
       fill(g, () => star(g, 32, 32, 9, 4, 6), '#ffffff', '#0369a1', 1.2);
     },
+
+    // ----- level-up upgrades -----
+    up_might(g) {
+      glow(g, 32, 32, 30, '#ef4444', 0.5);
+      for (const y of [44, 52]) line(g, [[12, y + 6], [18, y], [24, y + 6]], '#fca5a5', 3);
+      weapon(g, 'warrior', 22, 54, -1.15, 1.35);
+      fill(g, () => star(g, 46, 16, 7, 2.6, 4), '#fde68a', null);
+    },
+    up_haste(g) {
+      glow(g, 34, 32, 30, '#fde047', 0.45);
+      for (const [y, l] of [[20, 14], [32, 20], [44, 14]]) line(g, [[6, y], [6 + l, y]], '#fef08a', 3);
+      fill(g, () => { g.moveTo(40, 4); g.lineTo(22, 34); g.lineTo(33, 34); g.lineTo(26, 60); g.lineTo(48, 26); g.lineTo(37, 26); g.lineTo(46, 4); g.closePath(); }, lin(g, 0, 4, 0, 60, '#fde047', 0.5, -0.1));
+    },
+    up_vigor(g) {
+      glow(g, 32, 34, 30, '#ef4444', 0.45);
+      fill(g, () => { g.moveTo(32, 54); g.bezierCurveTo(4, 36, 12, 12, 32, 24); g.bezierCurveTo(52, 12, 60, 36, 32, 54); g.closePath(); }, lin(g, 0, 16, 0, 54, '#ef4444', 0.35, -0.35));
+      fill(g, () => { g.rect(29, 28, 6, 16); g.rect(24, 33, 16, 6); }, '#ffffff', null);
+      fill(g, () => g.ellipse(22, 28, 4, 2.5, -0.6, 0, TAU), 'rgba(255,255,255,0.55)', null);
+    },
+    up_swift(g) {
+      glow(g, 32, 34, 30, '#38bdf8', 0.45);
+      for (let i = 0; i < 3; i++) fill(g, () => { g.moveTo(30, 26 + i * 6); g.quadraticCurveTo(14 - i * 2, 14 + i * 8, 6 + i * 3, 18 + i * 9); g.quadraticCurveTo(16, 26 + i * 6, 30, 32 + i * 6); g.closePath(); }, i % 2 ? '#e0f2fe' : '#ffffff', '#0369a1', 1.4);
+      fill(g, () => { g.moveTo(28, 14); g.lineTo(42, 14); g.lineTo(42, 38); g.lineTo(56, 44); g.quadraticCurveTo(58, 52, 52, 52); g.lineTo(26, 52); g.closePath(); }, lin(g, 0, 14, 0, 52, '#b45309', 0.3, -0.4));
+      fill(g, () => g.rect(26, 48, 31, 5), '#57534e', INK, 1.5);
+      fill(g, () => g.rect(27, 12, 16, 5), '#fbbf24', INK, 1.5);
+    },
+    up_keen(g) {
+      glow(g, 32, 32, 30, '#ef4444', 0.4);
+      for (const [r, c] of [[24, '#ffffff'], [17, '#ef4444'], [10, '#ffffff'], [4, '#ef4444']]) fill(g, () => g.arc(32, 32, r, 0, TAU), c, INK, 1.6);
+      arrow(g, 56, 8, 34, 30, '#a16207', '#e5e7eb', '#22c55e');
+    },
+    up_brutal(g) {
+      glow(g, 32, 32, 30, '#f97316', 0.55);
+      fill(g, () => star(g, 32, 32, 28, 11, 9, -0.2), lin(g, 8, 8, 56, 56, '#ef4444', 0.35, -0.3));
+      fill(g, () => star(g, 32, 32, 15, 7, 9, 0.1), '#fde047', null);
+      fill(g, () => { g.rect(29.5, 20, 5, 14); g.moveTo(35, 41); g.arc(32, 41, 3, 0, TAU); }, '#7f1d1d', null);
+    },
+    up_focus(g) {
+      glow(g, 32, 32, 30, '#818cf8', 0.45);
+      fill(g, () => { g.moveTo(18, 12); g.lineTo(46, 12); g.quadraticCurveTo(46, 26, 34, 32); g.quadraticCurveTo(46, 38, 46, 52); g.lineTo(18, 52); g.quadraticCurveTo(18, 38, 30, 32); g.quadraticCurveTo(18, 26, 18, 12); g.closePath(); }, 'rgba(224,231,255,0.35)', '#c7d2fe', 2);
+      fill(g, () => { g.moveTo(22, 18); g.lineTo(42, 18); g.quadraticCurveTo(40, 26, 32, 30); g.quadraticCurveTo(24, 26, 22, 18); g.closePath(); }, '#fbbf24', null);
+      fill(g, () => { g.moveTo(32, 36); g.quadraticCurveTo(42, 44, 42, 50); g.lineTo(22, 50); g.quadraticCurveTo(22, 44, 32, 36); g.closePath(); }, '#fbbf24', null);
+      line(g, [[32, 30], [32, 44]], '#fde68a', 1.5, false);
+      for (const y of [8, 52]) fill(g, () => g.rect(14, y, 36, 5), lin(g, 0, y, 0, y + 5, '#92400e'), INK, 1.6);
+    },
+    up_regen(g) {
+      glow(g, 32, 34, 30, '#22c55e', 0.45);
+      line(g, [[30, 56], [30, 40], [34, 26]], '#15803d', 3.5);
+      fill(g, () => { g.moveTo(31, 40); g.quadraticCurveTo(10, 40, 10, 22); g.quadraticCurveTo(28, 22, 31, 40); g.closePath(); }, lin(g, 10, 22, 31, 40, '#4ade80'));
+      fill(g, () => { g.moveTo(33, 28); g.quadraticCurveTo(38, 8, 54, 10); g.quadraticCurveTo(52, 28, 33, 28); g.closePath(); }, lin(g, 33, 10, 54, 28, '#22c55e'));
+      fill(g, () => { g.rect(45, 38, 5, 15); g.rect(40, 43, 15, 5); }, '#bbf7d0', INK, 1.3);
+    },
+    up_reach(g) {
+      glow(g, 32, 32, 30, '#38bdf8', 0.4);
+      g.setLineDash([4, 5]); arcLine(g, 32, 32, 24, 0, TAU, '#bae6fd', 2, false); g.setLineDash([]);
+      line(g, [[12, 32], [52, 32]], '#e0f2fe', 3.5);
+      for (const sd of [-1, 1]) fill(g, () => { g.moveTo(32 + sd * 28, 32); g.lineTo(32 + sd * 18, 24); g.lineTo(32 + sd * 18, 40); g.closePath(); }, '#e0f2fe', INK, 1.6);
+      fill(g, () => g.arc(32, 32, 5, 0, TAU), '#38bdf8', INK, 1.6);
+    },
+    up_tough(g) {
+      glow(g, 32, 32, 30, '#94a3b8', 0.45);
+      fill(g, () => { g.moveTo(14, 10); g.lineTo(50, 10); g.lineTo(50, 30); g.quadraticCurveTo(50, 48, 32, 58); g.quadraticCurveTo(14, 48, 14, 30); g.closePath(); }, lin(g, 0, 10, 0, 58, '#cbd5e1', 0.4, -0.4), INK, 2.2);
+      fill(g, () => { g.moveTo(32, 14); g.lineTo(46, 14); g.lineTo(46, 30); g.quadraticCurveTo(46, 44, 32, 53); g.closePath(); }, 'rgba(30,41,59,0.35)', null);
+      g.fillStyle = '#475569'; for (const [x, y] of [[19, 15], [45, 15], [19, 30], [45, 30]]) { g.beginPath(); g.arc(x, y, 1.8, 0, TAU); g.fill(); }
+      fill(g, () => { g.rect(29, 24, 6, 18); g.rect(23, 30, 18, 6); }, '#fbbf24', INK, 1.3);
+    },
+    up_vamp(g) {
+      glow(g, 32, 34, 30, '#b91c1c', 0.5);
+      fill(g, () => { g.moveTo(10, 14); g.quadraticCurveTo(32, 24, 54, 14); g.lineTo(54, 20); g.quadraticCurveTo(32, 32, 10, 20); g.closePath(); }, '#7f1d1d', INK, 1.6);
+      for (const sd of [-1, 1]) fill(g, () => { g.moveTo(32 + sd * 14, 21); g.lineTo(32 + sd * 10, 38); g.lineTo(32 + sd * 6, 23); g.closePath(); }, '#f8fafc', INK, 1.6);
+      fill(g, () => { g.moveTo(32, 34); g.bezierCurveTo(40, 44, 42, 48, 40, 52); g.arc(32, 52, 8, 0, Math.PI); g.bezierCurveTo(22, 48, 24, 44, 32, 34); g.closePath(); }, lin(g, 24, 34, 40, 60, '#ef4444', 0.25, -0.4));
+    },
+    up_pack(g) {
+      glow(g, 32, 34, 30, '#14b8a6', 0.45);
+      fill(g, () => g.ellipse(28, 42, 13, 11, 0, 0, TAU), rad(g, 28, 42, 13, '#a8a29e'));
+      for (const [x, y] of [[12, 26], [21, 17], [35, 17], [44, 26]]) fill(g, () => g.ellipse(x, y, 5.5, 6.5, 0, 0, TAU), rad(g, x, y, 6.5, '#a8a29e'));
+      fill(g, () => g.arc(49, 48, 9, 0, TAU), '#14b8a6', INK, 1.8);
+      fill(g, () => { g.rect(47.5, 42, 3, 12); g.rect(43, 46.5, 12, 3); }, '#ffffff', null);
+    },
   };
 
   function draw(g, id) {
