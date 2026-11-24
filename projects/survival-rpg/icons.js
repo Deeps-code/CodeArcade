@@ -366,6 +366,24 @@
       fill(g, () => star(g, 32, 32, 9, 4, 6), '#ffffff', '#0369a1', 1.2);
     },
 
+    // samurai
+    quickdraw(g) {
+      glow(g, 32, 32, 30, '#fb7185', 0.45);
+      for (const [x, y, l] of [[4, 40, 14], [10, 50, 12], [2, 30, 10]]) line(g, [[x, y], [x + l, y - l]], '#fecdd3', 2.5);
+      arcLine(g, 30, 34, 24, -2.4, -0.5, '#ffe4e6', 2.5);
+      weapon(g, 'samurai', 12, 50, -0.85, 1.15);
+    },
+    thousandcuts(g) {
+      glow(g, 32, 32, 30, '#fb7185', 0.5);
+      for (let i = 0; i < 5; i++) { const a = 0.3 + i * 0.63, c = Math.cos(a) * 25, s = Math.sin(a) * 25; line(g, [[32 - c, 32 - s], [32 + c, 32 + s]], '#fda4af', 4); line(g, [[32 - c, 32 - s], [32 + c, 32 + s]], '#ffffff', 1.4, false); }
+      fill(g, () => star(g, 32, 32, 8, 3, 4), '#ffffff', null);
+    },
+    sakura(g) {
+      glow(g, 32, 32, 30, '#f9a8d4', 0.5);
+      for (const [x, y, a] of [[10, 14, 0.4], [54, 20, -0.6], [50, 52, 1.2], [12, 50, -1]]) { g.save(); g.translate(x, y); g.rotate(a); fill(g, () => g.ellipse(0, 0, 4, 2.2, 0, 0, TAU), '#fbcfe8', '#9d174d', 1); g.restore(); }
+      for (let i = 0; i < 5; i++) { g.save(); g.translate(32, 32); g.rotate((i / 5) * TAU); fill(g, () => { g.moveTo(0, 0); g.bezierCurveTo(-10, -8, -8, -21, -2.5, -22); g.lineTo(0, -19); g.lineTo(2.5, -22); g.bezierCurveTo(8, -21, 10, -8, 0, 0); g.closePath(); }, lin(g, 0, -22, 0, 0, '#fbcfe8', 0.4, -0.15), '#9d174d', 1.5); g.restore(); }
+      fill(g, () => g.arc(32, 32, 4.5, 0, TAU), '#fde047', '#9d174d', 1.2);
+    },
     // ----- level-up upgrades -----
     up_might(g) {
       glow(g, 32, 32, 30, '#ef4444', 0.5);

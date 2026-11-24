@@ -304,6 +304,24 @@
         for (const [x, h, w] of [[-7, 7, 2.2], [-3.5, 10, 2.4], [0, 13, 2.8], [3.5, 10, 2.4], [7, 7, 2.2]]) shape(g, () => { g.moveTo(x - w, -18.5); g.lineTo(x, -18.5 - h); g.lineTo(x + w, -18.5); g.closePath(); }, vg(g, -18.5 - h, -18.5, '#bae6fd', 0.6, -0.1), '#0369a1', 1);
       },
     },
+    samurai: {
+      weapon: 'katana', melee: true,
+      draw(g) {
+        body(g, { skin: SKIN, body: '#9f1239', sleeve: '#1f2937', glove: '#1f2937', boots: '#1c1917', belt: '#fbbf24', buckle: '#1c1917', brows: '#1c1917', angry: true,
+          neck(g) {   // lacquered chest plates
+            shape(g, () => rr(g, -8.5, -3.5, 17, 12, 3), vg(g, -3, 9, '#be123c'));
+            g.strokeStyle = '#fbbf24'; g.lineWidth = 0.9; for (const y of [0, 3, 6]) { g.beginPath(); g.moveTo(-8, y); g.lineTo(8, y); g.stroke(); }
+          } });
+        // layered shoulder plates
+        for (const s of [-1, 1]) for (let i = 0; i < 3; i++) shape(g, () => rr(g, s > 0 ? 7 : -14, -4.5 + i * 3, 7, 3.4, 1), i % 2 ? '#881337' : '#be123c', INK, 0.9);
+        // helmet: flared neck guard, dark dome, brim and a golden crescent
+        shape(g, () => { g.moveTo(-14.5, -9); g.quadraticCurveTo(-12.5, -14, -9, -15); g.lineTo(9, -15); g.quadraticCurveTo(12.5, -14, 14.5, -9); g.lineTo(10, -11); g.lineTo(-10, -11); g.closePath(); }, vg(g, -15, -9, '#374151'));
+        shape(g, () => { g.arc(0, -13.5, 9.8, Math.PI, 0); g.closePath(); }, vg(g, -24, -13, '#1f2937'));
+        shape(g, () => rr(g, -10.5, -15, 21, 2.8, 1.2), '#4b5563');
+        shape(g, () => { g.moveTo(-13, -30); g.quadraticCurveTo(0, -16, 13, -30); g.quadraticCurveTo(0, -21, -13, -30); g.closePath(); }, vg(g, -30, -19, '#fbbf24', 0.5, -0.2));
+        g.fillStyle = '#dc2626'; g.beginPath(); g.arc(0, -20.5, 2, 0, TAU); g.fill();
+      },
+    },
     bear: {
       weapon: 'claws', melee: true,
       draw(g) {
@@ -416,6 +434,13 @@
       wood(g, -12, 22, 2.6, '#e0f2fe');
       for (const [a, l] of [[0, 12], [-0.55, 8], [0.55, 8]]) shape(g, () => { g.save(); g.translate(22, 0); g.rotate(a); g.moveTo(0, -2.5); g.lineTo(l, 0); g.lineTo(0, 2.5); g.restore(); g.closePath(); }, vg(g, -6, 6, '#bae6fd', 0.6, -0.1), '#0369a1', 0.9);
       orbGlow(g, 24, 0, 2.2, o.orb, t);
+    },
+    katana(g) {
+      shape(g, () => { g.moveTo(6, -1.5); g.quadraticCurveTo(22, -3.2, 38, -6); g.lineTo(40.5, -5.2); g.quadraticCurveTo(24, -0.6, 6, 1.5); g.closePath(); }, vg(g, -5, 2, '#f1f5f9', 0.55, -0.2), INK, 1);
+      g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(7, -0.6); g.quadraticCurveTo(22, -2.2, 37, -4.9); g.stroke();
+      shape(g, () => ell(g, 5, 0, 1.6, 4.4), '#fbbf24', INK, 1);
+      shape(g, () => rr(g, -8.5, -1.7, 12.5, 3.4, 1.2), '#1f2937', INK, 1);
+      g.strokeStyle = '#e5e7eb'; g.lineWidth = 0.6; for (let x = -7; x < 3; x += 2.4) { g.beginPath(); g.moveTo(x, -1.5); g.lineTo(x + 1.4, 1.5); g.moveTo(x + 1.4, -1.5); g.lineTo(x, 1.5); g.stroke(); }
     },
     claws(g) { g.strokeStyle = '#f5f5f4'; g.lineWidth = 1.6; g.lineCap = 'round'; for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(4, i * 2.6); g.lineTo(10, i * 3.4); g.stroke(); } g.lineCap = 'butt'; },
   };

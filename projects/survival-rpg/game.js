@@ -3,7 +3,7 @@
 
    Layout of this file:
      1. CONFIG          tunable numbers, enemy kinds, wave scaling
-     2. CLASSES         the 17 heroes: stats, attack style, ability, passive
+     2. CLASSES         the 18 heroes: stats, attack style, ability, passive
      3. UPGRADES        level-up choices
      4. SPRITES         optional images (everything falls back to shapes)
      5. Canvas/helpers
@@ -39,6 +39,14 @@
     runner:  { name: 'Runner',  radius: 10, hp: 14, speed: 155, damage: 7,  color: '#ea580c', fromWave: 3, weight: 3, xp: 1 },
     brute:   { name: 'Brute',   radius: 24, hp: 90, speed: 55,  damage: 20, color: '#7c3aed', fromWave: 5, weight: 1.6, xp: 4 },
     spitter: { name: 'Spitter', radius: 13, hp: 30, speed: 70,  damage: 12, color: '#ca8a04', fromWave: 8, weight: 1.4, xp: 2, keepAway: 160 },
+    // more variety: each of these has its own trick
+    bat:      { name: 'Bat',      radius: 9,  hp: 12, speed: 175, damage: 6,  color: '#6d28d9', fromWave: 4,  weight: 2.2, xp: 1, zigzag: true, pad: 10 },
+    bomber:   { name: 'Bomber',   radius: 13, hp: 26, speed: 105, damage: 28, color: '#334155', fromWave: 6,  weight: 1.3, xp: 2, bomb: true, pad: 5 },
+    slime:    { name: 'Slime',    radius: 17, hp: 46, speed: 60,  damage: 12, color: '#65a30d', fromWave: 7,  weight: 1.4, xp: 2, split: 'slimelet' },
+    slimelet: { name: 'Slimelet', radius: 9,  hp: 14, speed: 95,  damage: 6,  color: '#84cc16', fromWave: Infinity, weight: 0, xp: 1 },
+    shaman:   { name: 'Shaman',   radius: 13, hp: 34, speed: 70,  damage: 8,  color: '#0f766e', fromWave: 9,  weight: 0.9, xp: 3, keepAway: 210, noShoot: true, healer: true, pad: 7 },
+    knight:   { name: 'Knight',   radius: 18, hp: 70, speed: 62,  damage: 18, color: '#64748b', fromWave: 11, weight: 1.1, xp: 3, armor: 0.45, pad: 5 },
+    wraith:   { name: 'Wraith',   radius: 14, hp: 40, speed: 110, damage: 14, color: '#93c5fd', fromWave: 13, weight: 1,   xp: 3, phase: true, pad: 4 },
     // bosses: one arrives every 10th wave (they take turns), never in the normal mix
     colossus: { name: 'Bone Colossus', radius: 48, hp: 1100, speed: 42,  damage: 22, color: '#a8a29e', fromWave: Infinity, weight: 0, xp: 60, boss: true },
     warlock:  { name: 'Flame Warlock', radius: 40, hp: 850,  speed: 70,  damage: 20, color: '#dc2626', fromWave: Infinity, weight: 0, xp: 60, boss: true },
@@ -150,6 +158,11 @@
       stats: { maxHp: 85, speed: 225, damage: 12, cooldown: 0.55, range: 410 },
       attack: { kind: 'bolt', speed: 470, color: '#bae6fd', size: 6, slow: { k: 0.45, t: 2 } }, passive: { freezeEvery: 5, text: 'Frost bolts slow enemies. Every 5th one freezes solid.' },
       ability: { id: 'frostnova', name: 'Frost Nova', icon: '🧊', cd: 9, desc: 'Freeze every enemy around you for 2.5 seconds.' } },
+    { id: 'samurai', name: 'Samurai', icon: '⛩️', color: '#be123c', role: 'Melee · Dash',
+      desc: 'A swift swordsman who cuts through the horde in a flash of steel, dashing again and again.',
+      stats: { maxHp: 120, speed: 245, damage: 17, cooldown: 0.45, range: 78, crit: 0.15, critMult: 2.2, armor: 0.05 },
+      attack: { kind: 'melee', arc: 1.9 }, passive: { text: 'Bushido: 15% crit chance, and critical hits deal 220% damage.' },
+      ability: { id: 'quickdraw', name: 'Flash Cut', icon: '🗡️', cd: 0, desc: 'Dash forward, cutting every enemy in your path. No cooldown!' } },
   ];
   // Two more skills for every class (skill 1 is the "ability" above). Keys: Q/Space, E, R.
   const EXTRA_SKILLS = {
@@ -201,6 +214,9 @@
     spearman: [
       { id: 'sweep', name: 'Spear Sweep', icon: '🌀', cd: 6, desc: 'Sweep your spear in a full circle, knocking everyone back.' },
       { id: 'vault', name: 'Pole Vault', icon: '🏃', cd: 5, desc: 'Vault forward through the horde, striking everything you pass.' }],
+    samurai: [
+      { id: 'thousandcuts', name: 'Thousand Cuts', icon: '⚔️', cd: 9, desc: 'Blink between up to 8 nearby enemies, slashing each one.' },
+      { id: 'sakura', name: 'Blossom Storm', icon: '🌸', cd: 12, desc: 'A whirl of cherry petals cuts everything near you for 4s, and you move 30% faster.' }],
     icemage: [
       { id: 'iceshards', name: 'Ice Shards', icon: '🧊', cd: 5, desc: 'A fan of 7 freezing shards that badly slow what they hit.' },
       { id: 'blizzard', name: 'Blizzard', icon: '🌨️', cd: 12, desc: 'A raging blizzard over a crowd for 5s: slows and damages.' }],
@@ -486,9 +502,10 @@
       const manual = Input.aimAngle(this);
       if (manual !== null) this.aim = manual;
       this.moving = !!(mv.x || mv.y);
-      this.swing = Math.max(0, this.swing - dt); this.castT = Math.max(0, this.castT - dt);
+      this.swing = Math.max(0, this.swing - dt); this.castT = Math.max(0, this.castT - dt); this.dashLock = Math.max(0, (this.dashLock || 0) - dt);
+      const spd = this.stats.speed * (this.buffs.sakura > 0 ? 1.3 : 1);
       if (this.leap) this.updateLeap(dt);
-      else { this.x += mv.x * this.stats.speed * dt; this.y += mv.y * this.stats.speed * dt; }
+      else { this.x += mv.x * spd * dt; this.y += mv.y * spd * dt; }
       this.clampTo(view);
       this.hurtTimer = Math.max(0, this.hurtTimer - dt);
       for (let i = 0; i < this.abilityTimers.length; i++) this.abilityTimers[i] = Math.max(0, this.abilityTimers[i] - dt);
@@ -498,6 +515,7 @@
         this.autoRetry[i] -= dt;
         if (this.autoRetry[i] > 0 || !game.enemies.some((e) => !e.dead)) continue;
         if (!this.useAbility(i)) this.autoRetry[i] = 0.3;
+        else if (!this.cls.abilities[i].cd) this.autoRetry[i] = 0.7;   // no-cooldown skills: auto-cast at a sane pace
       }
       if (this.buffs.firetrail > 0) { this.trailTick -= dt; if (this.trailTick <= 0) { this.trailTick = 0.15; game.zones.push({ x: this.x, y: this.y, r: 34, t: 2.5, every: 0.4, tick: 0, dmg: this.stats.damage * 0.5, opts: { burn: { dps: this.stats.damage * 0.8, t: 2 }, knock: 0, quiet: true }, color: '#f97316', soft: true }); } }
       if (this.stats.regen) this.heal(this.stats.regen * dt, true);
@@ -575,6 +593,10 @@
       if (u >= 1) { this.leap = null; if (L.onLand) L.onLand(); }
     }
     updateAbilityEffects(dt) {
+      if (this.buffs.sakura > 0) {   // blossom storm: petals cut everything nearby
+        this.sakuraTick = (this.sakuraTick || 0) - dt;
+        if (this.sakuraTick <= 0) { this.sakuraTick = 0.25; Combat.area(this.x, this.y, this.stats.range * 1.7, this.stats.damage * 0.45, { knock: 0.4 }); }
+      }
       if (this.whirl > 0) {
         this.whirl -= dt; this.whirlTick -= dt;
         if (this.whirlTick <= 0) { this.whirlTick = 0.2; Combat.area(this.x, this.y, this.stats.range * 1.3, this.stats.damage * 0.7, { knock: 1 }); FX.embers(this.x, this.y + 12, '#a8a29e', 5, 260); }
@@ -718,6 +740,14 @@
     }
     if (p.whirl > 0) {   // three swords spinning around the warrior
       for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(x, y + 2); ctx.rotate(t * 17 + i * (TAU / 3)); ctx.translate(14, 0); ctx.scale(1.3, 1.3); HeroArt.drawWeapon(ctx, 'warrior', t); ctx.restore(); }
+    }
+    if (p.buffs.sakura > 0) {   // cherry petals swirling around the samurai
+      const R = p.stats.range;
+      for (let i = 0; i < 16; i++) {
+        const a = t * (2.2 + (i % 3) * 0.6) + (i / 16) * TAU, rr = R * (0.7 + (i % 4) * 0.28);
+        ctx.save(); ctx.translate(x + Math.cos(a) * rr, y + 2 + Math.sin(a) * rr); ctx.rotate(a * 2);
+        ctx.fillStyle = i % 2 ? 'rgba(251,207,232,0.9)' : 'rgba(249,168,212,0.9)'; ctx.beginPath(); ctx.ellipse(0, 0, 5, 2.6, 0, 0, TAU); ctx.fill(); ctx.restore();
+      }
     }
     if (p.buffs.fortify > 0) {   // stone-blue plates orbiting
       for (let i = 0; i < 6; i++) {
@@ -886,7 +916,8 @@
     const t = ENEMY_TYPES[type], r = t.radius;
     if (t._dpr !== view.dpr) { t._dpr = view.dpr; t._spr = []; }
     if (t._spr[state]) return t._spr[state];
-    return (t._spr[state] = cached('en:' + type + ':' + state, r * 2 + 18, r * 2 + 18, (g, w) => {
+    const pad = (t.pad || 0) * 2;
+    return (t._spr[state] = cached('en:' + type + ':' + state, r * 2 + 18 + pad, r * 2 + 18 + pad, (g, w) => {
       const m = w / 2, cy = m - 2;
       const base = state === 1 ? shade(t.color, 0.6) : state === 2 ? '#bae6fd' : t.color, dark = shade(state === 1 ? t.color : base, -0.55);   // a hit is a bright tint, not a white blob
       g.fillStyle = 'rgba(0,0,0,0.38)'; g.beginPath(); g.ellipse(m, cy + r * 0.88, r, r * 0.36, 0, 0, TAU); g.fill();
@@ -894,11 +925,18 @@
       g.fillStyle = state === 0 ? shade(t.color, -0.5) : dark;
       if (type === 'grunt') for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(m + sd * r * 0.35, cy - r * 0.8); g.lineTo(m + sd * r * 0.75, cy - r * 1.35); g.lineTo(m + sd * r * 0.78, cy - r * 0.55); g.fill(); }
       if (type === 'runner') for (let i = 0; i < 4; i++) { const a = -Math.PI * 0.85 + i * 0.42; g.beginPath(); g.moveTo(m + Math.cos(a - 0.2) * r * 0.85, cy + Math.sin(a - 0.2) * r * 0.85); g.lineTo(m + Math.cos(a) * r * 1.5, cy + Math.sin(a) * r * 1.5); g.lineTo(m + Math.cos(a + 0.2) * r * 0.85, cy + Math.sin(a + 0.2) * r * 0.85); g.fill(); }
+      if (type === 'bat') for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(m + sd * r * 0.5, cy - r * 0.3); g.quadraticCurveTo(m + sd * r * 1.5, cy - r * 1.4, m + sd * r * 2.0, cy - r * 0.1); g.lineTo(m + sd * r * 1.6, cy + r * 0.15); g.lineTo(m + sd * r * 1.3, cy - r * 0.1); g.lineTo(m + sd * r * 1.0, cy + r * 0.3); g.closePath(); g.fill(); g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 1.2; g.stroke(); }
+      if (type === 'bat') for (const sd of [-1, 1]) { g.beginPath(); g.moveTo(m + sd * r * 0.2, cy - r * 0.8); g.lineTo(m + sd * r * 0.6, cy - r * 1.4); g.lineTo(m + sd * r * 0.75, cy - r * 0.6); g.fill(); }
+      if (type === 'shaman') for (let i = -1; i <= 1; i++) { g.fillStyle = i ? '#ef4444' : '#facc15'; g.beginPath(); g.ellipse(m + i * r * 0.45, cy - r * 1.05, r * 0.16, r * 0.5, i * 0.4, 0, TAU); g.fill(); }
+      if (type === 'knight') { g.fillStyle = '#dc2626'; g.beginPath(); g.ellipse(m, cy - r * 1.0, r * 0.18, r * 0.42, 0, 0, TAU); g.fill(); }
+      if (type === 'bomber') { g.strokeStyle = '#a8a29e'; g.lineWidth = 2; g.beginPath(); g.moveTo(m + r * 0.2, cy - r * 0.9); g.quadraticCurveTo(m + r * 0.6, cy - r * 1.4, m + r * 0.55, cy - r * 1.25); g.stroke(); }
       // body
       const gr = g.createRadialGradient(m - r * 0.35, cy - r * 0.45, r * 0.1, m, cy, r * 1.1);
       gr.addColorStop(0, shade(base, 0.45)); gr.addColorStop(0.55, base); gr.addColorStop(1, shade(base, -0.45));
       g.fillStyle = gr; g.beginPath();
       if (type === 'brute') { if (g.roundRect) g.roundRect(m - r, cy - r, r * 2, r * 2, r * 0.38); else g.rect(m - r, cy - r, r * 2, r * 2); }
+      else if (type === 'slime' || type === 'slimelet') { g.moveTo(m - r * 1.1, cy + r * 0.75); g.quadraticCurveTo(m - r * 1.2, cy - r * 0.9, m, cy - r); g.quadraticCurveTo(m + r * 1.2, cy - r * 0.9, m + r * 1.1, cy + r * 0.75); g.quadraticCurveTo(m, cy + r * 1.05, m - r * 1.1, cy + r * 0.75); g.closePath(); }
+      else if (type === 'wraith') { g.arc(m, cy - r * 0.1, r, Math.PI, 0); g.lineTo(m + r, cy + r * 0.8); for (let i = 1; i <= 5; i++) g.lineTo(m + r - i * r * 0.4, cy + r * (i % 2 ? 0.45 : 0.95)); g.closePath(); }
       else g.arc(m, cy, r, 0, TAU);
       g.fill();
       g.lineWidth = 2; g.strokeStyle = 'rgba(0,0,0,0.55)'; g.stroke();
@@ -908,6 +946,15 @@
         g.fillStyle = 'rgba(255,255,255,0.5)';
         for (const [dx, dy] of [[-0.68, -0.68], [0.68, -0.68], [-0.68, 0.68], [0.68, 0.68]]) { g.beginPath(); g.arc(m + dx * r, cy + dy * r, 2, 0, TAU); g.fill(); }
       }
+      if (type === 'slime' || type === 'slimelet') { g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.ellipse(m + r * 0.4, cy + r * 0.3, r * 0.14, r * 0.1, 0, 0, TAU); g.fill(); g.beginPath(); g.arc(m - r * 0.5, cy + r * 0.45, r * 0.08, 0, TAU); g.fill(); }
+      if (type === 'shaman') { g.fillStyle = '#f5f5f4'; g.beginPath(); if (g.roundRect) g.roundRect(m - r * 0.75, cy - r * 0.42, r * 1.5, r * 0.6, r * 0.2); else g.rect(m - r * 0.75, cy - r * 0.42, r * 1.5, r * 0.6); g.fill(); g.fillStyle = '#b91c1c'; g.fillRect(m - r * 0.06, cy - r * 0.4, r * 0.12, r * 0.56); }
+      if (type === 'knight') {   // helmet band, rivets and a big shield in front
+        g.fillStyle = 'rgba(15,23,42,0.55)'; g.fillRect(m - r * 0.8, cy - r * 0.32, r * 1.6, r * 0.42);
+        g.fillStyle = '#1e3a8a'; g.strokeStyle = '#facc15'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(m - r * 0.55, cy + r * 0.2); g.lineTo(m + r * 0.55, cy + r * 0.2); g.lineTo(m + r * 0.5, cy + r * 0.75); g.quadraticCurveTo(m, cy + r * 1.15, m - r * 0.5, cy + r * 0.75); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = '#facc15'; g.fillRect(m - r * 0.06, cy + r * 0.3, r * 0.12, r * 0.55); g.fillRect(m - r * 0.3, cy + r * 0.48, r * 0.6, r * 0.12);
+      }
+      if (type === 'bomber') { g.fillStyle = 'rgba(255,255,255,0.75)'; g.beginPath(); g.arc(m, cy + r * 0.45, r * 0.22, 0, TAU); g.fill(); g.fillStyle = '#334155'; for (const sd of [-1, 1]) { g.beginPath(); g.arc(m + sd * r * 0.08, cy + r * 0.42, r * 0.06, 0, TAU); g.fill(); } }
+      if (type === 'wraith') { g.fillStyle = 'rgba(30,58,138,0.55)'; g.beginPath(); g.ellipse(m, cy + r * 0.35, r * 0.22, r * 0.3, 0, 0, TAU); g.fill(); }
       if (type === 'spitter') {
         g.fillStyle = '#3b2a06'; g.beginPath(); g.ellipse(m, cy + r * 0.42, r * 0.42, r * 0.26, 0, 0, TAU); g.fill();
         g.fillStyle = '#fde047'; g.beginPath(); g.ellipse(m, cy + r * 0.45, r * 0.22, r * 0.12, 0, 0, TAU); g.fill();
@@ -924,6 +971,7 @@
       const t = ENEMY_TYPES[typeKey];
       this.type = typeKey; this.def = t; this.x = x; this.y = y; this.radius = t.radius;
       this.maxHp = Math.round(t.hp * scale.hp * (t.boss ? 1 + (tier - 1) * 0.35 : 1)); this.hp = this.maxHp;
+      this.zz = rand(0, TAU); this.fuse = 0; this.healT = rand(1.5, 3); this.phaseT = rand(2, 4); this.phased = false;
       if (t.boss) { this.boss = true; this.tier = tier; this.bt = { a: 2.5, b: 5, c: 8 }; this.side = 1; this.lift = 0; this.entered = false; }
       this.speed = t.speed * scale.speed * rand(0.9, 1.1);
       this.damage = Math.round(t.damage * scale.damage);
@@ -950,16 +998,39 @@
       if (this.boss) { this.updateBoss(dt, player); return; }
       const dx = player.x - this.x, dy = player.y - this.y, d = Math.hypot(dx, dy) || 1;
       let dir = 1;
+      const D = this.def;
+      if (D.bomb) {   // close in, light the fuse (it stops and flashes), then blow up
+        if (this.fuse > 0) {
+          this.fuse -= dt; this.flash = Math.max(this.flash, Math.sin(this.fuse * 30) > 0 ? 0.02 : 0);
+          if (this.fuse <= 0) { this.selfBoom = true; this.dead = true; Combat.bomb(this, true); }
+          this.x += this.vx * dt; this.y += this.vy * dt; this.vx *= Math.pow(0.02, dt); this.vy *= Math.pow(0.02, dt);
+          return;
+        }
+        if (d < this.radius + player.radius + 34 && this.stun <= 0) this.fuse = 0.8;
+      }
+      if (D.healer) {   // patches up everything around it
+        this.healT -= dt;
+        if (this.healT <= 0 && this.stun <= 0) {
+          this.healT = 3.2; let any = false;
+          for (const o of game.enemies) if (!o.dead && o !== this && o.hp < o.maxHp && dist2(o, this) < 170 * 170) { o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.2); any = true; }
+          if (any) { FX.add({ type: 'ring', x: this.x, y: this.y, r0: 10, r1: 170, color: '#4ade80', t: 0.5, max: 0.5, w: 6 }); FX.embers(this.x, this.y, '#86efac', 6, 120, true); }
+        }
+      }
+      if (D.phase) {   // fades out of the world now and then: can't be hurt and moves faster
+        this.phaseT -= dt;
+        if (this.phaseT <= 0) { this.phased = !this.phased; this.phaseT = this.phased ? 1.4 : rand(2.5, 4); }
+      }
       if (this.def.keepAway) {
         dir = d > this.def.keepAway + 20 ? 1 : d < this.def.keepAway - 20 ? -0.6 : 0;
         this.shootTimer = (this.shootTimer ?? rand(1, 2)) - dt;
-        if (this.shootTimer <= 0 && d < this.def.keepAway + 140 && this.stun <= 0) {
+        if (!this.def.noShoot && this.shootTimer <= 0 && d < this.def.keepAway + 140 && this.stun <= 0) {
           this.shootTimer = rand(1.6, 2.4);
           game.enemyShots.push(new Projectile(this.x, this.y, Math.atan2(dy, dx), { hostile: true, speed: 230, dmg: this.damage, size: 6, color: '#facc15', life: 3 }));
         }
       }
-      const sp = this.speed * this.moveFactor;
+      const sp = this.speed * this.moveFactor * (this.phased ? 1.4 : 1);
       this.x += ((dx / d) * sp * dir + this.vx) * dt; this.y += ((dy / d) * sp * dir + this.vy) * dt;
+      if (D.zigzag && this.moveFactor > 0) { const z = Math.cos(game.time * 7 + this.zz) * this.speed * 0.9; this.x += (-dy / d) * z * dt; this.y += (dx / d) * z * dt; }
       this.vx *= Math.pow(0.02, dt); this.vy *= Math.pow(0.02, dt);
       this.flash = Math.max(0, this.flash - dt);
       if (this.moveFactor > 0) this.wobble += dt * 6;
@@ -984,6 +1055,12 @@
       if (this.x < -50 || this.y < -50 || this.x > view.w + 50 || this.y > view.h + 50) return;   // off screen
       if (drawSprite(ctx, this.type, this.x, this.y, this.radius)) return;
       const r = this.radius, bob = Math.sin(this.wobble) * 1.2;
+      if (this.fuse > 0) {   // bomber about to blow: show the blast area
+        const u = 1 - this.fuse / 0.8;
+        ctx.strokeStyle = 'rgba(239,68,68,0.85)'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.arc(this.x, this.y, 95, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(239,68,68,0.18)'; ctx.beginPath(); ctx.arc(this.x, this.y, 95 * u, 0, TAU); ctx.fill();
+      }
+      if (this.phased) ctx.globalAlpha = 0.28;
       const sp = enemySprite(this.type, this.flash > 0 ? 1 : this.frozen > 0 ? 2 : 0);
       ctx.drawImage(sp.c, this.x - sp.w / 2, this.y - sp.w / 2 + 2 + bob, sp.w, sp.h);
       // eyes that follow you
@@ -1010,6 +1087,8 @@
         ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(this.x - w / 2 - 1, barY - 1, w + 2, 6);
         ctx.fillStyle = '#ef4444'; ctx.fillRect(this.x - w / 2, barY, w * Math.max(0, this.hp / this.maxHp), 4);
       }
+      ctx.globalAlpha = 1;
+      if (this.type === 'bomber') { ctx.globalCompositeOperation = 'lighter'; const gs = glowSprite(this.fuse > 0 ? '#ef4444' : '#fde047', 3 + Math.sin(game.time * 30) * 1); blit(gs, this.x + r * 0.55, this.y - r * 1.25 + bob, gs.w); ctx.globalCompositeOperation = 'source-over'; }
       // stun stars sit above the health bar
       if (this.stun > 0 && this.frozen <= 0) { ctx.fillStyle = '#fde047'; for (let i = 0; i < 3; i++) { const aa = game.time * 5 + i * (TAU / 3); ctx.beginPath(); ctx.arc(this.x + Math.cos(aa) * this.radius * 0.8, (hurt ? barY - 6 : this.y - this.radius - 6) + Math.sin(aa) * 2.5, 2.5, 0, TAU); ctx.fill(); } }
     }
@@ -1270,11 +1349,12 @@
   const Combat = {
     // every hit on an enemy goes through here: crits, life steal, status effects, death
     damage(e, amount, o = {}) {
-      if (e.dead) return 0;
+      if (e.dead || e.phased) return 0;   // a faded wraith can't be touched
       const p = game.player;
       let dmg = amount * (o.raw ? 1 : p.dmgMult);
       const crit = !o.raw && (o.crit || Math.random() < p.stats.crit);
       if (crit) dmg *= p.stats.critMult;
+      if (e.def.armor) dmg *= 1 - e.def.armor;   // knights shrug off part of every hit
       dmg = Math.max(1, Math.round(dmg));
       e.hp -= dmg; e.flash = 0.08;
       if (!o.quiet) game.floatText(e.x, e.y - e.radius - 6, String(dmg), o.color || (crit ? '#fde047' : '#ffffff'), crit, e);
@@ -1321,6 +1401,14 @@
         if (e.dead || (e.x - x) ** 2 + (e.y - y) ** 2 > (radius + e.radius) ** 2) continue;
         this.damage(e, dmg, Object.assign({ knockAngle: Math.atan2(e.y - y, e.x - x) }, o));
       }
+    },
+    // a bomber going off: hurts the hero when it lit itself, and always hurts nearby enemies
+    bomb(e, self) {
+      const p = game.player;
+      if (self && p && dist2(e, p) < (95 + p.radius) ** 2) p.takeDamage(e.damage);
+      this.area(e.x, e.y, 95, 30 + game.waves.wave * 2, { raw: true, knock: 3, quiet: true });
+      FX.shock(e.x, e.y, 100, '#f97316', { scorch: true }); FX.add({ type: 'boom', x: e.x, y: e.y, r: 95, color: '#f97316', t: 0.4, max: 0.4 });
+      FX.embers(e.x, e.y, '#fdba74', 12, 260); game.shake = Math.max(game.shake, 8);
     },
     explode(b) {
       const ex = b.explode;
@@ -1400,7 +1488,7 @@
       }
     },
     // every cast: a magic circle under the hero and the skill's name
-    cast(p, sk, i) { FX.sigil(p.x, p.y, 44, p.cls.color, 0.55, true); FX.title(p, sk.name.toUpperCase(), p.cls.color, i === 0); },
+    cast(p, sk, i) { if (!sk.cd) return; FX.sigil(p.x, p.y, 44, p.cls.color, 0.55, true); FX.title(p, sk.name.toUpperCase(), p.cls.color, i === 0); },
   };
   // jump through the air to (x, y); onLand runs when the hero touches down
   function leapTo(p, x, y, dur, h, onLand, color) {
@@ -1746,6 +1834,37 @@
       FX.add({ type: 'lance', x: p.x, y: p.y, angle: a, len: 540, t: 0.4, max: 0.4 });
       FX.flash('#67e8f9', 0.18); game.shake = 10; FX.slow(0.08);
     },
+    // --- samurai: the way of the blade ---
+    // dash and cut: no cooldown, just a tiny pause between dashes
+    quickdraw(p) {
+      if (p.dashLock > 0) return false;
+      const t = targetFor(p, 260), c = manualCast(p);
+      let a;
+      if (c || t) a = aimFor(p, t);
+      else { const mv = Input.moveVector(); a = mv.x || mv.y ? Math.atan2(mv.y, mv.x) : p.aim; }
+      const x0 = p.x, y0 = p.y;
+      dash(p, a, 180, { dmg: p.stats.damage * 1.4, width: 46, color: '#fecdd3', invuln: 0.25 });
+      FX.afterTrail(p, x0, y0, '#fb7185');
+      FX.add({ type: 'cutline', x1: x0, y1: y0, x2: p.x, y2: p.y, t: 0.3, max: 0.3 });
+      p.dashLock = 0.22; p.aim = a; p.swing = p.swingMax = 0.15; p.swingKind = 'melee';
+    },
+    // blink from enemy to enemy, one cut each
+    thousandcuts(p) {
+      const list = nearest(p, 8, 380); if (!list.length) return false;
+      p.hurtTimer = Math.max(p.hurtTimer, list.length * 0.08 + 0.35);
+      FX.flash('#0c0a09', 0.3); FX.slow(0.25);
+      list.forEach((e, i) => game.timers.push({ t: i * 0.08, fn: () => {
+        if (!p.alive) return;
+        const a = rand(0, TAU), x0 = p.x, y0 = p.y;
+        FX.after(p, '#fda4af');
+        p.x = clamp(e.x + Math.cos(a) * (e.radius + 18), 20, view.w - 20); p.y = clamp(e.y + Math.sin(a) * (e.radius + 18), 20, view.h - 20);
+        p.aim = Math.atan2(e.y - p.y, e.x - p.x); p.swing = p.swingMax = 0.1; p.swingKind = 'melee';
+        FX.add({ type: 'cutline', x1: x0, y1: y0, x2: p.x, y2: p.y, t: 0.25, max: 0.25 });
+        Combat.damage(e, p.stats.damage * 2.2, { crit: i === list.length - 1 });
+        FX.xslash(e.x, e.y, 30, '#fb7185'); game.shake = Math.max(game.shake, 4);
+      } }));
+    },
+    sakura(p) { p.buffs.sakura = 4; p.sakuraTick = 0; FX.embers(p.x, p.y, '#fbcfe8', 20, 220); FX.sigil(p.x, p.y, 90, '#fb7185', 0.8, true); },
     // --- ice mage: the deep freeze ---
     iceshards(p) {
       const t = targetFor(p, 600); const a = aimFor(p, t);
@@ -1845,7 +1964,7 @@
 
     nearestEnemy(from, range) {
       let best = null, bd = range * range;
-      for (const e of this.enemies) { if (e.dead) continue; const d = dist2(e, from); if (d < bd) { bd = d; best = e; } }
+      for (const e of this.enemies) { if (e.dead || e.phased) continue; const d = dist2(e, from); if (d < bd) { bd = d; best = e; } }
       return best;
     },
     burst(x, y, color, n) { if (this.particles.length > 500) n = Math.min(n, 2); for (let i = 0; i < n; i++) this.particles.push(new Particle(x, y, color)); },
@@ -1880,6 +1999,8 @@
       if (this.fx.length < 160) this.fx.push({ type: 'ring', x: e.x, y: e.y, r0: e.radius * 0.6, r1: e.radius * 2, color: e.def.color, t: 0.25, max: 0.25 });
       const v = Math.max(1, Math.round(e.def.xp * (1 + this.waves.wave * 0.04)));
       this.gems.push(new Gem(e.x, e.y, v));
+      if (e.def.split) for (const sd of [-1, 1]) this.waves.spawnAt(e.def.split, e.x + sd * 12, e.y + rand(-6, 6));
+      if (e.def.bomb) Combat.bomb(e, false);
       const P = this.cls.passive;
       if (P.raise && Math.random() < P.raise && this.minions.filter((m) => m.kind === 'skeleton').length < P.maxSkeletons + this.player.stats.minions) {
         this.minions.push(new Minion('skeleton', e.x, e.y, { life: 25 }));
@@ -1960,7 +2081,7 @@
       }
       // enemies and their shots hurt you
       for (const e of this.enemies) {
-        if (!e.dead && e.stun <= 0 && dist2(e, p) < (e.radius + p.radius) ** 2 && p.takeDamage(e.damage)) {
+        if (!e.dead && !e.phased && e.stun <= 0 && dist2(e, p) < (e.radius + p.radius) ** 2 && p.takeDamage(e.damage)) {
           const a = Math.atan2(e.y - p.y, e.x - p.x); e.vx += Math.cos(a) * 260; e.vy += Math.sin(a) * 260;
         }
       }
@@ -2248,6 +2369,11 @@
         ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(0, -w / 2); ctx.lineTo(L, -w * 0.12); ctx.lineTo(L + 34, 0); ctx.lineTo(L, w * 0.12); ctx.lineTo(0, w / 2); ctx.closePath(); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(0, -2, L, 4);
         ctx.restore();
+      } else if (f.type === 'cutline') {   // a bright sword stroke left behind by a dash
+        ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(251,113,133,' + 0.6 * k + ')'; ctx.lineWidth = 12 * k + 1; ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,' + k + ')'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over'; ctx.lineCap = 'butt';
       } else if (f.type === 'warnline') {   // where a boss is about to charge
         ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.angle);
         ctx.globalAlpha = 0.25 + 0.2 * Math.sin(game.time * 22); ctx.fillStyle = '#ef4444'; ctx.fillRect(0, -f.w / 2, f.len, f.w);
@@ -2380,7 +2506,7 @@
       });
       $('cdIcon').innerHTML = '<img alt="" src="' + heroImg(c.id, 128) + '">'; $('cdIcon').style.borderColor = c.color;
       $('cdName').textContent = c.name; $('cdRole').textContent = c.role; $('cdDesc').textContent = c.desc;
-      $('cdSkills').innerHTML = '<div class="cd-label">SKILLS</div>' + c.abilities.map((sk, i) => '<div class="sk-row"><span class="sk-ic"><img alt="" src="' + SkillIcons.url(sk.id, 64) + '"></span><div><div class="sk-nm">' + sk.name + ' <span class="sk-key">' + SKILL_KEYS[i] + '</span><span class="sk-cd">' + sk.cd + 's</span></div><div class="cd-small">' + sk.desc + '</div></div></div>').join('');
+      $('cdSkills').innerHTML = '<div class="cd-label">SKILLS</div>' + c.abilities.map((sk, i) => '<div class="sk-row"><span class="sk-ic"><img alt="" src="' + SkillIcons.url(sk.id, 64) + '"></span><div><div class="sk-nm">' + sk.name + ' <span class="sk-key">' + SKILL_KEYS[i] + '</span><span class="sk-cd">' + (sk.cd ? sk.cd + 's' : 'no cooldown') + '</span></div><div class="cd-small">' + sk.desc + '</div></div></div>').join('');
       $('cdPassive').textContent = c.passive.text; $('cdBest').textContent = this.bestFor(id);
       // rough 0..1 ratings for the stat bars
       const dps = c.attack.kind === 'deploy' ? 26 : (s.damage / s.cooldown) * (1 + s.crit * (s.critMult - 1));
@@ -2408,7 +2534,7 @@
       if (p.buffs.rage > 0) buffs.push('🩸 Rage ' + Math.ceil(p.buffs.rage) + 's');
       if (p.buffs.might > 0) buffs.push('✨ +50% dmg ' + Math.ceil(p.buffs.might) + 's');
       if (p.whirl > 0) buffs.push('🌀 Whirlwind');
-      const named = { cry: '📯 Battle Cry', fortify: '🧱 Fortify', divine: '🛡️ Divine', smoke: '🌫️ Hidden', inner: '☯️ Peace', frenzy: '🔗 Frenzy', overdrive: '⚙️ Overdrive', bear: '🐻 Bear', overclock: '🔋 Overclock', firetrail: '👣 Fire Trail' };
+      const named = { cry: '📯 Battle Cry', fortify: '🧱 Fortify', divine: '🛡️ Divine', smoke: '🌫️ Hidden', inner: '☯️ Peace', frenzy: '🔗 Frenzy', overdrive: '⚙️ Overdrive', bear: '🐻 Bear', overclock: '🔋 Overclock', sakura: '🌸 Blossom', firetrail: '👣 Fire Trail' };
       for (const k in named) if (p.buffs[k] > 0) buffs.push(named[k] + ' ' + Math.ceil(p.buffs[k]) + 's');
       if (p.focusShots > 0) buffs.push('🎯 Crit ×' + p.focusShots);
       const pets = game.minions.length;
