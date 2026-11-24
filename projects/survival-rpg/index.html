@@ -4,70 +4,115 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Wave Survivor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <canvas id="game"></canvas>
 
-  <!-- In-game HUD -->
+  <!-- ===== In-game HUD ===== -->
   <div id="hud" class="hidden">
-    <div class="hud-left">
-      <div class="hp">
-        <div class="hp-label">HP <span id="hpText">100 / 100</span></div>
-        <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+    <div class="hero-frame">
+      <div class="portrait" id="portrait"><span id="portraitIcon">⚔️</span><div class="lvl" id="lvlText">1</div></div>
+      <div class="bars">
+        <div class="hero-name"><span id="heroName">Warrior</span></div>
+        <div class="bar hp"><div class="fill" id="hpFill"></div><span id="hpText">100 / 100</span></div>
+        <div class="bar xp"><div class="fill" id="xpFill"></div></div>
+        <div class="buffs" id="buffs"></div>
       </div>
     </div>
-    <div class="hud-mid">
+    <div class="wave-plaque">
       <div class="label">WAVE</div>
       <div class="wave" id="waveText">1</div>
       <div class="sub" id="enemiesText">0 left</div>
     </div>
     <div class="hud-right">
-      <div class="label">KILLS</div>
-      <div class="kills" id="killsText">0</div>
+      <div class="kills-box">☠ <b id="killsText">0</b></div>
       <button id="pauseBtn" class="icon-btn" type="button" aria-label="Pause">❚❚</button>
     </div>
   </div>
 
-  <!-- Big center message: "Wave 3", "Wave cleared!" -->
+  <!-- the class ability -->
+  <button id="abilityBtn" class="hidden" type="button" aria-label="Use ability">
+    <span class="ab-ring" id="abRing"></span>
+    <span class="ab-icon" id="abIcon">🌀</span>
+    <span class="ab-cd" id="abCd"></span>
+    <span class="ab-key">SPACE</span>
+  </button>
+  <div id="abName" class="hidden">Whirlwind</div>
+
   <div id="banner"></div>
 
-  <!-- Start screen -->
+  <!-- ===== Choose your hero ===== -->
   <div class="overlay" id="menu">
-    <div class="card">
-      <div class="kicker">TOP-DOWN SURVIVAL</div>
-      <h1>WAVE<br /><span>SURVIVOR</span></h1>
-      <p id="howto">Move with <b>WASD</b> or the <b>arrow keys</b>. You attack the nearest enemy automatically. Clear each wave to face a harder one. How long can you last?</p>
-      <button type="button" class="btn primary" id="startBtn">▶ START</button>
-      <div class="best">Best: wave <b id="bestText">0</b></div>
+    <div class="select">
+      <header class="select-head">
+        <div class="kicker">TOP-DOWN WAVE SURVIVAL</div>
+        <h1>WAVE <span>SURVIVOR</span></h1>
+        <div class="choose">— CHOOSE YOUR HERO —</div>
+      </header>
+      <div class="select-body">
+        <div class="class-grid" id="classGrid"></div>
+        <aside class="class-detail panel" id="classDetail">
+          <div class="cd-top">
+            <div class="cd-icon" id="cdIcon">⚔️</div>
+            <div>
+              <div class="cd-name" id="cdName">Warrior</div>
+              <div class="cd-role" id="cdRole">Melee · AoE</div>
+            </div>
+          </div>
+          <p class="cd-desc" id="cdDesc"></p>
+          <div class="cd-stats" id="cdStats"></div>
+          <div class="cd-box"><div class="cd-label">ABILITY · <span id="cdAbCd">8s</span></div><div class="cd-ab"><span id="cdAbIcon">🌀</span> <b id="cdAbName">Whirlwind</b></div><div class="cd-small" id="cdAbDesc"></div></div>
+          <div class="cd-box"><div class="cd-label">PASSIVE</div><div class="cd-small" id="cdPassive"></div></div>
+          <div class="cd-best">Best with this hero: wave <b id="cdBest">0</b></div>
+          <button type="button" class="btn primary" id="startBtn">⚔ BEGIN</button>
+        </aside>
+      </div>
+      <p class="howto" id="howto"></p>
     </div>
   </div>
 
-  <!-- Paused -->
+  <!-- ===== Level up ===== -->
+  <div class="overlay hidden" id="levelUp">
+    <div class="card panel">
+      <div class="kicker gold">LEVEL UP!</div>
+      <h2 id="luTitle">Level 2</h2>
+      <div class="choices" id="luChoices"></div>
+      <div class="hint">Pick one · 1 / 2 / 3</div>
+    </div>
+  </div>
+
+  <!-- ===== Paused ===== -->
   <div class="overlay hidden" id="pauseMenu">
-    <div class="card">
+    <div class="card panel">
       <h2>PAUSED</h2>
       <div class="btn-row">
         <button type="button" class="btn primary" data-act="resume">▶ RESUME</button>
         <button type="button" class="btn" data-act="restart">↻ RESTART</button>
-        <button type="button" class="btn" data-act="menu">☰ MENU</button>
+        <button type="button" class="btn" data-act="menu">☰ HEROES</button>
       </div>
       <div class="hint">P / Esc to resume</div>
     </div>
   </div>
 
-  <!-- Game over -->
+  <!-- ===== Game over ===== -->
   <div class="overlay hidden" id="gameOver">
-    <div class="card">
-      <div class="kicker danger">YOU FELL</div>
+    <div class="card panel">
+      <div class="kicker danger">YOU HAVE FALLEN</div>
       <h2>GAME OVER</h2>
       <p class="stats" id="overStats"></p>
       <div class="newbest hidden" id="newBest">★ NEW BEST ★</div>
-      <button type="button" class="btn primary" id="restartBtn">↻ PLAY AGAIN</button>
+      <div class="btn-row">
+        <button type="button" class="btn primary" id="restartBtn">↻ FIGHT AGAIN</button>
+        <button type="button" class="btn" id="heroesBtn">☰ HEROES</button>
+      </div>
     </div>
   </div>
 
-  <!-- Touch joystick (phones) -->
+  <!-- touch joystick (phones) -->
   <div id="stick" class="hidden"><div id="knob"></div></div>
 
   <script src="game.js"></script>

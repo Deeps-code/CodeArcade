@@ -111,11 +111,12 @@
   {
     "id": "survival-rpg",
     "title": "Wave Survivor",
-    "description": "Top-down wave survival. Move to dodge, auto-attack the nearest enemy, and clear endless waves that keep getting bigger, faster and tougher.",
+    "description": "Top-down wave-survival RPG. Pick one of 17 heroes, from Warrior and Mage to Necromancer and Engineer, each with its own attack, ability and passive. Level up, choose upgrades, and survive endless waves.",
     "folder": "survival-rpg",
     "thumbnail": "thumb.svg",
     "tags": [
       "game",
+      "rpg",
       "survival",
       "canvas"
     ]
