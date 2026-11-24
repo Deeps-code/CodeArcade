@@ -317,3 +317,10 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
 /* drawn upgrade icons */
 .lc-art span img { width: 60px; height: 60px; display: block; }
 @media (max-width: 760px) { .lc-art span img { width: 44px; height: 44px; } }
+
+/* boss health bar */
+#bossBar { position: fixed; z-index: 3; top: calc(max(12px, env(safe-area-inset-top)) + 86px); left: 50%; transform: translateX(-50%); width: min(520px, 80vw); pointer-events: none; text-align: center; }
+#bossBar .bb-name { font-family: var(--head); font-weight: 900; font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: #fde68a; text-shadow: 0 2px 4px #000; margin-bottom: 4px; }
+#bossBar .bb-bar { height: 14px; border-radius: 8px; background: rgba(0, 0, 0, 0.7); border: 2px solid var(--gold); box-shadow: 0 0 0 2px #000, 0 0 18px var(--boss, #ef4444); overflow: hidden; }
+#bossBar .bb-fill { height: 100%; width: 100%; background: linear-gradient(180deg, #fca5a5, var(--boss, #ef4444) 55%, #450a0a); transition: width 0.15s linear; }
+@media (max-width: 760px) { #bossBar { top: calc(max(8px, env(safe-area-inset-top)) + 74px); } #bossBar .bb-name { font-size: 11px; } }
