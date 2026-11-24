@@ -300,3 +300,10 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
   #abilities .ab-key { font-size: 8px; }
   #abName { left: auto !important; right: 86px !important; transform: none !important; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 30px) !important; }
 }
+
+/* hero portraits */
+.cc .ic img { width: 52px; height: 52px; display: block; margin: -4px auto 0; }
+.cd-icon img { width: 112%; height: 112%; object-fit: contain; margin-top: -6px; }
+#portraitIcon { display: grid; place-items: center; width: 100%; height: 100%; }
+#portraitIcon img { width: 112%; height: 112%; object-fit: contain; margin-top: -4px; }
+@media (max-width: 760px) { .cc .ic img { width: 42px; height: 42px; } }
