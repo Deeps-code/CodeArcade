@@ -433,6 +433,7 @@
     if (MOVE_KEYS.includes(e.code)) { e.preventDefault(); Input.keys.add(e.code); }
     if (e.repeat) return;
     if (e.code === 'KeyM') UI.toggleSound();
+    if ((e.code === 'KeyC' || e.code === 'Tab') && (game.state === 'playing' || game.state === 'paused')) { e.preventDefault(); if (game.state === 'playing') pause(); else resume(); }
     if (e.code === 'KeyN') UI.toggleMusic();
     if (e.code === 'KeyP' || e.code === 'Escape') { if (game.state === 'playing') pause(); else if (game.state === 'paused') resume(); }
     if (game.state === 'playing') {
@@ -2957,6 +2958,7 @@
       $('restartBtn').addEventListener('click', startGame);
       $('heroesBtn').addEventListener('click', toMenu);
       $('muteBtn').addEventListener('click', () => this.toggleSound());
+      $('statsBtn').addEventListener('click', () => { if (game.state === 'playing') pause(); });
       $('musicBtn').addEventListener('click', () => this.toggleMusic());
       $('menuMusicBtn').addEventListener('click', () => this.toggleMusic());
       // settings buttons (pause menu + hero select)
@@ -3142,7 +3144,44 @@
                : '<path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>') + '</svg>';
       b.setAttribute('aria-label', off ? 'Turn sound on (M)' : 'Turn sound off (M)'); b.title = off ? 'Sound off (M)' : 'Sound on (M)';
     },
-    showPause(on) { this.el.pause.classList.toggle('hidden', !on); },
+    showPause(on) { if (on) this.renderStats(); this.el.pause.classList.toggle('hidden', !on); },
+    // the hero's current stats (compared with how they started) and every upgrade picked so far
+    renderStats() {
+      const p = game.player, box = $('statsPanel'); if (!p || !box) return;
+      const s = p.stats, b = Object.assign({}, BASE_STATS, p.cls.stats);
+      const pc = (v) => Math.round(v * 100) + '%';
+      const num = (v, d = 0) => (Math.round(v * 10 ** d) / 10 ** d).toString();
+      // [label, now, start, how to show it, is lower better?]
+      const deploy = p.cls.attack.kind === 'deploy';
+      const rows = [
+        ['Damage', s.damage * p.dmgMult, b.damage, (v) => num(v, 1)],
+        [deploy ? 'Turret build' : 'Attacks / sec', deploy ? p.attackCooldown : 1 / p.attackCooldown, deploy ? b.cooldown : 1 / b.cooldown, (v) => deploy ? num(v, 1) + 's' : num(v, 2), deploy],
+        ['Crit chance', s.crit, b.crit, pc],
+        ['Crit damage', s.critMult, b.critMult, (v) => pc(v)],
+        ['Move speed', s.speed, b.speed, (v) => num(v)],
+        ['Range', s.range, b.range, (v) => num(v)],
+        ['Damage taken', 1 - s.armor, 1 - b.armor, (v) => pc(v), true],
+        ['Dodge', s.evasion, b.evasion, pc],
+        ['Block', s.block, b.block, pc],
+        ['Life steal', s.lifesteal, b.lifesteal, pc],
+        ['Regen / sec', s.regen, b.regen, (v) => num(v, 1)],
+        ['Skill cooldowns', s.cdr, b.cdr, (v) => pc(v), true],
+        ['Extra minions', s.minions, b.minions, (v) => num(v)],
+      ].filter(([, now, start]) => now !== 0 || start !== 0);
+      const rowHtml = rows.map(([label, now, start, f, lowerBetter]) => {
+        const diff = now - start, better = lowerBetter ? diff < -1e-9 : diff > 1e-9, worse = lowerBetter ? diff > 1e-9 : diff < -1e-9;
+        return '<div class="st-line"><span>' + label + '</span><b>' + f(now) + '</b>'
+          + (better || worse ? '<i class="' + (better ? 'up' : 'down') + '">' + (better ? '▲ ' : '▼ ') + 'from ' + f(start) + '</i>' : '<i></i>') + '</div>';
+      }).join('');
+      const ups = Object.values(p.upgrades || {});
+      const upHtml = ups.length
+        ? ups.map((r) => '<span class="up-chip" title="' + r.u.name + '"><img alt="" src="' + SkillIcons.url('up_' + r.u.id, 48) + '">' + r.u.name + (r.n > 1 ? ' <b>×' + r.n + '</b>' : '') + '</span>').join('')
+        : '<span class="up-none">No upgrades yet: level up to pick some.</span>';
+      box.innerHTML = '<div class="sp-head"><img alt="" src="' + heroImg(p.cls.id, 96) + '"><div><div class="sp-name">' + p.cls.name + ' · Level ' + p.level + '</div>'
+        + '<div class="sp-sub">HP ' + Math.ceil(p.hp) + ' / ' + Math.round(s.maxHp) + (s.maxHp !== b.maxHp ? ' <i class="up">▲ from ' + b.maxHp + '</i>' : '') + ' · Wave ' + game.waves.wave + ' · ' + game.kills + ' kills</div></div></div>'
+        + '<div class="st-grid">' + rowHtml + '</div>'
+        + '<div class="cd-label sp-label">UPGRADES</div><div class="up-chips">' + upHtml + '</div>';
+    },
     // level up: pause and offer 3 upgrades
     choices: [], dealing: false,
     // bonus = a free pick from a boss treasure chest (Epic / Legendary cards only)
@@ -3201,6 +3240,7 @@
         this.picking = false;
         const p = game.player, { u, r } = c;
         u.apply(p.stats, p, r.k);
+        p.upgrades = p.upgrades || {}; const rec = p.upgrades[u.id] || (p.upgrades[u.id] = { u, n: 0, best: 0 }); rec.n++; rec.best = Math.max(rec.best, r.k);
         p.hp = Math.min(p.hp, p.stats.maxHp);
         if (this.bonus) game.bonusPicks = Math.max(0, game.bonusPicks - 1); else p.pendingLevels--;
         this.el.levelUp.classList.add('hidden');
