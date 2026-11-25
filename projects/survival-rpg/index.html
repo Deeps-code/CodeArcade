@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<!-- everything lives in the stage: the whole screen, or a 9:16 column in Portrait layout -->
+<div id="stage">
   <canvas id="game"></canvas>
 
   <!-- ===== In-game HUD ===== -->
@@ -60,7 +62,11 @@
         <div class="select-left">
           <div class="class-grid" id="classGrid"></div>
           <p class="howto" id="howto"></p>
-          <button type="button" class="music-toggle" id="menuMusicBtn"></button>
+          <div class="menu-settings">
+            <button type="button" class="music-toggle" id="menuMusicBtn"></button>
+            <button type="button" class="music-toggle" data-set="layout">Layout: Auto</button>
+            <button type="button" class="music-toggle" data-set="full">Fullscreen</button>
+          </div>
         </div>
         <aside class="class-detail panel" id="classDetail">
           <div class="cd-top">
@@ -103,6 +109,12 @@
         <button type="button" class="btn" data-act="restart">↻ RESTART</button>
         <button type="button" class="btn" data-act="menu">☰ HEROES</button>
       </div>
+      <div class="settings">
+        <button type="button" class="set-btn" data-set="music">Music: on</button>
+        <button type="button" class="set-btn" data-set="sound">Sound: on</button>
+        <button type="button" class="set-btn" data-set="layout">Layout: Auto</button>
+        <button type="button" class="set-btn" data-set="full">Fullscreen</button>
+      </div>
       <div class="hint">P / Esc to resume</div>
     </div>
   </div>
@@ -124,6 +136,8 @@
   <!-- touch joystick (phones) -->
   <div id="stick" class="hidden"><div id="knob"></div></div>
   <div id="aimStick" class="hidden"><div id="aimKnob"></div></div>
+
+</div>
 
   <script src="sound.js"></script>
   <script src="heroes.js"></script>

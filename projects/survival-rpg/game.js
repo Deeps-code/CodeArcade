@@ -282,11 +282,18 @@
   // ===================================================================
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const view = { w: 0, h: 0, dpr: 1 };
+  const view = { w: 0, h: 0, dpr: 1, left: 0, top: 0 };
+  const stage = document.getElementById('stage');
+  // phones get a lighter load: a bit less resolution and fewer particles / effects at once
+  const LITE = window.matchMedia('(pointer: coarse)').matches;
+  const CAP = LITE ? { fx: 170, spark: 120, parts: 240, trail: 220, burst: 260 } : { fx: 260, spark: 200, parts: 480, trail: 420, burst: 500 };
+  // pointer position inside the stage (it isn't at 0,0 in Portrait layout on a wide screen)
+  const sx = (e) => e.clientX - view.left, sy = (e) => e.clientY - view.top;
   let floorPattern = null;
   function resize() {
-    view.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    view.w = window.innerWidth; view.h = window.innerHeight;
+    view.dpr = Math.min(window.devicePixelRatio || 1, LITE ? 1.5 : 2);
+    const rc = stage.getBoundingClientRect();
+    view.w = Math.round(rc.width); view.h = Math.round(rc.height); view.left = rc.left; view.top = rc.top;
     canvas.width = Math.round(view.w * view.dpr); canvas.height = Math.round(view.h * view.dpr);
     canvas.style.width = view.w + 'px'; canvas.style.height = view.h + 'px';
     if (game.player) game.player.clampTo(view);
@@ -446,22 +453,22 @@
   canvas.addEventListener('pointerdown', (e) => {
     if (game.state !== 'playing') return;
     if (e.pointerType === 'mouse') {
-      if (e.button === 0) { Input.mouse.down = true; Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; }
+      if (e.button === 0) { Input.mouse.down = true; Input.mouse.x = sx(e); Input.mouse.y = sy(e); }
       return;
     }
     // Phones: a touch on the left half moves, a touch on the right half aims.
-    const aimSide = e.clientX > view.w / 2;
+    const aimSide = sx(e) > view.w / 2;
     const stick = aimSide ? Input.aimTouch : Input.touch;
     if (stick.id !== null) return;
-    Object.assign(stick, { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: e.clientX, y: e.clientY });
-    UI.showStick(e.clientX, e.clientY, aimSide);
+    Object.assign(stick, { id: e.pointerId, ox: sx(e), oy: sy(e), x: sx(e), y: sy(e) });
+    UI.showStick(sx(e), sy(e), aimSide);
   });
   window.addEventListener('pointermove', (e) => {
-    if (e.pointerType === 'mouse') { Input.mouse.x = e.clientX; Input.mouse.y = e.clientY; Input.mouse.seen = true; return; }
+    if (e.pointerType === 'mouse') { Input.mouse.x = sx(e); Input.mouse.y = sy(e); Input.mouse.seen = true; return; }
     for (const [stick, aimSide] of [[Input.touch, false], [Input.aimTouch, true]]) {
       if (e.pointerId !== stick.id) continue;
-      stick.x = e.clientX; stick.y = e.clientY;
-      UI.moveKnob(e.clientX - stick.ox, e.clientY - stick.oy, aimSide);
+      stick.x = sx(e); stick.y = sy(e);
+      UI.moveKnob(stick.x - stick.ox, stick.y - stick.oy, aimSide);
     }
   });
   const endTouch = (e) => {
@@ -520,7 +527,7 @@
       this.hurtFlash = Math.max(0, (this.hurtFlash || 0) - dt);
       if (this.moving && !this.leap) {   // little dust puffs from the feet
         this.stepT = (this.stepT || 0) - dt;
-        if (this.stepT <= 0 && game.particles.length < 450) {
+        if (this.stepT <= 0 && game.particles.length < CAP.parts) {
           this.stepT = 0.2;
           const q = new Particle(this.x + rand(-6, 6), this.y + 20, 'rgba(168,162,158,0.7)');
           q.vx = rand(-18, 18) - mv.x * 40; q.vy = rand(-28, -8) - mv.y * 20; q.life = q.max = 0.35; q.size = rand(2.5, 4); game.particles.push(q);
@@ -1193,7 +1200,7 @@
       }
       const damp = () => { this.x += this.vx * dt; this.y += this.vy * dt; this.vx *= Math.pow(0.02, dt); this.vy *= Math.pow(0.02, dt); this.flash = Math.max(0, this.flash - dt); };
       if (D.charger) {   // boar: lowers its head (warning line), then charges in a straight line
-        this.chCd = (this.chCd ?? rand(1, 2.5)) - dt;
+        this.chCd = (this.chCd ?? rand(0.3, 1)) - dt;   // ready soon after it shows up, so it charges from range
         if (this.ch) {
           this.ch.t -= dt;
           if (this.ch.phase === 'wind') { if (this.ch.t <= 0) { this.ch.phase = 'go'; this.ch.t = 0.45; } damp(); return; }
@@ -1201,7 +1208,7 @@
           if (this.ch.t <= 0) { this.ch = null; this.chCd = rand(2.5, 3.5); }
           damp(); return;
         }
-        if (this.chCd <= 0 && d < 280 && d > 70 && this.stun <= 0 && this.root <= 0) {
+        if (this.chCd <= 0 && d < 320 && d > 70 && this.stun <= 0 && this.root <= 0) {
           const a = Math.atan2(dy, dx); this.ch = { phase: 'wind', t: 0.55, a };
           FX.add({ type: 'warnline', x: this.x, y: this.y, angle: a, len: this.speed * 4.2 * 0.45, w: this.radius * 2, t: 0.55, max: 0.55, ground: true });
         }
@@ -1343,7 +1350,7 @@
         }
       }
       this.x += this.vx * dt; this.y += this.vy * dt; this.life -= dt; this.rot += this.spin * dt;
-      if (this.trail && Math.random() < 0.55 && game.particles.length < 420) {
+      if (this.trail && Math.random() < 0.55 && game.particles.length < CAP.trail) {
         const q = new Particle(this.x, this.y, this.trail); q.vx *= 0.15; q.vy *= 0.15; q.life = q.max = 0.35; game.particles.push(q);
       }
       if (this.life <= 0) { if (this.explode) Combat.explode(this); this.dead = true; }
@@ -1494,7 +1501,7 @@
       this.moving = dd > 2;
       if (dd > 2) { const st = Math.min(dd, d.speed * dt); this.x += (dx / dd) * st; this.y += (dy / dd) * st; this.aim = Math.atan2(dy, dx); }
       if (Math.abs(Math.cos(this.aim)) > 0.25) this.face = Math.cos(this.aim) < 0 ? -1 : 1;
-      if (this.kind === 'spirit' && Math.random() < 0.25 && game.particles.length < 420) { const q = new Particle(this.x, this.y, 'rgba(94,234,212,0.7)'); q.vx *= 0.1; q.vy = q.vy * 0.1 - 12; q.life = q.max = 0.4; q.size = 2; game.particles.push(q); }
+      if (this.kind === 'spirit' && Math.random() < 0.25 && game.particles.length < CAP.trail) { const q = new Particle(this.x, this.y, 'rgba(94,234,212,0.7)'); q.vx *= 0.1; q.vy = q.vy * 0.1 - 12; q.life = q.max = 0.4; q.size = 2; game.particles.push(q); }
       if (e && this.cd <= 0 && Math.hypot(e.x - this.x, e.y - this.y) < e.radius + d.r + d.reach) {
         this.atk = 0.25; this.aim = Math.atan2(e.y - this.y, e.x - this.x);
         this.cd = d.cd; Combat.damage(e, p.stats.damage * d.mult * (p.buffs.frenzy > 0 ? 2 : 1), { knockFrom: this, knock: 0.6 });
@@ -1767,7 +1774,7 @@
   // ---- dramatic effects: each skill combines these into its own look ----
   //   ground: drawn under everyone (sigils, cracks, portals); follow: sticks to the hero; delay: waits before starting
   const FX = {
-    add(o) { if (game.fx.length < 260) game.fx.push(o); return o; },
+    add(o) { if (game.fx.length < CAP.fx) game.fx.push(o); return o; },
     slow(t) { game.slowT = Math.max(game.slowT || 0, t); },   // a short slow-motion beat for big moments
     flash(color, a = 0.3, t = 0.28) { FX.add({ type: 'flash', color, a, t, max: t }); },
     sigil(x, y, r, color, t = 0.8, follow = false) { FX.add({ type: 'sigil', x, y, r, color, t, max: t, follow, ground: true }); },
@@ -1809,12 +1816,12 @@
     portal(x, y, r, color) { FX.add({ type: 'portal', x, y, r, color, t: 0.85, max: 0.85, ground: true }); },
     muzzle(x, y, color) { FX.add({ type: 'impact', x, y, color, size: 13, rot: rand(0, 1), t: 0.1, max: 0.1 }); },
     // small bursts where hits land (skipped when the screen is already busy)
-    spark(x, y, color, size = 16) { if (game.fx.length < 200) FX.add({ type: 'impact', x, y, color, size, rot: rand(0, 1), t: 0.16, max: 0.16 }); },
+    spark(x, y, color, size = 16) { if (game.fx.length < CAP.spark) FX.add({ type: 'impact', x, y, color, size, rot: rand(0, 1), t: 0.16, max: 0.16 }); },
     impact(x, y, color, size) { FX.add({ type: 'impact', x, y, color, size, rot: rand(0, 1), t: 0.22, max: 0.22 }); },
     skyshot(x, y, color) { FX.add({ type: 'skyshot', x, y, color, t: 0.4, max: 0.4 }); },
     pillar(x, y, color, w = 18, t = 0.45) { FX.add({ type: 'pillar', x, y, color, w, t, max: t }); },
     embers(x, y, color, n, speed = 200, up = false) {
-      for (let i = 0; i < n && game.particles.length < 480; i++) {
+      for (let i = 0; i < n && game.particles.length < CAP.parts; i++) {
         const q = new Particle(x, y, color), a = rand(0, TAU), sp = rand(0.3, 1) * speed;
         q.vx = Math.cos(a) * sp; q.vy = Math.sin(a) * sp - (up ? speed * 0.6 : 0); q.life = q.max = rand(0.4, 0.8); q.size = rand(2, 4);
         game.particles.push(q);
@@ -2304,7 +2311,7 @@
       for (const e of this.enemies) { if (e.dead || e.phased) continue; const d = dist2(e, from); if (d < bd) { bd = d; best = e; } }
       return best;
     },
-    burst(x, y, color, n) { if (this.particles.length > 500) n = Math.min(n, 2); for (let i = 0; i < n; i++) this.particles.push(new Particle(x, y, color)); },
+    burst(x, y, color, n) { if (this.particles.length > CAP.burst) n = Math.min(n, 2); for (let i = 0; i < n; i++) this.particles.push(new Particle(x, y, color)); },
     texts: [], textFor: new WeakMap(),
     // floating numbers: rapid hits on the same enemy add up into one number instead of a pile
     floatText(x, y, text, color, big = false, target = null) {
@@ -2867,6 +2874,17 @@
       $('muteBtn').addEventListener('click', () => this.toggleSound());
       $('musicBtn').addEventListener('click', () => this.toggleMusic());
       $('menuMusicBtn').addEventListener('click', () => this.toggleMusic());
+      // settings buttons (pause menu + hero select)
+      document.addEventListener('click', (e) => {
+        const b = e.target.closest && e.target.closest('[data-set]'); if (!b) return;
+        const k = b.dataset.set;
+        if (k === 'music') this.toggleMusic(); else if (k === 'sound') this.toggleSound();
+        else if (k === 'layout') this.setLayout(this.layout === 'portrait' ? 'auto' : 'portrait');
+        else if (k === 'full') this.toggleFullscreen();
+      });
+      try { this.layout = localStorage.getItem('survivalLayout') === 'portrait' ? 'portrait' : 'auto'; } catch (e) { this.layout = 'auto'; }
+      this.setLayout(this.layout, true);
+      document.addEventListener('fullscreenchange', () => { this.showSound(); setTimeout(resize, 60); });
       this.showSound();
       $('pauseBtn').addEventListener('click', () => (game.state === 'paused' ? resume() : pause()));
       $('pauseMenu').addEventListener('click', (e) => {
@@ -2890,6 +2908,7 @@
       $('cdIcon').innerHTML = '<img alt="" src="' + heroImg(c.id, 128) + '">'; $('cdIcon').style.borderColor = c.color;
       $('cdName').textContent = c.name; $('cdRole').textContent = c.role; $('cdDesc').textContent = c.desc;
       $('cdSkills').innerHTML = '<div class="cd-label">SKILLS</div>' + c.abilities.map((sk, i) => '<div class="sk-row"><span class="sk-ic"><img alt="" src="' + SkillIcons.url(sk.id, 64) + '"></span><div><div class="sk-nm">' + sk.name + ' <span class="sk-key">' + SKILL_KEYS[i] + '</span><span class="sk-cd">' + (sk.cd ? sk.cd + 's' : 'no cooldown') + '</span></div><div class="cd-small">' + sk.desc + '</div></div></div>').join('');
+      $('startBtn').textContent = '⚔ BEGIN AS ' + c.name.toUpperCase();
       $('cdPassive').textContent = c.passive.text; $('cdBest').textContent = this.bestFor(id);
       // rough 0..1 ratings for the stat bars
       const dps = c.attack.kind === 'deploy' ? 26 : (s.damage / s.cooldown) * (1 + s.crit * (s.critMult - 1));
@@ -3001,6 +3020,21 @@
     // sound on / off (the M key or the speaker button)
     toggleSound() { SFX.toggle(); this.showSound(); },
     toggleMusic() { SFX.toggleMusic(); this.showSound(); },
+    // Layout: "auto" fills the screen; "portrait" plays in a tall 9:16 column (handy on wide screens)
+    setLayout(mode, quiet) {
+      this.layout = mode;
+      document.documentElement.classList.toggle('portrait-mode', mode === 'portrait');
+      try { localStorage.setItem('survivalLayout', mode); } catch (e) { /* ignore */ }
+      if (!quiet) SFX.play('click');
+      resize(); this.showSound();
+    },
+    toggleFullscreen() {
+      const d = document, el = d.documentElement;
+      try {
+        if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+        else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+      } catch (e) { /* not supported */ }
+    },
     showSound() {
       // music: a note, crossed out when off (HUD button + the one on the hero select screen)
       const mOn = SFX.musicOn;
@@ -3008,6 +3042,15 @@
         + (mOn ? '' : '<path d="M3 3l18 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>') + '</svg>';
       const mb = $('musicBtn'); mb.innerHTML = note; mb.title = (mOn ? 'Music on' : 'Music off') + ' (N)'; mb.setAttribute('aria-label', mOn ? 'Turn music off (N)' : 'Turn music on (N)');
       const mm = $('menuMusicBtn'); mm.innerHTML = note + '<span>Music: ' + (mOn ? 'on' : 'off') + '</span>'; mm.setAttribute('aria-pressed', String(mOn));
+      // the settings rows show their current state
+      const fs = !!(document.fullscreenElement || document.webkitFullscreenElement), canFs = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+      document.querySelectorAll('[data-set]').forEach((b) => {
+        const k = b.dataset.set;
+        if (k === 'music') { b.textContent = 'Music: ' + (mOn ? 'on' : 'off'); b.setAttribute('aria-pressed', String(mOn)); }
+        if (k === 'sound') { b.textContent = 'Sound: ' + (SFX.muted ? 'off' : 'on'); b.setAttribute('aria-pressed', String(!SFX.muted)); }
+        if (k === 'layout') { b.textContent = 'Layout: ' + (this.layout === 'portrait' ? 'Portrait' : 'Auto'); b.setAttribute('aria-pressed', String(this.layout === 'portrait')); }
+        if (k === 'full') { b.textContent = fs ? 'Exit fullscreen' : 'Fullscreen'; b.classList.toggle('hidden', !canFs); }
+      });
       const off = SFX.muted, b = $('muteBtn');
       b.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M3 9h4l5-4v14l-5-4H3z"/>'
         + (off ? '<path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
