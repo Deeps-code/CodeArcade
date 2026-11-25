@@ -342,3 +342,8 @@ h2 { margin: 0; font-family: var(--head); font-size: clamp(30px, 8vw, 48px); fon
   font: 700 12px var(--body, system-ui); letter-spacing: 0.06em; color: var(--dim); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); }
 .music-toggle:hover { color: var(--gold2); border-color: var(--gold); }
 .music-toggle[aria-pressed="true"] { color: var(--gold2); }
+
+/* card rerolls */
+.lu-foot { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 12px; }
+.btn.reroll { margin-top: 0; padding: 8px 18px; font-size: 13px; }
+.btn.reroll:disabled { opacity: 0.4; cursor: default; transform: none; }
