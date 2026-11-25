@@ -564,6 +564,7 @@
           const ang = rand(0, TAU);
           game.minions.push(new Minion('turret', this.x + Math.cos(ang) * 26, this.y + Math.sin(ang) * 26, { life: 22 }));
           game.burst(this.x, this.y, '#7dd3fc', 8); SFX.play('build');
+          this.swing = this.swingMax = 0.26; this.swingAnim = 'smash';
           this.attackTimer = this.attackCooldown;
         } else this.attackTimer = 0.3;
         return;
@@ -580,7 +581,7 @@
       const P = this.cls.passive, dmg = this.stats.damage;
       if (a.kind === 'melee') {
         const combo = P.combo && this.hits % P.combo === 0;
-        Combat.melee(this.x, this.y, this.aim, this.stats.range * (combo ? 1.3 : 1), a.arc, dmg * (combo ? 2 : 1), { knock: a.knock || 1, color: this.cls.color });
+        Combat.melee(this.x, this.y, this.aim, this.stats.range * (combo ? 1.3 : 1), a.arc, dmg * (combo ? 2 : 1), { knock: a.knock || 1, color: this.cls.color, style: combo && weaponOf(this).anim === 'punch' ? 'palm' : weaponOf(this).fx });
       } else if (a.kind === 'thrust') {
         Combat.thrust(this.x, this.y, this.aim, this.stats.range + 20, a.width, dmg, { color: this.cls.color });
       } else {
@@ -596,7 +597,9 @@
         }
         FX.muzzle(this.x + Math.cos(this.aim) * 30, this.y + Math.sin(this.aim) * 30 + 2, a.color);
       }
-      this.swing = this.swingMax = melee ? 0.18 : 0.1; this.swingArc = Math.min(2.4, a.arc || 1.4); this.swingKind = a.kind;
+      const W = weaponOf(this);
+      this.swing = this.swingMax = W.t; this.swingArc = Math.min(2.4, a.arc || 1.4); this.swingKind = a.kind;
+      this.swingAnim = a.kind === 'thrust' ? 'thrust' : W.anim; this.hand = !this.hand;   // fists alternate hands
       SFX.play(melee ? 'swing' : this.cls.id === 'gunner' ? 'gun' : a.shape === 'arrow' ? 'arrow' : 'magic', { vol: melee ? 1 : 0.8 });
       this.attackTimer = this.attackCooldown;
     }
@@ -638,8 +641,8 @@
         this.flurry -= dt; this.flurryTick -= dt;
         if (this.flurryTick <= 0) {
           this.flurryTick = 0.075; const fa = rand(0, TAU), fr = this.stats.range * rand(0.6, 1.1);
-          Combat.melee(this.x, this.y, fa, this.stats.range * 1.2, 1.6, this.stats.damage * 0.8, { color: this.cls.color });
-          FX.impact(this.x + Math.cos(fa) * fr, this.y + Math.sin(fa) * fr, '#fdba74', 22); this.aim = fa; this.swing = this.swingMax = 0.07;
+          Combat.melee(this.x, this.y, fa, this.stats.range * 1.2, 1.6, this.stats.damage * 0.8, { color: this.cls.color, style: weaponOf(this).fx });
+          FX.impact(this.x + Math.cos(fa) * fr, this.y + Math.sin(fa) * fr, '#fdba74', 22); this.aim = fa; this.swing = this.swingMax = 0.07; this.swingAnim = weaponOf(this).anim; this.hand = !this.hand;
         }
       }
       if (this.storm > 0) {
@@ -717,20 +720,28 @@
       const cast = this.castT > 0 ? this.castT / 0.45 : 0;
       const sc = 1.12 * (1 + Math.sin(cast * Math.PI) * 0.14);
       const w = HeroArt.weapon(id);
-      let wa = face < 0 ? Math.PI - this.aim : this.aim, kick = 0;
+      let wa = face < 0 ? Math.PI - this.aim : this.aim, kick = 0, hy = 0;
+      const A = (WEAPON_ANIM[w.kind] || {}).anim || 'swing', fistish = A === 'punch';
       if (this.swing > 0) {
-        const pr = 1 - this.swing / this.swingMax;
-        if (this.swingKind === 'thrust') kick = Math.sin(pr * Math.PI) * 10;
-        else if (w.melee) wa += (pr - 0.5) * this.swingArc;
-        else kick = -4 * (this.swing / this.swingMax);
-      } else if (w.melee) wa -= 0.35;   // at rest the weapon is held up a little
+        const pr = 1 - this.swing / this.swingMax, s = Math.sin(pr * Math.PI), anim = this.swingAnim || A;
+        if (anim === 'swing') wa += (pr - 0.5) * this.swingArc;
+        else if (anim === 'chop') wa += -1.4 + Math.pow(pr, 1.6) * 2.6;               // from high over the head, all the way through
+        else if (anim === 'smash') wa += -1.9 + Math.pow(pr, 2.2) * 2.3;              // held high, then slammed down
+        else if (anim === 'punch') { kick = s * 14 - 2; hy = this.hand ? -4 : 3; }    // a straight jab, alternating hands
+        else if (anim === 'jab') kick = s * 9;
+        else if (anim === 'thrust') kick = s * 10;
+        else if (anim === 'point') kick = s * 6;                                      // a staff thrust toward the target
+        else if (anim === 'throw') { kick = s * 10; wa -= (1 - pr) * 0.9; }           // wind up, then throw
+        else kick = -5 * (1 - pr);                                                    // recoil
+      } else if (fistish) kick = -3;                                                  // fists held up close (guard)
+      else if (w.melee) wa -= 0.35;   // at rest the weapon is held up a little
       if (cast > 0) wa = wa * (1 - cast) - 1.3 * cast;   // raise it high while casting
       if (L) wa -= 0.8;
       // squash & stretch: breathing when idle, a bouncy step when walking, a lunge on melee hits, a flinch when hurt
       let sx = 1, sy = 1, lx = 0, ly = 0, lean = 0;
       if (this.moving && !L) { const st = Math.abs(Math.sin(t * 11)) - 0.5; sy = 1 + st * 0.07; sx = 1 - st * 0.05; lean = clamp(this.mvx || 0, -1, 1) * 0.1 + Math.sin(t * 11) * 0.04; }
       else { sy = 1 + Math.sin(t * 2.6) * 0.02; sx = 1 - Math.sin(t * 2.6) * 0.014; }
-      if (this.swing > 0 && w.melee) { const lu = Math.sin((1 - this.swing / this.swingMax) * Math.PI); lx = Math.cos(this.aim) * lu * 4.5; ly = Math.sin(this.aim) * lu * 4.5; sx *= 1 + lu * 0.06; sy *= 1 - lu * 0.05; }
+      if (this.swing > 0 && w.melee) { const lu = Math.sin((1 - this.swing / this.swingMax) * Math.PI) * (fistish ? 0.6 : 1); lx = Math.cos(this.aim) * lu * 4.5; ly = Math.sin(this.aim) * lu * 4.5; sx *= 1 + lu * 0.06; sy *= 1 - lu * 0.05; }
       if (this.hurtFlash > 0) { const hk = this.hurtFlash / 0.18; sx *= 1 + hk * 0.1; sy *= 1 - hk * 0.1; lx += rand(-1.5, 1.5) * hk; }
       ctx.save();
       ctx.translate(this.x + lx, this.y + 21 + bob - lift + ly);   // scale around the feet so squashes stay on the ground
@@ -739,10 +750,33 @@
       ctx.translate(0, -19);
       ctx.drawImage((this.hurtFlash > 0 ? heroHurtSprite(id) : heroSprite(id)).c, -32, -40, 64, 64);
       // the weapon is always held in front of the body
-      ctx.save(); ctx.translate(10.8, 6.2); ctx.rotate(wa); ctx.translate(kick, 0); HeroArt.drawWeapon(ctx, id, t); ctx.restore();
+      ctx.save(); ctx.translate(10.8, 6.2 + hy); ctx.rotate(wa); ctx.translate(kick, 0); HeroArt.drawWeapon(ctx, id, t); ctx.restore();
       ctx.restore();
     }
   }
+  // How each weapon attacks: the arm motion (anim), the hit effect (fx) and how long the motion takes (t).
+  //   swing: a sweep across the arc · chop: a heavy overhead arc · smash: raised high then slammed down
+  //   punch: a fast straight jab (alternating hands) · jab: a short poke forward · thrust: a long lunge
+  //   point: a staff thrust toward the target · recoil: kicks back on firing · throw: a throwing motion
+  const WEAPON_ANIM = {
+    sword:   { anim: 'swing',  fx: 'slash',  t: 0.18 },
+    katana:  { anim: 'swing',  fx: 'katana', t: 0.14 },
+    axe:     { anim: 'chop',   fx: 'chop',   t: 0.24 },
+    hammer:  { anim: 'smash',  fx: 'smash',  t: 0.24 },
+    shield:  { anim: 'jab',    fx: 'bash',   t: 0.2 },
+    daggers: { anim: 'jab',    fx: 'stab',   t: 0.12 },
+    fists:   { anim: 'punch',  fx: 'punch',  t: 0.13 },
+    claws:   { anim: 'punch',  fx: 'claw',   t: 0.16 },
+    spear:   { anim: 'thrust', fx: 'thrust', t: 0.18 },
+    bow:     { anim: 'recoil', t: 0.12 },
+    gun:     { anim: 'recoil', t: 0.08 },
+    flame:   { anim: 'throw',  t: 0.16 },
+    wrench:  { anim: 'smash',  t: 0.26 },
+    staff: { anim: 'point', t: 0.14 }, wand: { anim: 'point', t: 0.12 }, sunstaff: { anim: 'point', t: 0.14 },
+    skullstaff: { anim: 'point', t: 0.14 }, icestaff: { anim: 'point', t: 0.14 }, branch: { anim: 'point', t: 0.14 },
+  };
+  const weaponOf = (p) => WEAPON_ANIM[HeroArt.weapon(p.buffs.bear > 0 ? 'bear' : p.cls.id).kind] || WEAPON_ANIM.sword;
+
   // the hero's body (artwork in heroes.js), drawn once per hero: origin at (32, 40) in a 64x64 box
   function heroSprite(id) { return cached('hero2:' + id, 64, 64, (g) => { g.translate(32, 40); HeroArt.drawBody(g, id); }); }
   // the same body tinted red, flashed for a moment when the hero gets hit
@@ -1717,7 +1751,15 @@
         this.damage(e, dmg, { knockAngle: Math.atan2(dy, dx), knock: o.knock || 1 });
         if (hits++ < 4) FX.spark(e.x - (dx / (d || 1)) * e.radius * 0.6, e.y - (dy / (d || 1)) * e.radius * 0.6, o.color || '#ffffff');
       }
-      game.fx.push({ type: 'slash', x, y, angle, arc, radius, color: o.color || '#ffffff', t: 0.2, max: 0.2 });
+      // the hit effect matches the weapon: crescents for blades, bursts for fists, a shockwave for a shield bash...
+      const st = o.style || 'slash', col = o.color || '#ffffff', ca = Math.cos(angle), sa = Math.sin(angle);
+      if (st === 'slash' || st === 'chop' || st === 'katana') game.fx.push({ type: 'slash', x, y, angle, arc, radius, color: col, t: 0.2, max: 0.2, heavy: st === 'chop', thin: st === 'katana' });
+      else if (st === 'smash') {
+        const hx = x + ca * radius * 0.75, hy = y + sa * radius * 0.75;
+        game.fx.push({ type: 'slash', x, y, angle, arc: Math.min(arc, 1.1), radius, color: col, t: 0.14, max: 0.14, heavy: true });
+        FX.add({ type: 'ring', x: hx, y: hy, r0: 6, r1: radius * 0.6, color: col, t: 0.3, max: 0.3, w: 5 }); FX.spark(hx, hy, '#fde68a', radius * 0.55);
+      } else if (st === 'palm') FX.palm(x + ca * radius * 0.55, y + sa * radius * 0.55, angle, radius * 0.85, col);
+      else FX.add({ type: 'strike', style: st, x: x + ca * radius * 0.62, y: y + sa * radius * 0.62, angle, size: radius, color: col, t: st === 'claw' ? 0.26 : 0.18, max: st === 'claw' ? 0.26 : 0.18 });
     },
     // a spear thrust: hits everything along a line
     thrust(x, y, angle, length, width, dmg, o = {}) {
@@ -2748,6 +2790,48 @@
         ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(0, -w / 2); ctx.lineTo(L, -w * 0.12); ctx.lineTo(L + 34, 0); ctx.lineTo(L, w * 0.12); ctx.lineTo(0, w / 2); ctx.closePath(); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(0, -2, L, 4);
         ctx.restore();
+      } else if (f.type === 'strike') {   // weapon-specific hits: punch, shield bash, dagger stabs, claw marks
+        const ca = Math.cos(f.angle), sa = Math.sin(f.angle), nx = -sa, ny = ca, sz = f.size;
+        ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+        if (f.style === 'punch') {
+          // a burst at the knuckles, a pressure ring pushed forward, speed lines behind the fist
+          const R = sz * (0.35 + u * 0.45);
+          blit(lightSprite(f.color), f.x, f.y, sz * (1.1 - u * 0.4));
+          ctx.strokeStyle = rgba(f.color, 0.85 * k); ctx.lineWidth = 5 * k + 1;
+          ctx.beginPath(); ctx.arc(f.x - ca * R * 0.5, f.y - sa * R * 0.5, R, f.angle - 0.9, f.angle + 0.9); ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,' + k + ')'; ctx.lineWidth = 2;
+          ctx.beginPath(); for (let i = -1; i <= 1; i++) { const ox = nx * i * 6, oy = ny * i * 6, b = sz * (0.95 + u * 0.3) - Math.abs(i) * 6; ctx.moveTo(f.x - ca * b + ox, f.y - sa * b + oy); ctx.lineTo(f.x - ca * sz * 0.4 + ox, f.y - sa * sz * 0.4 + oy); } ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,' + k + ')'; ctx.beginPath();
+          for (let i = 0; i < 10; i++) { const a = f.angle + (i / 10) * TAU, r = i % 2 ? sz * 0.12 : sz * (0.22 + u * 0.12); i ? ctx.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r) : ctx.moveTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r); }
+          ctx.closePath(); ctx.fill();
+        } else if (f.style === 'bash') {
+          // a curved wall of force pushed out from the shield
+          const R = sz * (0.4 + u * 0.55);
+          ctx.strokeStyle = rgba(f.color, 0.8 * k); ctx.lineWidth = 12 * k + 2; ctx.beginPath(); ctx.arc(f.x - ca * sz * 0.6, f.y - sa * sz * 0.6, R, f.angle - 0.75, f.angle + 0.75); ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,' + k + ')'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(f.x - ca * sz * 0.6, f.y - sa * sz * 0.6, R, f.angle - 0.75, f.angle + 0.75); ctx.stroke();
+          blit(lightSprite(f.color), f.x, f.y, sz * 0.9 * k + 10);
+        } else if (f.style === 'stab') {
+          // two quick dagger thrusts side by side
+          const L = sz * Math.min(1, u * 5) * 0.9;
+          for (const o of [-5, 5]) {
+            const bx = f.x - ca * sz * 0.55 + nx * o, by = f.y - sa * sz * 0.55 + ny * o;
+            ctx.strokeStyle = rgba(f.color, 0.7 * k); ctx.lineWidth = 6 * k + 1; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + ca * L, by + sa * L); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,' + k + ')'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + ca * L, by + sa * L); ctx.stroke();
+          }
+          blit(lightSprite('#ffffff', 'rgba(255,255,255,0.6)'), f.x + ca * sz * 0.3, f.y + sa * sz * 0.3, 18 * k + 6);
+        } else if (f.style === 'claw') {
+          // three curved scratches raking across the target
+          const g2 = Math.min(1, u * 4);
+          ctx.globalCompositeOperation = 'source-over';
+          for (const o of [-9, 0, 9]) {
+            const cx = f.x + nx * o, cy = f.y + ny * o, L = sz * 0.55;
+            const x0 = cx - ca * L * 0.2 - nx * L * 0.5, y0 = cy - sa * L * 0.2 - ny * L * 0.5;
+            const x1 = x0 + (nx * L) * g2 + ca * L * 0.4 * g2, y1 = y0 + (ny * L) * g2 + sa * L * 0.4 * g2;
+            ctx.strokeStyle = 'rgba(127,29,29,' + 0.8 * k + ')'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2 + ca * 4, (y0 + y1) / 2 + sa * 4, x1, y1); ctx.stroke();
+            ctx.strokeStyle = 'rgba(254,226,226,' + k + ')'; ctx.lineWidth = 2; ctx.stroke();
+          }
+        }
+        ctx.globalCompositeOperation = 'source-over'; ctx.lineCap = 'butt';
       } else if (f.type === 'cutline') {   // a bright sword stroke left behind by a dash
         ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
         ctx.strokeStyle = 'rgba(251,113,133,' + 0.6 * k + ')'; ctx.lineWidth = 12 * k + 1; ctx.beginPath(); ctx.moveTo(f.x1, f.y1); ctx.lineTo(f.x2, f.y2); ctx.stroke();
@@ -2763,7 +2847,8 @@
         ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgba('#67e8f9', 0.55 * k); ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * 0.8, a - 1.8, a); ctx.stroke(); ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = Math.min(1, k * 3); ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(a); ctx.scale(sc, sc); ctx.translate(-10, 0); HeroArt.drawWeapon(ctx, 'spearman', game.time); ctx.restore();
       } else if (f.type === 'slash') {
-        const sweep = Math.min(1, u * 3.5), a0 = f.angle - f.arc / 2, a1 = a0 + f.arc * sweep, R = f.radius * (0.88 + u * 0.15), wd = Math.max(7, f.radius * 0.34);
+        const sweep = Math.min(1, u * (f.thin ? 5 : 3.5)), a0 = f.angle - f.arc / 2, a1 = a0 + f.arc * sweep, R = f.radius * (0.88 + u * 0.15);
+        const wd = Math.max(7, f.radius * 0.34) * (f.heavy ? 1.6 : f.thin ? 0.35 : 1);
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = rgba(f.color, 0.6 * k);
         ctx.beginPath(); ctx.arc(f.x, f.y, R, a0, a1);
